@@ -12,7 +12,7 @@ from contextMenus import *
 
 # Harm utilities & settings:
 import tokens, delegates, txt2xml
-import structured, utilities
+import structured, utilities, views
 from constants import *
 
 #Google charts:
@@ -297,10 +297,10 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.setupRightTabs(init)
 
         # Docks? (do we need them here):
-        dock_left = QtGui.QDockWidget(self.tr('Jobs'), self)
+        dock_left = QtGui.QDockWidget(self)#self.tr('Jobs')
         dock_left.setWidget(self.left_tab_widget)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock_left)
-        dock_right = QtGui.QDockWidget(self.tr('Details'), self)
+        dock_right = QtGui.QDockWidget(self)#self.tr('Details')
         dock_right.setWidget(self.right_tab_widget)
         self.addDockWidget(Qt.RightDockWidgetArea, dock_right)
 
@@ -327,6 +327,15 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         jobs_tab_vbox   = QtGui.QVBoxLayout(self.jobs_tab)
         self.left_tab_widget.addTab(self.jobs_tab, "Jobs")
 
+         # Filter:
+        self.jobs_filter_label = QtGui.QLabel()
+        self.jobs_filter_label.setText("Jobs filter")
+        jobs_filter_hbox = QtGui.QHBoxLayout()
+        jobs_filter_hbox.addWidget(self.jobs_filter_label)
+        self.jobs_filter_line = QLineEdit()
+        jobs_filter_hbox.addWidget(self.jobs_filter_line)
+        jobs_tab_vbox.insertLayout(0, jobs_filter_hbox)
+
         # Jobs models (Left Tabs):
         xml = os.popen(SGE_JOBS_LIST_GROUPED)
         self.jobs_model = SGETableModel(xml, ["job_info"])
@@ -336,15 +345,6 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         context.models['jobs_model'] = self.jobs_model
         context.models['jobs_proxy_model'] = self.jobs_proxy_model
     
-        # Filter:
-        self.jobs_filter_label = QtGui.QLabel()
-        self.jobs_filter_label.setText("Jobs filter")
-        jobs_filter_hbox = QtGui.QHBoxLayout()
-        jobs_filter_hbox.addWidget(self.jobs_filter_label)
-        self.jobs_filter_line = QLineEdit()
-        jobs_filter_hbox.addWidget(self.jobs_filter_line)
-        jobs_tab_vbox.insertLayout(0, jobs_filter_hbox)
-
         # History filters:
         #self.jobs_filter_menu = QtGui.QMenu()
         #self.jobs_filter_presets = QtGui.QMenu('Presets')
@@ -356,19 +356,20 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         # Jobs View:
         self.jobs_view = QTableView()
         context.views['jobs_view'] = self.jobs_view
-        self.jobs_delagate = delegates.JobsDelegate(context, self.jobs_model)
-        self.jobs_view.setItemDelegate(self.jobs_delagate)
-        self.jobs_view.setSortingEnabled(True)
-        self.jobs_view.setCornerButtonEnabled(True)
-        self.jobs_view.setSelectionBehavior(1)
+        #self.jobs_delagate = delegates.JobsDelegate(context, self.jobs_model)
+        #self.jobs_view.setItemDelegate(self.jobs_delagate)
+        #self.jobs_view.setSortingEnabled(True)
+        #self.jobs_view.setCornerButtonEnabled(True)
+        #self.jobs_view.setSelectionBehavior(1)
         #self.jobs_view.setAlternatingRowColors(1)
-        self.jobs_view.setModel(self.jobs_proxy_model)
-        self.jobs_view.resizeColumnsToContents()
-        self.jobs_view.resizeRowsToContents()
+        #self.jobs_view.setModel(self.jobs_proxy_model)
+        #self.jobs_view.resizeColumnsToContents()
+        #self.jobs_view.resizeRowsToContents()
+        self.jobs_view = views.JobsView(context)
         jobs_tab_vbox.addWidget(self.jobs_view)
         #Context menu:
-        self.jobs_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.jobs_view.customContextMenuRequested.connect(self.openJobsMenu)
+        #self.jobs_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        #self.jobs_view.customContextMenuRequested.connect(self.openJobsMenu)
 
         # Tasks view Controls:
         self.tasks_onlySelected_toggle = QtGui.QCheckBox()
