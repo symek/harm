@@ -351,25 +351,15 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         #self.jobs_filter_presets.addAction(QString("owner"))
         #self.jobs_filter_menu.addMenu(self.jobs_filter_presets)
         #jobs_filter_hbox.addWidget(self.jobs_filter_menu)
-        
 
         # Jobs View:
-        self.jobs_view = QTableView()
-        context.views['jobs_view'] = self.jobs_view
-        #self.jobs_delagate = delegates.JobsDelegate(context, self.jobs_model)
-        #self.jobs_view.setItemDelegate(self.jobs_delagate)
-        #self.jobs_view.setSortingEnabled(True)
-        #self.jobs_view.setCornerButtonEnabled(True)
-        #self.jobs_view.setSelectionBehavior(1)
-        #self.jobs_view.setAlternatingRowColors(1)
-        #self.jobs_view.setModel(self.jobs_proxy_model)
-        #self.jobs_view.resizeColumnsToContents()
-        #self.jobs_view.resizeRowsToContents()
+        #self.jobs_view = QTableView()
         self.jobs_view = views.JobsView(context)
+        #context.views['jobs_view'] = self.jobs_view
         jobs_tab_vbox.addWidget(self.jobs_view)
-        #Context menu:
-        #self.jobs_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        #self.jobs_view.customContextMenuRequested.connect(self.openJobsMenu)
+        # Context menu:
+        self.jobs_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.jobs_view.customContextMenuRequested.connect(self.openJobsMenu)
 
         # Tasks view Controls:
         self.tasks_onlySelected_toggle = QtGui.QCheckBox()
@@ -378,30 +368,10 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         tasks_controls.addWidget(self.tasks_onlySelected_toggle)
 
         # Tasks View (Left Tabs):
-        xml = os.popen(SGE_JOBS_LIST)
-        self.tasks_model = SGETableModel(xml, ["queue_info"])
-        # TODO: Globally register models and views?
-        context.models['tasks_model'] = self.tasks_model
-        # Proxy model:
-        self.tasks_proxy_model = QSortFilterProxyModel()
-        self.tasks_proxy_model.setSourceModel(self.tasks_model)
-        self.tasks_proxy_model.setDynamicSortFilter(True)
-        context.models['tasks_proxy_model'] = self.tasks_proxy_model
-        # View:
-        self.tasks_view = QTableView()
-        #self.tasks_delagate = delegates.TasksDelegate(context, self.tasks_model)
-        #self.tasks_view.setItemDelegate(self.tasks_delagate)
-        self.tasks_view.setSortingEnabled(True)
-        self.tasks_view.setSelectionBehavior(1)
-        #self.tasks_view.setAlternatingRowColors(1)
-        self.tasks_view.sortByColumn(9,0)
-        self.tasks_view.setModel(self.tasks_proxy_model)
-        self.tasks_view.resizeColumnsToContents()
-        self.tasks_view.resizeRowsToContents()
-        context.views['tasks_view'] = self.tasks_view
+        self.tasks_view = views.TasksView(context)
         jobs_tab_vbox.insertLayout(2, tasks_controls)
         jobs_tab_vbox.addWidget(self.tasks_view)
-        #Context menu
+        # Context menu
         self.tasks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tasks_view.customContextMenuRequested.connect(self.openTasksMenu)
 
