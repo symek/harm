@@ -73,40 +73,27 @@ class XmlDictConfig(dict):
 ## end of http://code.activestate.com/recipes/410469/ }}}
 
 
+
 #################################################################
-#               Job Table Model                              #   
+#               Sge Abstract (base) Model                       #   
 # ###############################################################
 
-class JobsModel(QAbstractTableModel):
-    def __init__(self,  parent=None, *args):
-        super(JobsModel, self).__init__()
-        self._data = {}
-      
-    def update(self, token='qstat -xml -u "*"'):
-        from operator import itemgetter
-        tree  = ElementTree.parse(os.popen(token))
-        root  = tree.getroot()
-        self._dict = XmlDictConfig(root)
+class SgeTableModelBase():
+    def __init__(self):
+        '''_tree is an ElementTree as parsed stright from a XML.
+           _xml is stripped version of a tree in dict() format.
+           _data is list of the lists version of item in _xml.
+           _head is a dict of headers found in xml items.'''
+        self._tree = None
+        self._dict  = {}
         self._data = []
-        if self.has_items(self._dict)[0]:
-            d = self._dict['job_info']['job_list']
-            self._data += [[x[key] for key in x.keys()] for x in d]
-            self._data = sorted(self._data,  key=itemgetter(7))
-            self._data.reverse()
-            print self._data
-           
+        self._head = {}
+
     def flags(self, index):
-        flag = super(JobsModel, self).flags(index)
+        flag = super(self.__class__, self).flags(index)
         return flag | Qt.ItemIsEditable
 
-    def has_items(self, d):
-        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        # At least one case should return True (job_info or queue_info are dicts
-        # i.e. they are not empty):
-        return [isinstance(d[x], {}.__class__) for x in ('job_info', 'queue_info')]
-
     def rowCount(self, parent):
-        # Row count is a sum of both entires (if they exist):
         return len(self._data)
 
     def columnCount(self, parent):
@@ -115,73 +102,111 @@ class JobsModel(QAbstractTableModel):
         return 0
 
     def _tag2idx(self, item):
+        '''This builds self._head dict {1:header, 2:another, ...}'''
         _map = {}
         for x in range(len(item.keys())):
             _map[x] = item.keys()[x]
         return _map
 
-    def data(self, index, role):
-        if not index.isValid():
-            return QVariant()
-        elif role != Qt.DisplayRole:
-            return QVariant()
+    def data_hooks(self, index, value):
+        '''Loops through all hook_* function of self, and executes it
+           to preprocess data of a model. Hooks to be provided by derived classes'''
+        for func in dir(self):
+            if func.startswith("hook"):
+                value = self.__getattribute__(func)(index, value)
 
-        # Read element from a elementTree sub-entry :
-        tagidx = self._tag2idx(self._dict['job_info']['job_list'][-1])
-        value  = self._data[index.row()][index.column()]
-
-        # Change time string formating:
-        if tagidx[index.column()] in tokens.time_strings: 
-            value = self.parse_time_string(value)
-
-        # Shorten machine name in Tasks view:
-        if tagidx[index.column()] == 'queue_name':
-            if value: 
-                value = value.split("@")[-1]
-                if "." in value:
-                    value = value.split(".")[0]
-
-        # Process data: 
+        # Process data types: 
         if not value: 
-            return QVariant() 
+            return None 
         if value.isdigit(): 
             value = int(value)
         try: 
             value = float(value)
         except: 
             pass
+        return value
+              
+    def data(self, index, role):
+        ''''Data access.'''
+        if not index.isValid():
+            return QVariant()
+        elif role != Qt.DisplayRole:
+            return QVariant()
+
+        # Read element from a elementTree sub-entry :
+        value = self._data[index.row()][index.column()]
+        value = self.data_hooks(index, value)
+        if not value: return QVariant()        
         # Finally return something meaningfull:
         return QVariant(value)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
+        '''Headers builder. Note crude tokens replacement.'''
         # Replaces columns/rows names view custom tokens;
         def header_replace(name):
             if name in tokens.header.keys():
                 name = tokens.header[name]
             return name
-
         # Nothing to do here:
         if role != Qt.DisplayRole:
             return QVariant()
-    
-        # Shortcut:
-        if len(self._data):
-            tagidx = self._tag2idx(self._dict['job_info']['job_list'][-1])
-
-        if orientation == Qt.Horizontal:
-            # tagidx keeps track of column names (dict.key()):
-            if self.has_items(self._dict):
-                return QVariant(header_replace(tagidx[section]))
-
-        elif orientation == Qt.Vertical:
-            if self.has_items(self._dict):
-                return QVariant(header_replace(int(section+1)))
-
+        # Horizontal headers:
+        if orientation == Qt.Horizontal and len(self._data):
+            return QVariant(header_replace(self._head[section]))
+        # Vertical headers:
+        elif orientation == Qt.Vertical and len(self._data):
+            return QVariant(header_replace(int(section+1)))
         return QVariant()
 
     def parse_time_string(self, time):
+        '''Parses the time string to reasonable format.'''
         date, time = time.split("T")
         return " ".join((time, date))
+
+
+
+
+#################################################################
+#               Job Table Model                              #   
+# ###############################################################
+
+class JobsModel(QAbstractTableModel, SgeTableModelBase):
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__()
+      
+    def update(self, sge_command, token='job_info', sort_by_field=7, reverse=True):
+        '''Main function of derived model. Builds _data list from input.'''
+        from operator import itemgetter
+        # All dirty data. We need to duplicate it here,
+        # to keep things clean down the stream.
+        self._tree = ElementTree.parse(os.popen(sge_command))
+        self._dict  = XmlDictConfig(self._tree.getroot())[token]
+        self._data = []
+
+        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
+        if isinstance(self._dict, {}.__class__):
+            d = self._dict['job_list']
+            self._data += [[x[key] for key in x.keys()] for x in d]
+            self._data = sorted(self._data,  key=itemgetter(sort_by_field))
+            if reverse:
+                self._data.reverse()
+            self._head = self._tag2idx(d[-1])
+    
+    def hook_timestring(self, index, value):
+        # Change time string formating:
+        if self._head[index.column()] in tokens.time_strings: 
+            value = self.parse_time_string(value)
+        return value
+
+    def hook_machinename(self, index, value):
+        # Shorten machine name in Tasks view:
+        if self._head[index.column()] == 'queue_name':
+            if value: 
+                value = value.split("@")[-1]
+                if "." in value:
+                    value = value.split(".")[0]
+        return value
+
 
 
 
@@ -191,9 +216,9 @@ def main():
     root = tree.getroot()
     d    = XmlDictConfig(root)
     d    = JobsModel()
-    d.update()
+    d.update('qstat -xml -u "*"')
     print d.rowCount(None)
-    print d.data(0,2)
+    print d.data(QModelIndex(0,2))
 
 
 

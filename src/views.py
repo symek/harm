@@ -7,25 +7,40 @@ from SGEModels import *
 from constants import *
 import delegates
 import models
+import config
 
 #System:
 import os
 
 class ViewConfig():
-    pass
+    def configure(self):
+        # Prototype of config class.
+        conf = config.Config()
+        conf.load("src/harm.conf")
+        if self.__class__.__name__ in conf.keys():
+            c = conf[self.__class__.__name__]
+            for item in c:
+                self.__getattribute__(item[0])(item[1][0])
+            
+    def save_configure(self):
+        pass
 
 
 class ViewBase():
-    pass
+    def __init__(self):
+        self.setSortingEnabled(True)
+        self.setCornerButtonEnabled(True)
+        self.setSelectionBehavior(1)
+        self.setAlternatingRowColors(1)
+        self.setDragDropMode(4)
 
 
 
-class JobsView(ViewBase, ViewConfig, QTableView):
+class JobsView(QTableView, ViewBase, ViewConfig):
     def __init__(self, context):
         super(JobsView, self).__init__()
         self.context = context
-        # Basic config
-        # TODO: Move into ViewConfig:
+        self.configure()
 
         # Models:
         self.model = models.JobsModel()
@@ -47,11 +62,25 @@ class JobsView(ViewBase, ViewConfig, QTableView):
         #self.horizontalHeader().setMovable(True)
         self.horizontalHeader().moveSection(7,0)
         
-        self.setSortingEnabled(True)
-        self.setCornerButtonEnabled(True)
-        self.setSelectionBehavior(1)
-        self.setAlternatingRowColors(1)
-        self.setDragDropMode(4)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+
+class TasksView(QTableView, ViewBase,ViewConfig):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+
+        # Models:
+        self.model = models.JobsModel()
+        self.model.update(SGE_JOBS_LIST, 'queue_info')
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['tasks_model'] = self.model
+        self.context.models['tasks_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
 
         # Clean:
         self.resizeColumnsToContents()
