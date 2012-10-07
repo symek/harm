@@ -174,7 +174,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__()
       
-    def update(self, sge_command, token='job_info', sort_by_field=7, reverse=True):
+    def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
         # All dirty data. We need to duplicate it here,
@@ -182,15 +182,20 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
         self._tree = ElementTree.parse(os.popen(sge_command))
         self._dict  = XmlDictConfig(self._tree.getroot())[token]
         self._data = []
+        self._head = {}
 
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
         if isinstance(self._dict, {}.__class__):
             d = self._dict['job_list']
-            self._data += [[x[key] for key in x.keys()] for x in d]
-            self._data = sorted(self._data,  key=itemgetter(sort_by_field))
-            if reverse:
-                self._data.reverse()
             self._head = self._tag2idx(d[-1])
+            self._data += [[x[key] for key in x.keys()] for x in d]
+            # Sort list by specified header (given it's name, not index):
+            if sort_by_field in self._head.values():
+                key_index = [k for k, v in self._head.iteritems() if v == sort_by_field][0]
+                self._data = sorted(self._data,  key=itemgetter(key_index))
+                if reverse_order:
+                    self._data.reverse()
+            
     
     def hook_timestring(self, index, value):
         # Change time string formating:
