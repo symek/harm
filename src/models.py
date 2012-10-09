@@ -1,6 +1,7 @@
 from PyQt4.QtCore import *
 import tokens
 import os
+from ordereddict import OrderedDict
 
 ##########################################################
 # Xml****Config are work-horses in custom Qt models      #
@@ -89,9 +90,9 @@ def qccet_to_dict(text, tasks=False):
         return value
 
     f = text.split(62*"=")
-    out = {}
+    out = OrderedDict() #{}
     for job in f:
-        j = {}
+        j = OrderedDict() #{}
         job = job.split("\n")
         for tag in job:
             tag = tag.strip().split()
@@ -103,6 +104,21 @@ def qccet_to_dict(text, tasks=False):
             else:
                 out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
     return out
+
+
+def rotate_nested_dict(d, key):
+    '''Given a dictionary of dictionarties, it builds a new one
+       with keys taken from children's values.'''
+    output = OrderedDict()#{}
+    for item in d:
+        if key in d[item]:
+            if d[item][key] not in output.keys():
+                output[d[item][key]] = [d[item]]
+            else:
+                #tmp = output[d[item][key]]
+                #output[d[item][key]] = [tmp]
+                output[d[item][key]].append(d[item])
+    return output
 
 
 #################################################################
@@ -225,7 +241,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
         self._head = {}
 
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        if isinstance(self._dict, {}.__class__):
+        if isinstance(self._dict, dict):
             d = self._dict['job_list']
             self._head = self._tag2idx(d[-1])
             self._data += [[x[key] for key in x.keys()] for x in d]
@@ -265,28 +281,23 @@ class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__()
       
-    def update(self, sge_command, sort_by_field='jobnumber', reverse_order=True):
+    def update(self, sge_command, sort_by_field='jobnumber', reverse_order=True, rotate_by_field=None):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
-        self._dict  = qccet_to_dict(os.popen(sge_command).read(), True)
-        self._data = []
-        self._head = {}
-
-        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        #if isinstance(self._dict, {}.__class__):
+        self._dict = qccet_to_dict(os.popen(sge_command).read(), True)
         self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
-        self._data += [self._dict[item].values() for item in self._dict]
-        print self._dict[self._dict.keys()[0]]
-        print self._data[0]
+        self._data = [self._dict[item].values() for item in self._dict]
         # Sort list by specified header (given it's name, not index):
         if sort_by_field in self._head.values():
             key_index = self.get_key_index(sort_by_field)
             self._data = sorted(self._data,  key=itemgetter(key_index))
             if reverse_order:
-                self._data.reverse()        
+                self._data.reverse()
 
 
-def main():
+
+
+def test():
     import os
     tree = ElementTree.parse(os.popen('qstat -xml -u "*"'))
     root = tree.getroot()
