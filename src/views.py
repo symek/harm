@@ -67,10 +67,11 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         self.resizeRowsToContents()
 
 
-class TasksView(QTableView, ViewBase,ViewConfig):
+class TasksView(QTableView, ViewBase, ViewConfig):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.context = context
+        self.configure()
 
         # Models:
         self.model = models.JobsModel()
@@ -81,6 +82,50 @@ class TasksView(QTableView, ViewBase,ViewConfig):
         self.context.models['tasks_model'] = self.model
         self.context.models['tasks_proxy_model'] = self.proxy_model
         self.setModel(self.proxy_model)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+
+
+
+class HistoryView(QTableView, ViewBase,ViewConfig):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.configure()
+
+        # Models:
+        self.model = models.JobsHistoryModel()
+        self.model.update(SGE_HISTORY_LIST)
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['history_model'] = self.model
+        self.context.models['history_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+
+         # Reorder columns in bellow order:        
+        self.horizontalHeader().setMovable(True)
+        order_columns = 'jobnumber taskid owner qsub_time start_time end_time jobname cpu maxvmem exit_status failed'.split()
+        for column in range(len(order_columns)):
+            if order_columns[column] in self.model._head.values():
+                # We mind visual_index which changes on every loop's step, so this have to be rediscaverd from 
+                visual_index =  self.horizontalHeader().visualIndex(self.model.get_key_index(order_columns[column]))
+                self.horizontalHeader().moveSection(visual_index, column)
+
+
+        # Hide columns:
+        hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
+        ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
+        ru_oublock iow slots'.split()
+        for column in hidden_columns:
+            if column in self.model._head.values():
+                self.setColumnHidden(self.model.get_key_index(column), True)
+
+
+       
 
         # Clean:
         self.resizeColumnsToContents()

@@ -77,7 +77,7 @@ class XmlDictConfig(dict):
 #  Input text is an output from qccet SGE utility     #
 ########################################################
 
-def txt_to_dict(text, tasks=False):
+def qccet_to_dict(text, tasks=False):
     def getValue(value):
         if value.isdigit(): 
             value = int(value)
@@ -147,8 +147,12 @@ class SgeTableModelBase():
                 value = self.__getattribute__(func)(index, value)
 
         # Process data types: 
-        if not value: 
-            return None 
+        if value == None: 
+            return None
+        elif value.__class__ in (int, float):
+            return value 
+        elif not isinstance(value, str):
+            return None
         if value.isdigit(): 
             value = int(value)
         try: 
@@ -156,6 +160,11 @@ class SgeTableModelBase():
         except: 
             pass
         return value
+
+    def get_key_index(self, key):
+        '''Returns a key index in headers given its name.'''
+        if key in self._head.values():
+            return [k for k, v in self._head.iteritems() if v == key][0]
               
     def data(self, index, role):
         ''''Data access.'''
@@ -222,7 +231,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
             self._data += [[x[key] for key in x.keys()] for x in d]
             # Sort list by specified header (given it's name, not index):
             if sort_by_field in self._head.values():
-                key_index = [k for k, v in self._head.iteritems() if v == sort_by_field][0]
+                key_index = self.get_key_index(sort_by_field)
                 self._data = sorted(self._data,  key=itemgetter(key_index))
                 if reverse_order:
                     self._data.reverse()
@@ -259,20 +268,22 @@ class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
     def update(self, sge_command, sort_by_field='jobnumber', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
-        self._dict  = txt_to_dict(os.popen(sge_command))
+        self._dict  = qccet_to_dict(os.popen(sge_command).read(), True)
         self._data = []
         self._head = {}
 
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        if isinstance(self._dict, {}.__class__):
-            self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
-            self._data += [[x[key] for key in x.keys()] for x in d]
-            # Sort list by specified header (given it's name, not index):
-            if sort_by_field in self._head.values():
-                key_index = [k for k, v in self._head.iteritems() if v == sort_by_field][0]
-                self._data = sorted(self._data,  key=itemgetter(key_index))
-                if reverse_order:
-                    self._data.reverse()        
+        #if isinstance(self._dict, {}.__class__):
+        self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
+        self._data += [self._dict[item].values() for item in self._dict]
+        print self._dict[self._dict.keys()[0]]
+        print self._data[0]
+        # Sort list by specified header (given it's name, not index):
+        if sort_by_field in self._head.values():
+            key_index = self.get_key_index(sort_by_field)
+            self._data = sorted(self._data,  key=itemgetter(key_index))
+            if reverse_order:
+                self._data.reverse()        
 
 
 def main():

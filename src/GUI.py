@@ -314,8 +314,8 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupLeftTabs(self, init):
         self.splashMessage("Setup Jobs Tabs...")
         self.setupJobsTab(1)
-        #self.splashMessage("Setup Finished Tabs...")
-        #self.setupFinishedTab(1) 
+        self.splashMessage("Setup History Tab...")
+        self.setupHistoryTab(1) 
         #self.splashMessage("Setup Machines Tabs...")
         #self.setupMachinesTab(1)
 
@@ -375,7 +375,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.tasks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tasks_view.customContextMenuRequested.connect(self.openTasksMenu)
 
-    def setupFinishedTab(self, init):
+    def setupHistoryTab(self, init):
         # Finished jobs:
         #f = os.popen(SGE_HISTORY_LIST).read()
         #self.splashMessage("Parsing history file...")
@@ -383,23 +383,22 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         #self.splashMessage("History to XML...")
         #xml = structured.dict2et(f, "job_info")
         #self.finished_model = SGETableModel(None, ['job_info'])
-        #self.finished_view = models.JobsHistoryModel()
-        #self.
-        context.models['finished_model'] = self.finished_model
-        self.finished_proxy_model = QSortFilterProxyModel()
-        self.finished_proxy_model.setSourceModel(self.finished_model)
-        self.finished_model.setTree(xml)
-        self.finished_view  = QTableView()
-        self.finished_view.setSortingEnabled(True)
-        self.finished_tab   = QtGui.QWidget()
-        self.finished_view.setSelectionBehavior(1)
-        self.finished_view.setAlternatingRowColors(1)
-        self.finished_view.setModel(self.finished_proxy_model)
-        self.finished_view.resizeColumnsToContents()
-        self.finished_view.resizeRowsToContents()
-        self.left_tab_widget.addTab(self.finished_tab, "Finished")
-        finished_tab_vbox = QtGui.QVBoxLayout(self.finished_tab)
-        finished_tab_vbox.addWidget(self.finished_view)
+        self.history_view = views.HistoryView(context)
+        #self.finished_proxy_model = QSortFilterProxyModel()
+        #self.finished_proxy_model.setSourceModel(self.finished_model)
+        #self.finished_model.setTree(xml)
+        #self.finished_view  = QTableView()
+        #self.finished_view.setSortingEnabled(True)
+
+        self.history_tab   = QtGui.QWidget()
+        #self.finished_view.setSelectionBehavior(1)
+        #self.finished_view.setAlternatingRowColors(1)
+        #self.finished_view.setModel(self.finished_proxy_model)
+        #self.finished_view.resizeColumnsToContents()
+        #self.finished_view.resizeRowsToContents()
+        self.left_tab_widget.addTab(self.history_tab, "History")
+        history_tab_vbox = QtGui.QVBoxLayout(self.history_tab)
+        history_tab_vbox.addWidget(self.history_view)
         
     def setupMachinesTab(self, init):
         #Machines (Left Tabs):
