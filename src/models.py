@@ -78,7 +78,7 @@ class XmlDictConfig(dict):
 #  Input text is an output from qccet SGE utility     #
 ########################################################
 
-def qccet_to_dict(text, tasks=False):
+def qccet_to_dict(text, tasks=False, order_list=None):
     def getValue(value):
         if value.isdigit(): 
             value = int(value)
@@ -88,16 +88,28 @@ def qccet_to_dict(text, tasks=False):
             except: 
                 pass
         return value
+    def reorder_dict(d, l):
+        out = OrderedDict()
+        left = []
+        for key in l:
+            if key in d.keys():
+                out[key] = d[key]
+        for key in d:
+            if key not in out:
+                out[key] = d[key]
+        return out
 
     f = text.split(62*"=")
-    out = OrderedDict() #{}
+    out = OrderedDict()
     for job in f:
-        j = OrderedDict() #{}
+        j = OrderedDict()
         job = job.split("\n")
         for tag in job:
             tag = tag.strip().split()
             if len(tag) > 1:
                 j[tag[0]] = getValue(" ".join(tag[1:]))
+        if order_list: 
+            j = reorder_dict(j, order_list)
         if j.keys():
             if not tasks:
                 out[str(j['jobnumber'])] = j
