@@ -73,6 +73,37 @@ class XmlDictConfig(dict):
 ## end of http://code.activestate.com/recipes/410469/ }}}
 
 
+# #####################################################
+#  Input text is an output from qccet SGE utility     #
+########################################################
+
+def txt_to_dict(text, tasks=False):
+    def getValue(value):
+        if value.isdigit(): 
+            value = int(value)
+        else:
+            try: 
+                value = float(value)
+            except: 
+                pass
+        return value
+
+    f = text.split(62*"=")
+    out = {}
+    for job in f:
+        j = {}
+        job = job.split("\n")
+        for tag in job:
+            tag = tag.strip().split()
+            if len(tag) > 1:
+                j[tag[0]] = getValue(" ".join(tag[1:]))
+        if j.keys():
+            if not tasks:
+                out[str(j['jobnumber'])] = j
+            else:
+                out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
+    return out
+
 
 #################################################################
 #               Sge Abstract (base) Model                       #   
@@ -213,6 +244,35 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
         return value
 
 
+
+
+#################################################################
+#               Tasks/Jobs History Table Model                  #
+# It's different because data is taken in text format from      #
+# the qacct output                                              #   
+# ##############################################################
+
+class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__()
+      
+    def update(self, sge_command, sort_by_field='jobnumber', reverse_order=True):
+        '''Main function of derived model. Builds _data list from input.'''
+        from operator import itemgetter
+        self._dict  = txt_to_dict(os.popen(sge_command))
+        self._data = []
+        self._head = {}
+
+        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
+        if isinstance(self._dict, {}.__class__):
+            self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
+            self._data += [[x[key] for key in x.keys()] for x in d]
+            # Sort list by specified header (given it's name, not index):
+            if sort_by_field in self._head.values():
+                key_index = [k for k, v in self._head.iteritems() if v == sort_by_field][0]
+                self._data = sorted(self._data,  key=itemgetter(key_index))
+                if reverse_order:
+                    self._data.reverse()        
 
 
 def main():

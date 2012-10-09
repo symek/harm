@@ -294,15 +294,15 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.splashMessage("Setup Left Tabs...")
         self.setupLeftTabs(init)
         self.splashMessage("Setup Right Tabs...")
-        self.setupRightTabs(init)
+        #self.setupRightTabs(init)
 
         # Docks? (do we need them here):
         dock_left = QtGui.QDockWidget(self)#self.tr('Jobs')
         dock_left.setWidget(self.left_tab_widget)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock_left)
-        dock_right = QtGui.QDockWidget(self)#self.tr('Details')
-        dock_right.setWidget(self.right_tab_widget)
-        self.addDockWidget(Qt.RightDockWidgetArea, dock_right)
+        #dock_right = QtGui.QDockWidget(self)#self.tr('Details')
+        #dock_right.setWidget(self.right_tab_widget)
+        #self.addDockWidget(Qt.RightDockWidgetArea, dock_right)
 
         # Toolbar:
         self.toolbar = self.addToolBar('Main')
@@ -314,10 +314,10 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupLeftTabs(self, init):
         self.splashMessage("Setup Jobs Tabs...")
         self.setupJobsTab(1)
-        self.splashMessage("Setup Finished Tabs...")
-        self.setupFinishedTab(1) 
-        self.splashMessage("Setup Machines Tabs...")
-        self.setupMachinesTab(1)
+        #self.splashMessage("Setup Finished Tabs...")
+        #self.setupFinishedTab(1) 
+        #self.splashMessage("Setup Machines Tabs...")
+        #self.setupMachinesTab(1)
 
 
     def setupJobsTab(self, init):
@@ -377,12 +377,14 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
     def setupFinishedTab(self, init):
         # Finished jobs:
-        f = os.popen(SGE_HISTORY_LIST).read()
-        self.splashMessage("Parsing history file...")
-        f = txt2xml.parse_text(f)
-        self.splashMessage("History to XML...")
-        xml = structured.dict2et(f, "job_info")
-        self.finished_model = SGETableModel(None, ['job_info'])
+        #f = os.popen(SGE_HISTORY_LIST).read()
+        #self.splashMessage("Parsing history file...")
+        #f = txt2xml.parse_text(f)
+        #self.splashMessage("History to XML...")
+        #xml = structured.dict2et(f, "job_info")
+        #self.finished_model = SGETableModel(None, ['job_info'])
+        #self.finished_view = models.JobsHistoryModel()
+        #self.
         context.models['finished_model'] = self.finished_model
         self.finished_proxy_model = QSortFilterProxyModel()
         self.finished_proxy_model.setSourceModel(self.finished_model)
