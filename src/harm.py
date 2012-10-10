@@ -21,7 +21,11 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.splash = splash
 
         self.setupGUI(init=True)
-        self.setupSLOTS()
+        #temp: self.setupSLOTS()
+
+    def splashMessage(self, text):             
+        self.splash.showMessage(text, Qt.AlignBottom)
+        self.app.processEvents()
     
        
     def setupSLOTS(self):
