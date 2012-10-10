@@ -21,7 +21,7 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.splash = splash
 
         self.setupGUI(init=True)
-        #temp: self.setupSLOTS()
+        self.setupSLOTS()
 
     def splashMessage(self, text):             
         self.splash.showMessage(text, Qt.AlignBottom)
@@ -30,24 +30,24 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
        
     def setupSLOTS(self):
         # Update Job View SIGNAL:
-        self.connect(self.jobs_view, SIGNAL("clicked(const QModelIndex&)"),  
-                     self.jobs_view_clicked)
-        self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
-                     self.finished_view_clicked)
-        self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
-                     self.tasks_view_clicked)
-        self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
-                     self.update_std_views)
+        #self.connect(self.jobs_view, SIGNAL("clicked(const QModelIndex&)"),  
+        #             self.jobs_view_clicked)
+        #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
+        #             self.finished_view_clicked)
+        #self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
+        #             self.tasks_view_clicked)
+        #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
+        #             self.update_std_views)
         self.connect(self.refreshAction, SIGNAL('triggered()'), 
                      self.refreshAll)
-        self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
-                     self.change_job_view)
-        self.connect(self.machine_view_combo, SIGNAL('currentIndexChanged(int)'), 
-                     self.change_machine_view)
-        self.connect(self.jobs_filter_line, SIGNAL('textChanged(const QString&)'),\
-                     self.set_jobs_proxy_model_wildcard)   
-        self.connect(self.tasks_onlySelected_toggle, SIGNAL('stateChanged(int)'),\
-                     self.set_tasks_proxy_model_filter)   
+        #self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
+        #             self.change_job_view)
+        #self.connect(self.machine_view_combo, SIGNAL('currentIndexChanged(int)'), 
+        #             self.change_machine_view)
+        #self.connect(self.jobs_filter_line, SIGNAL('textChanged(const QString&)'),\
+        #             self.set_jobs_proxy_model_wildcard)   
+        #self.connect(self.tasks_onlySelected_toggle, SIGNAL('stateChanged(int)'),\
+        #             self.set_tasks_proxy_model_filter)   
         #self.connect(self.job_details_filter_line, SIGNAL('textChanged(const QString&)'),\
         #             self.set_job_detail_proxy_model_wildcard)  
     

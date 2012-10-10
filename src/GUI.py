@@ -31,12 +31,11 @@ class HarmMainWindowCallbacks():
     '''Holds only callbacks on various Qt Sigmals inside a main window.'''
     def refreshAll(self):
         self.jobs_model.reset()
-        self.jobs_model.update(os.popen(SGE_JOBS_LIST_GROUPED))
+        self.jobs_model.update()
         self.tasks_model.reset()
-        self.tasks_model.update(os.popen(SGE_JOBS_LIST_GROUPED))
+        self.tasks_model.update()
         self.machine_model.reset()
-        self.machine_model.update(os.popen(SGE_CLUSTER_LIST))
-        self.machine_model.reduce("host")
+        self.machine_model.update()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()
@@ -285,46 +284,47 @@ class HarmMainWindowCallbacks():
 
 class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupGUI(self,  init):
-        # GUI:
-        # TODO: Make Tabs plugable - allowing easy extensions
-        # of Harm (like: Render Manager / File brower / Render browser etc)
 
         # Main Tabs:
         self.statusBar()
+        self.left_tab_widget   = QtGui.QTabWidget()
+        self.right_tab_widget  = QtGui.QTabWidget()
+
         context.splashMessage = self.splashMessage
-        self.splashMessage("Setup Left Tabs...")
-        self.setupLeftTabs(init)
-        self.splashMessage("Setup Right Tabs...")
-       
-        #self.setupRightTabs(init)
+        self.splashMessage("Setup Jobs Tabs...")
+        self.setupJobsTab()
+        self.splashMessage("Setup History Tab...")
+        self.setupHistoryTab() 
+        self.splashMessage("Setup Machines Tab...")
+        #self.setupMachinesTab(1)
+        #self.splashMessage("Setup Task Detail Tab...")
+        #self.setupTaskDetailTab()
+        #self.splashMessage("Setup Stdout and stderr Tabs...")
+        #self.setupTaskStdTab()
+        #self.splashMessage("Setup Statistics Tab...")
+        #self.setupStatisticsTab()
 
         # Docks? (do we need them here):
-        dock_left = QtGui.QDockWidget(self)#self.tr('Jobs')
+        dock_left = QtGui.QDockWidget(self)
         dock_left.setWidget(self.left_tab_widget)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock_left)
-        #dock_right = QtGui.QDockWidget(self)#self.tr('Details')
+        #dock_right = QtGui.QDockWidget(self)
         #dock_right.setWidget(self.right_tab_widget)
         #self.addDockWidget(Qt.RightDockWidgetArea, dock_right)
 
         # Toolbar:
         self.toolbar = self.addToolBar('Main')
-        self.refreshAction = QtGui.QAction(QtGui.QIcon('../icons/refresh.png'), 'Refresh', self)
+        self.refreshAction = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/refresh.png'), 'Refresh', self)
         self.refreshAction.setShortcut('Ctrl+R')
         self.refreshAction.setStatusTip('Refresh jobs and task view from SGE.')
         self.toolbar.addAction(self.refreshAction)  
 
-    def setupLeftTabs(self, init):
-        self.splashMessage("Setup Jobs Tabs...")
-        self.setupJobsTab(1)
-        self.splashMessage("Setup History Tab...")
-        self.setupHistoryTab(1) 
-        self.splashMessage("Rest stuff...")
-        #self.setupMachinesTab(1)
+  
 
-
-    def setupJobsTab(self, init):
+    def setupJobsTab(self):
+        '''List of tasks waiting for the execution and currently proccesed (in task view).
+           Should have also list of recently finished jobs.'''
         # Tab Setup:
-        self.left_tab_widget  = QtGui.QTabWidget()
         self.jobs_tab         = QtGui.QWidget()
         jobs_tab_vbox         = QtGui.QVBoxLayout(self.jobs_tab)
         self.left_tab_widget.addTab(self.jobs_tab, "Jobs")
@@ -369,7 +369,9 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         jobs_tab_vbox.insertLayout(2, tasks_controls)
         jobs_tab_vbox.addWidget(self.tasks_view)
 
-    def setupHistoryTab(self, init):
+    def setupHistoryTab(self):
+        '''Historical jobs aquaured from qacct SGE utility. Heavy post-process
+           has to be undertaken here. '''
         # History View:
         self.history_view = views.HistoryView(context)
         #self.history_view = views.JobsTreeHistoryView(context)
@@ -379,33 +381,36 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         history_tab_vbox.addWidget(self.history_view)
         
     def setupMachinesTab(self, init):
+        '''Current status of a renderfarm as presented by qhost.'''
         #Machines (Left Tabs):
-        self.machine_model = SGETableModel(os.popen(SGE_CLUSTER_LIST), ["qhost"], None, True)
-        self.machine_proxy_model = QSortFilterProxyModel()
-        self.machine_proxy_model.setSourceModel(self.machine_model)
-        self.machine_proxy_model.setDynamicSortFilter(True)
-        self.machine_model.reduce("host")
-        self.machine_view  = QTableView()
+        self.machine_view = models.MachineView()
+        
+        #self.machine_model = SGETableModel(os.popen(SGE_CLUSTER_LIST), ["qhost"], None, True)
+        #self.machine_proxy_model = QSortFilterProxyModel()
+        #self.machine_proxy_model.setSourceModel(self.machine_model)
+        #self.machine_proxy_model.setDynamicSortFilter(True)
+        #self.machine_model.reduce("host")
+        #self.machine_view  = QTableView()
         context.views['machine_view'] = self.machine_view
         self.machine_tab   = QtGui.QWidget()
 
         # Combo box for job views:
-        self.machine_view_combo   = QtGui.QComboBox()
-        self.machine_view_combo.addItems(['List View','Tree View'])
+        #self.machine_view_combo   = QtGui.QComboBox()
+        #self.machine_view_combo.addItems(['List View','Tree View'])
 
         # Machines view cdn...
         #print utilities.tag2idx(self.machine_model.root[0], True)
-        self.machines_delagate = delegates.MachinesDelegate(self.machine_model)
-        self.machine_view.setItemDelegate(self.machines_delagate)
-        self.machine_view.setSortingEnabled(True)
-        self.machine_view.setSelectionBehavior(1)
-        self.machine_view.setAlternatingRowColors(1)
-        self.machine_view.setModel(self.machine_proxy_model)
-        self.machine_view.resizeColumnsToContents()
-        self.machine_view.resizeRowsToContents()
-        self.left_tab_widget.addTab(self.machine_tab, "Machines")
+        #self.machines_delagate = delegates.MachinesDelegate(self.machine_model)
+        #self.machine_view.setItemDelegate(self.machines_delagate)
+        #self.machine_view.setSortingEnabled(True)
+        #self.machine_view.setSelectionBehavior(1)
+        #self.machine_view.setAlternatingRowColors(1)
+        #self.machine_view.setModel(self.machine_proxy_model)
+        #self.machine_view.resizeColumnsToContents()
+        #self.machine_view.resizeRowsToContents()
+        #self.left_tab_widget.addTab(self.machine_tab, "Machines")
         machine_tab_vbox = QtGui.QVBoxLayout(self.machine_tab)
-        machine_tab_vbox.addWidget(self.machine_view_combo)
+        #machine_tab_vbox.addWidget(self.machine_view_combo)
         machine_tab_vbox.addWidget(self.machine_view)
 
          # Tree machine view setup:
@@ -415,10 +420,11 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.machine_tree_view.setAlternatingRowColors(1)
         self.machine_tree_view.hide()
 
-    def setupRightTabs(self, init):
+    def setupTaskDetailTab(self):
+        '''Presents details of particular job (selected in either Jobs or Tasks View).
+           This is specially treaky. I'm Considering of using WebKit and render this data
+           as a HTML.'''
         # Task details view (Right Tabs):
-        # Right tab setup:
-        self.right_tab_widget = QtGui.QTabWidget()
         self.job_tab          = QtGui.QWidget()
         self.right_tab_widget.addTab(self.job_tab, "Task Details")
         job_tab_vbox          = QtGui.QVBoxLayout(self.job_tab)
@@ -466,6 +472,9 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.job_tree_view.setAlternatingRowColors(1)
         self.job_tree_view.hide()
 
+
+    def setupTaskStdTab(self):
+        '''Task Stdout/err reads log files given task details'''
         # Stdout view (Right Tabs):
         self.stdout_tab = QtGui.QWidget()
         self.right_tab_widget.addTab(self.stdout_tab, "Stdout")
@@ -483,6 +492,8 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.stderr_view.setPlainText(str("No stderr yet."))
 
 
+    def setupStatisticsTab(self):
+        '''Statistics of particular job.'''
         # Setup Stat Tab:
         self.stat_tab = QtGui.QWidget()
         self.right_tab_widget.addTab(self.stat_tab, "Statistics")
@@ -525,9 +536,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.io_bars.set_title("I/O blocks.")
         self.stat_tab_vbox.addWidget(self.io_bars)
          
-    def splashMessage(self, text):             
-        self.splash.showMessage(text, Qt.AlignBottom)
-        self.app.processEvents()
+  
         
 
 
