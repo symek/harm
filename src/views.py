@@ -5,12 +5,17 @@ from PyQt4.QtGui   import *
 #Harm:
 from SGEModels import *
 from constants import *
+from contextMenus import *
 import delegates
 import models
 import config
 
 #System:
 import os
+
+###########################################################
+# ViewConfig applies settings taken from a file or module #
+###########################################################
 
 class ViewConfig():
     def configure(self):
@@ -26,8 +31,14 @@ class ViewConfig():
         pass
 
 
+###########################################################
+#       Base class for Views  (possibly to be removed     #
+###########################################################
+
 class ViewBase():
     def __init__(self):
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
         self.setSortingEnabled(True)
         self.setCornerButtonEnabled(True)
         self.setSelectionBehavior(1)
@@ -35,11 +46,21 @@ class ViewBase():
         self.setDragDropMode(4)
 
 
+###############################################################
+#           Jobs Table View (after testing I decided          #
+#           to construct more specific views/models and less  #
+#           rely on absract types.                            # 
+###############################################################
 
 class JobsView(QTableView, ViewBase, ViewConfig):
     def __init__(self, context):
-        super(JobsView, self).__init__()
+        super(self.__class__, self).__init__()
         self.context = context
+        self.context.views['jobs_view'] = self
+        # FIXME: This doesn't work for JobsView frin within ViewBase, 
+        # where as works fine for TaksView?
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
         self.configure()
 
         # Models:
@@ -66,11 +87,20 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
+    def openContextMenu(self, position):
+        self.context_menu = JobsContextMenu(self.context, self.mapToGlobal(position))
+
+
+
+###############################################################
+#     Task Table View                                         #
+###############################################################
 
 class TasksView(QTableView, ViewBase, ViewConfig):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.context = context
+        self.context.views['tasks_view'] = self
         self.configure()
 
         # Models:
@@ -87,8 +117,16 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
+    def openContextMenu(self, position):
+        self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
+
+####################################################################
+#  History Table view. There is a lot of tweaking of data here,    #
+#  To make this really usable. First of all, these items should be #
+#  displayed along with current Job, but SGE doesn't work this way #
+####################################################################
 
 class HistoryView(QTableView, ViewBase,ViewConfig):
     def __init__(self, context):
@@ -131,6 +169,11 @@ class HistoryView(QTableView, ViewBase,ViewConfig):
 
 
 
+##########################################################################
+#  Alternative Tree view for history. This class makes use of dictionary #
+#  rotating, which allows it to build tree by arbitrary key.             #
+##########################################################################
+
 class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
     def __init__(self, context):
         super(self.__class__, self).__init__()
@@ -140,11 +183,11 @@ class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
         self.context = context
         self.configure()
         self._dict={}
-        self.update(SGE_HISTORY_LIST, "jobnumber")
+        self.update(SGE_HISTORY_LIST, "owner")
         
         
     def update(self, sge_command, rotate_by_field=None):
-        self._dict = models.qccet_to_dict(os.popen(sge_command).read(), True)
+        self._dict = models.qccet_to_dict(os.popen(sge_command).read(), True, self.order_columns)
         
         # FIXME: _dict once holds a list of dictonaries (when rotate_* is performed),
         # and sometimes a list of dictionaries, when no rotating is applied. 
@@ -157,8 +200,11 @@ class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
             self._head = models.SgeTableModelBase._tag2idx(tmp, self._dict[[0]])
 
         self.clear()
+        self.context.splashMessage("After clear")
         self.populate(self._dict)
+        self.context.splashMessage("After populate")
         self.setHeaderLabels(self._head.values())
+        self.context.splashMessage("After setHeaderLabels")
 
          # Hide columns:
         hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
@@ -168,24 +214,20 @@ class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
             if column in self._head.values():                
                 key_index = [k for k, v in self._head.iteritems() if v == column][0]
                 self.setColumnHidden(key_index, True)
+        self.context.splashMessage("After setColumnHidden")
 
         # TODO: Reorder columns! (probably by reordering dictionaries).
+        self.context.splashMessage("After update")
 
     def columnCount(self, parent):
-        value = 0
-        if len(self._dict):
-            if isinstance(self._dict[self._dict.keys()[0]], list):
-                value = self._dict[self._dict.keys()[0]][0].keys()
-            else:
-                value = self._dict[self._dict.keys()[0]].keys()
-        print value
-        return value 
+       return len(self._head)
 
 
     def populate(self, data, parent=None):
         if not parent:
             parent = self
         for row in data:
+            self.context.splashMessage("Populating %s" % str(row))
             rowItem = QtGui.QTreeWidgetItem(parent)
             rowItem.setText(0, str(row))
             rowItem.setExpanded(True)
@@ -200,18 +242,6 @@ class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
                 #        key = self.order_columns.index(child.keys()[key])                   
                     childItem.setText(key, str(child[child.keys()[key]]))
                     childItem.setExpanded(True)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

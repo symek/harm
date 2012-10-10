@@ -7,7 +7,7 @@ import utilities
 ##########################################################
 
 class ContextMenuBase():
-    def buildActionStrings(self, callbacks):
+    def build_action_strings(self, callbacks):
         '''Creates a list of tuples consisting name and caption of the actions built
            from callbacks class methods.'''
         actions = []
@@ -21,7 +21,7 @@ class ContextMenuBase():
                 actions.append(action)
         return actions
 
-    def findIcons(self):
+    def find_icons(self):
         icons = {}
         path = "/STUDIO/scripts/harm/icons"
         files = os.listdir(path)
@@ -33,10 +33,10 @@ class ContextMenuBase():
         return icons
             
 
-    def bindActions(self, actions):
+    def bind_actions(self, actions):
         ''' 'Actions' are tuples of (name, caption) from which we build items for
            QMenu with 'name's and assign actions with 'caption' to it.'''
-        icons = self.findIcons()
+        icons = self.find_icons()
         for action in actions:
             qtaction = self.addAction(action['capition'])
             if action['name'] in icons.keys():
@@ -56,21 +56,24 @@ class ContextMenuBase():
 # Jobs view context menu:#
 ###########################################################
 
-class JobsContextMenu(ContextMenuBase, QMenu):
+class JobsContextMenu(QMenu, ContextMenuBase):
     def __init__(self, context, position):
-        super(JobsContextMenu, self).__init__()
-        self.setTearOffEnabled(1)
+        super(self.__class__, self).__init__()
         self.view    = context.views['jobs_view']
         self.model   = context.models['jobs_model']
-        self.bindActions(self.buildActionStrings(self))
+        self.bind_actions(self.build_action_strings(self))
         self.execute(position)
 
     def _getIds(self, view=None, model=None):
         indexes  = self.view.selectedIndexes()
         ids = []
+        # FIXME: We should operate here on proxy_model, not model?
+        job_id_index   = self.model.get_key_index('JB_job_number')
+        task_ids_index = self.model.get_key_index('tasks')
         for index in indexes:
-            job_id   = self.model.root[index.row()][0].text
-            task_ids = utilities.expand_pattern(self.model.root[index.row()][8].text)
+            job_id         = self.model._data[index.row()][job_id_index]            
+            task_ids       = self.model._data[index.row()][task_ids_index]
+            task_ids       = utilities.expand_pattern(task_ids)
             for task in task_ids:
                 ids.append("%s.%s" % (job_id, task))
         return(" ".join(ids))
@@ -78,7 +81,6 @@ class JobsContextMenu(ContextMenuBase, QMenu):
     def callback_delete(self):
         result = os.popen('qdel %s' % self._getIds()).read()
         print result
-        #print self._getIds()
 
     def callback_hold(self):
         result = os.popen('qhold -h u %s' % self._getIds()).read()
@@ -109,19 +111,20 @@ class JobsContextMenu(ContextMenuBase, QMenu):
 # Tasks view context menu                                           #
 #####################################################################
 
-class TasksContextMenu(ContextMenuBase, QMenu):
+class TasksContextMenu(QMenu, ContextMenuBase):
     def __init__(self, context, position):
-        super(TasksContextMenu, self).__init__()
+        super(self.__class__, self).__init__()
         self.view    = context.views['tasks_view']
         self.model   = context.models['tasks_model']
-    
-        self.bindActions(self.buildActionStrings(self))
+        self.bind_actions(self.build_action_strings(self))
         self.execute(position)
 
     def _getIds(self, view=None, model=None):
-        indexes  = self.view.selectedIndexes()
-        job_ids  = [self.model.root[x.row()][0].text for x in indexes]
-        task_ids = [self.model.root[x.row()][8].text for x in indexes]
+        indexes        = self.view.selectedIndexes()
+        job_id_index   = self.model.get_key_index('JB_job_number')
+        task_ids_index = self.model.get_key_index('tasks')
+        job_ids  = [self.model._data[x.row()][job_id_index]   for x in indexes]
+        task_ids = [self.model._data[x.row()][task_ids_index] for x in indexes]
         task_ids = zip(job_ids, task_ids)
         task_ids = list(set([".".join(x) for x in task_ids]))
         return(" ".join(task_ids))
