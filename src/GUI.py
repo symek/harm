@@ -291,9 +291,11 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
         # Main Tabs:
         self.statusBar()
+        context.splashMessage = self.splashMessage
         self.splashMessage("Setup Left Tabs...")
         self.setupLeftTabs(init)
         self.splashMessage("Setup Right Tabs...")
+       
         #self.setupRightTabs(init)
 
         # Docks? (do we need them here):
@@ -316,15 +318,15 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.setupJobsTab(1)
         self.splashMessage("Setup History Tab...")
         self.setupHistoryTab(1) 
-        #self.splashMessage("Setup Machines Tabs...")
+        self.splashMessage("Rest stuff...")
         #self.setupMachinesTab(1)
 
 
     def setupJobsTab(self, init):
         # Tab Setup:
         self.left_tab_widget  = QtGui.QTabWidget()
-        self.jobs_tab    = QtGui.QWidget()
-        jobs_tab_vbox   = QtGui.QVBoxLayout(self.jobs_tab)
+        self.jobs_tab         = QtGui.QWidget()
+        jobs_tab_vbox         = QtGui.QVBoxLayout(self.jobs_tab)
         self.left_tab_widget.addTab(self.jobs_tab, "Jobs")
 
          # Filter:
@@ -353,13 +355,8 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         #jobs_filter_hbox.addWidget(self.jobs_filter_menu)
 
         # Jobs View:
-        #self.jobs_view = QTableView()
         self.jobs_view = views.JobsView(context)
-        #context.views['jobs_view'] = self.jobs_view
         jobs_tab_vbox.addWidget(self.jobs_view)
-        # Context menu:
-        self.jobs_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.jobs_view.customContextMenuRequested.connect(self.openJobsMenu)
 
         # Tasks view Controls:
         self.tasks_onlySelected_toggle = QtGui.QCheckBox()
@@ -371,31 +368,12 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.tasks_view = views.TasksView(context)
         jobs_tab_vbox.insertLayout(2, tasks_controls)
         jobs_tab_vbox.addWidget(self.tasks_view)
-        # Context menu
-        self.tasks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tasks_view.customContextMenuRequested.connect(self.openTasksMenu)
 
     def setupHistoryTab(self, init):
-        # Finished jobs:
-        #f = os.popen(SGE_HISTORY_LIST).read()
-        #self.splashMessage("Parsing history file...")
-        #f = txt2xml.parse_text(f)
-        #self.splashMessage("History to XML...")
-        #xml = structured.dict2et(f, "job_info")
-        #self.finished_model = SGETableModel(None, ['job_info'])
+        # History View:
         self.history_view = views.HistoryView(context)
-        #self.finished_proxy_model = QSortFilterProxyModel()
-        #self.finished_proxy_model.setSourceModel(self.finished_model)
-        #self.finished_model.setTree(xml)
-        #self.finished_view  = QTableView()
-        #self.finished_view.setSortingEnabled(True)
-
+        #self.history_view = views.JobsTreeHistoryView(context)
         self.history_tab   = QtGui.QWidget()
-        #self.finished_view.setSelectionBehavior(1)
-        #self.finished_view.setAlternatingRowColors(1)
-        #self.finished_view.setModel(self.finished_proxy_model)
-        #self.finished_view.resizeColumnsToContents()
-        #self.finished_view.resizeRowsToContents()
         self.left_tab_widget.addTab(self.history_tab, "History")
         history_tab_vbox = QtGui.QVBoxLayout(self.history_tab)
         history_tab_vbox.addWidget(self.history_view)

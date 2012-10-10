@@ -57,8 +57,6 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         super(self.__class__, self).__init__()
         self.context = context
         self.context.views['jobs_view'] = self
-        # FIXME: This doesn't work for JobsView frin within ViewBase, 
-        # where as works fine for TaksView?
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
         self.configure()
@@ -101,6 +99,8 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         super(self.__class__, self).__init__()
         self.context = context
         self.context.views['tasks_view'] = self
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
         self.configure()
 
         # Models:
