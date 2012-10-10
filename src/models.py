@@ -145,9 +145,9 @@ class SgeTableModelBase():
            _data is list of the lists version of item in _xml.
            _head is a dict of headers found in xml items.'''
         self._tree = None
-        self._dict  = OrderedDict()
+        self._dict = OrderedDict()
         self._data = []
-        self._head = {}
+        self._head = OrderedDict()
 
     def flags(self, index):
         flag = super(self.__class__, self).flags(index)
@@ -234,7 +234,7 @@ class SgeTableModelBase():
 
 
 #################################################################
-#               Machine Table Model Base                         #
+#               Machine Table Model Base                        #
 # The only difference is headerData which takes machine name as #
 # the row name.                                                 #
 # ###############################################################
@@ -348,15 +348,17 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__()
         self._dict = OrderedDict()
-        self._head = {}
+        self._head = OrderedDict()
         self._data = []
       
     def update(self, sge_command, token='job_info', sort_by_field='hostname', reverse_order=False):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
         self._tree = ElementTree.parse(os.popen(sge_command))
-        self._dict = {}
+        self._dict = OrderedDict()
         # Build a dictionary of dictionaries:
+        # This differs again, because qhost -xml saves field's 
+        # name as the attributes ('name') with values as values...
         for item in self._tree.findall('host'):
             name = item.attrib['name']
             if name == "global": continue
