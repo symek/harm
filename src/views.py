@@ -259,7 +259,7 @@ class MachineView(QTableView, ViewBase, ViewConfig):
         self.configure()
 
         # Models:
-        self.model = models.JobsModel()
+        self.model = models.MachineModel()
         self.model.update(SGE_CLUSTER_LIST, 'qhost')
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)

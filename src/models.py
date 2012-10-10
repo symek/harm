@@ -145,7 +145,7 @@ class SgeTableModelBase():
            _data is list of the lists version of item in _xml.
            _head is a dict of headers found in xml items.'''
         self._tree = None
-        self._dict  = {}
+        self._dict  = OrderedDict()
         self._data = []
         self._head = {}
 
@@ -233,6 +233,34 @@ class SgeTableModelBase():
         return " ".join((time, date))
 
 
+#################################################################
+#               Machine Table Model Base                         #
+# The only difference is headerData which takes machine name as #
+# the row name.                                                 #
+# ###############################################################
+class MachineModelBase(SgeTableModelBase):
+    def __init__(self):
+        super(self.__class__, self).__init__()
+
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        '''Headers builder. Note crude tokens replacement.'''
+        # Replaces columns/rows names view custom tokens;
+        def header_replace(name):
+            if name in tokens.header.keys():
+                name = tokens.header[name]
+            return name
+        # Nothing to do here:
+        if role != Qt.DisplayRole:
+            return QVariant()
+        # Horizontal headers:
+        if orientation == Qt.Horizontal and len(self._data):
+            return QVariant(header_replace(self._head[section]))
+        # Vertical headers:
+        elif orientation == Qt.Vertical and len(self._data):
+            return QVariant(header_replace(self._dict.keys()[section]))
+        return QVariant()
+
 
 
 #################################################################
@@ -249,7 +277,6 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
         self._tree = ElementTree.parse(os.popen(sge_command))
-        print  XmlDictConfig(self._tree.getroot())
         self._dict  = XmlDictConfig(self._tree.getroot())[token]
         self._data = []
         self._head = {}
@@ -317,59 +344,35 @@ class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
 #               Machine Table Model                             #   
 # ###############################################################
 
-class MachineModel(QAbstractTableModel, SgeTableModelBase):
+class MachineModel(QAbstractTableModel, MachineModelBase):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__()
-        self._dict = {}
+        self._dict = OrderedDict()
         self._head = {}
         self._data = []
       
-    def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
+    def update(self, sge_command, token='job_info', sort_by_field='hostname', reverse_order=False):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
-        # All dirty data. We need to duplicate it here,
-        # to keep things clean down the stream.
         self._tree = ElementTree.parse(os.popen(sge_command))
-        self._tree = self._tree.findall('host')
-        for item in self._tree: 
-            d = XmlDictConfig(item)
-            self._dict[d['name']] = d
-
-        self._data = []
-        self._head = {}
-        return
-
-        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        if isinstance(self._dict, dict):
-            d = self._dict['job_list']
-            self._head = self._tag2idx(d[-1])
-            self._data += [[x[key] for key in x.keys()] for x in d]
-            # Sort list by specified header (given it's name, not index):
-            if sort_by_field in self._head.values():
-                key_index = self.get_key_index(sort_by_field)
-                self._data = sorted(self._data,  key=itemgetter(key_index))
-                if reverse_order:
-                    self._data.reverse()
-            
-    ####################################################################
-    # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
-    # when building table's items.                                     #
-    # ##################################################################
-    def hook_timestring(self, index, value):
-        # Change time string formating:
-        if self._head[index.column()] in tokens.time_strings: 
-            value = self.parse_time_string(value)
-        return value
-
-    def hook_machinename(self, index, value):
-        # Shorten machine name in Tasks view:
-        if self._head[index.column()] == 'queue_name':
-            if value: 
-                value = value.split("@")[-1]
-                if "." in value:
-                    value = value.split(".")[0]
-        return value
-
+        self._dict = {}
+        # Build a dictionary of dictionaries:
+        for item in self._tree.findall('host'):
+            name = item.attrib['name']
+            if name == "global": continue
+            self._dict[name] = OrderedDict()
+            for x in item.getchildren():
+                self._dict[name][x.attrib['name']] = x.text
+                
+        # Make a list of lists from that:
+        self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
+        self._data = [self._dict[item].values() for item in self._dict]
+        # Sort list by specified header (given it's name, not index):
+        if sort_by_field in self._head.values():
+            key_index = self.get_key_index(sort_by_field)
+            self._data = sorted(self._data,  key=itemgetter(key_index))
+            if reverse_order:
+                self._data.reverse()
 
 
 

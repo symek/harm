@@ -296,7 +296,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.splashMessage("Setup History Tab...")
         self.setupHistoryTab() 
         self.splashMessage("Setup Machines Tab...")
-        #self.setupMachinesTab(1)
+        self.setupMachinesTab()
         #self.splashMessage("Setup Task Detail Tab...")
         #self.setupTaskDetailTab()
         #self.splashMessage("Setup Stdout and stderr Tabs...")
@@ -380,10 +380,10 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         history_tab_vbox = QtGui.QVBoxLayout(self.history_tab)
         history_tab_vbox.addWidget(self.history_view)
         
-    def setupMachinesTab(self, init):
+    def setupMachinesTab(self):
         '''Current status of a renderfarm as presented by qhost.'''
         #Machines (Left Tabs):
-        self.machine_view = models.MachineView()
+        self.machine_view = views.MachineView(context)
         
         #self.machine_model = SGETableModel(os.popen(SGE_CLUSTER_LIST), ["qhost"], None, True)
         #self.machine_proxy_model = QSortFilterProxyModel()
@@ -408,17 +408,17 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         #self.machine_view.setModel(self.machine_proxy_model)
         #self.machine_view.resizeColumnsToContents()
         #self.machine_view.resizeRowsToContents()
-        #self.left_tab_widget.addTab(self.machine_tab, "Machines")
+        self.left_tab_widget.addTab(self.machine_tab, "Machines")
         machine_tab_vbox = QtGui.QVBoxLayout(self.machine_tab)
         #machine_tab_vbox.addWidget(self.machine_view_combo)
         machine_tab_vbox.addWidget(self.machine_view)
 
          # Tree machine view setup:
-        self.machine_tree_view = SGETreeView2(os.popen(SGE_CLUSTER_LIST))
+        #self.machine_tree_view = SGETreeView2(os.popen(SGE_CLUSTER_LIST))
         #self.machine_tree_view.setItemDelegate(self.machines_delagate)
-        machine_tab_vbox.addWidget(self.machine_tree_view)
-        self.machine_tree_view.setAlternatingRowColors(1)
-        self.machine_tree_view.hide()
+        #machine_tab_vbox.addWidget(self.machine_tree_view)
+        #self.machine_tree_view.setAlternatingRowColors(1)
+        #self.machine_tree_view.hide()
 
     def setupTaskDetailTab(self):
         '''Presents details of particular job (selected in either Jobs or Tasks View).
