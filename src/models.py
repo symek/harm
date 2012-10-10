@@ -67,6 +67,7 @@ class XmlDictConfig(dict):
             # currently doing XML configuration files...
             elif element.items():
                 self.update({element.tag: dict(element.items())})
+                
             # finally, if there are no child tags and no attributes, extract
             # the text
             else:
@@ -235,7 +236,7 @@ class SgeTableModelBase():
 
 
 #################################################################
-#               Job Table Model                              #   
+#               Job Table Model                                 #   
 # ###############################################################
 
 class JobsModel(QAbstractTableModel, SgeTableModelBase):
@@ -248,6 +249,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
         self._tree = ElementTree.parse(os.popen(sge_command))
+        print  XmlDictConfig(self._tree.getroot())
         self._dict  = XmlDictConfig(self._tree.getroot())[token]
         self._data = []
         self._head = {}
@@ -264,7 +266,10 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
                 if reverse_order:
                     self._data.reverse()
             
-    
+    ####################################################################
+    # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
+    # when building table's items.                                     #
+    # ##################################################################
     def hook_timestring(self, index, value):
         # Change time string formating:
         if self._head[index.column()] in tokens.time_strings: 
@@ -305,6 +310,67 @@ class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
             self._data = sorted(self._data,  key=itemgetter(key_index))
             if reverse_order:
                 self._data.reverse()
+
+
+
+#################################################################
+#               Machine Table Model                             #   
+# ###############################################################
+
+class MachineModel(QAbstractTableModel, SgeTableModelBase):
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__()
+        self._dict = {}
+        self._head = {}
+        self._data = []
+      
+    def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
+        '''Main function of derived model. Builds _data list from input.'''
+        from operator import itemgetter
+        # All dirty data. We need to duplicate it here,
+        # to keep things clean down the stream.
+        self._tree = ElementTree.parse(os.popen(sge_command))
+        self._tree = self._tree.findall('host')
+        for item in self._tree: 
+            d = XmlDictConfig(item)
+            self._dict[d['name']] = d
+
+        self._data = []
+        self._head = {}
+        return
+
+        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
+        if isinstance(self._dict, dict):
+            d = self._dict['job_list']
+            self._head = self._tag2idx(d[-1])
+            self._data += [[x[key] for key in x.keys()] for x in d]
+            # Sort list by specified header (given it's name, not index):
+            if sort_by_field in self._head.values():
+                key_index = self.get_key_index(sort_by_field)
+                self._data = sorted(self._data,  key=itemgetter(key_index))
+                if reverse_order:
+                    self._data.reverse()
+            
+    ####################################################################
+    # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
+    # when building table's items.                                     #
+    # ##################################################################
+    def hook_timestring(self, index, value):
+        # Change time string formating:
+        if self._head[index.column()] in tokens.time_strings: 
+            value = self.parse_time_string(value)
+        return value
+
+    def hook_machinename(self, index, value):
+        # Shorten machine name in Tasks view:
+        if self._head[index.column()] == 'queue_name':
+            if value: 
+                value = value.split("@")[-1]
+                if "." in value:
+                    value = value.split(".")[0]
+        return value
+
+
 
 
 

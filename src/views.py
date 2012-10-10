@@ -245,4 +245,35 @@ class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
 
 
 
+###############################################################
+#     Machine Table View                                      #
+###############################################################
+
+class MachineView(QTableView, ViewBase, ViewConfig):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.context.views['machine_view'] = self
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
+        self.configure()
+
+        # Models:
+        self.model = models.JobsModel()
+        self.model.update(SGE_CLUSTER_LIST, 'qhost')
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['machine_model'] = self.model
+        self.context.models['machine_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+    def openContextMenu(self, position): pass
+        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+
 
