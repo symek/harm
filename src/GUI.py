@@ -308,9 +308,9 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         dock_left = QtGui.QDockWidget(self)
         dock_left.setWidget(self.left_tab_widget)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock_left)
-        #dock_right = QtGui.QDockWidget(self)
-        #dock_right.setWidget(self.right_tab_widget)
-        #self.addDockWidget(Qt.RightDockWidgetArea, dock_right)
+        dock_right = QtGui.QDockWidget(self)
+        dock_right.setWidget(self.right_tab_widget)
+        self.addDockWidget(Qt.RightDockWidgetArea, dock_right)
 
         # Toolbar:
         self.toolbar = self.addToolBar('Main')
@@ -383,37 +383,20 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupMachinesTab(self):
         '''Current status of a renderfarm as presented by qhost.'''
         #Machines (Left Tabs):
-        self.machine_view = views.MachineView(context)
-        
-        #self.machine_model = SGETableModel(os.popen(SGE_CLUSTER_LIST), ["qhost"], None, True)
-        #self.machine_proxy_model = QSortFilterProxyModel()
-        #self.machine_proxy_model.setSourceModel(self.machine_model)
-        #self.machine_proxy_model.setDynamicSortFilter(True)
-        #self.machine_model.reduce("host")
-        #self.machine_view  = QTableView()
-        context.views['machine_view'] = self.machine_view
         self.machine_tab   = QtGui.QWidget()
-
+        self.machine_view = views.MachineView(context)
+        context.views['machine_view'] = self.machine_view
+       
         # Combo box for job views:
-        #self.machine_view_combo   = QtGui.QComboBox()
-        #self.machine_view_combo.addItems(['List View','Tree View'])
+        self.machine_view_combo   = QtGui.QComboBox()
+        self.machine_view_combo.addItems(['List View','Tree View'])
 
-        # Machines view cdn...
-        #print utilities.tag2idx(self.machine_model.root[0], True)
-        #self.machines_delagate = delegates.MachinesDelegate(self.machine_model)
-        #self.machine_view.setItemDelegate(self.machines_delagate)
-        #self.machine_view.setSortingEnabled(True)
-        #self.machine_view.setSelectionBehavior(1)
-        #self.machine_view.setAlternatingRowColors(1)
-        #self.machine_view.setModel(self.machine_proxy_model)
-        #self.machine_view.resizeColumnsToContents()
-        #self.machine_view.resizeRowsToContents()
         self.left_tab_widget.addTab(self.machine_tab, "Machines")
         machine_tab_vbox = QtGui.QVBoxLayout(self.machine_tab)
-        #machine_tab_vbox.addWidget(self.machine_view_combo)
+        machine_tab_vbox.addWidget(self.machine_view_combo)
         machine_tab_vbox.addWidget(self.machine_view)
 
-         # Tree machine view setup:
+        # Tree machine view setup:
         #self.machine_tree_view = SGETreeView2(os.popen(SGE_CLUSTER_LIST))
         #self.machine_tree_view.setItemDelegate(self.machines_delagate)
         #machine_tab_vbox.addWidget(self.machine_tree_view)
