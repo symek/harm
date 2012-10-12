@@ -1,5 +1,6 @@
 from PyQt4.QtCore import *
 import tokens
+import utilities
 import os
 from ordereddict import OrderedDict
 
@@ -163,7 +164,7 @@ class SgeTableModelBase():
 
     def _tag2idx(self, item):
         '''This builds self._head dict {1:header, 2:another, ...}'''
-        _map = {}
+        _map = OrderedDict()
         for x in range(len(item.keys())):
             _map[x] = item.keys()[x]
         return _map
@@ -376,6 +377,78 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
             if reverse_order:
                 self._data.reverse()
 
+
+
+
+##################################################################
+#               Job Detail Table Model                           #
+# This one is yet customized as it consists with many rows and   #
+# two columns only (variable, value) TODO: relace with www rander#
+# page with fine tuned artists friendly look../                  #   
+# ################################################################
+
+
+class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
+    def __init__(self, parent=None, *args):
+        super(self.__class__, self).__init__()
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+        self._data = []
+
+    def update(self, sge_command, sort_by_field="", reverse_order=False):
+        from operator import itemgetter
+        self._tree = ElementTree.parse(os.popen(sge_command))
+        self._tree = self._tree.find('djob_info')
+        self._dict = OrderedDict()
+        self._data = []
+        self.find_req(self._tree, self._data)
+        self._dict = OrderedDict(self._data)
+        self._data = [(x[1], x[1]) for x in self._dict.items()]
+        self._head = self._tag2idx(self._dict)
+
+    def find_req(self, tree, storage):
+        children = tree.getchildren()
+        for child in range(len(children)):
+            if children[child].text:
+                if len(children[child].text.strip()) == 0:
+                    self.find_req(children[child], storage)
+            elif not children[child].text:
+                self.find_req(children[child], storage)
+            if  children[child].text:
+                if  children[child].tag in ("VA_variable", "UA_name"): 
+                    tag  = children[child].text
+                    text =  children[utilities.clamp(child+1, 0, len(children)-1)].text
+                elif children[child].tag in ("VA_value", "UA_value"):
+                    pass
+                else: 
+                    tag  = children[child].tag
+                    text = children[child].text
+                if len(text.strip()) > 0 and (tag, text.strip()) not in storage:
+                    storage.append((tag, text.strip()))
+        return storage
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        '''Headers builder. Note crude tokens replacement.'''
+        # Replaces columns/rows names view custom tokens;
+        def header_replace(name):
+            if name in tokens.header.keys():
+                name = tokens.header[name]
+            return name
+        # Nothing to do here:
+        if role != Qt.DisplayRole:
+            return QVariant()
+        # Horizontal headers:
+        #if orientation == Qt.Horizontal and len(self._data):
+        #    return QVariant(header_replace(self._head[section]))
+        # Vertical headers:
+        if orientation == Qt.Vertical and len(self._data):
+            return QVariant(header_replace(self._head[section]))
+        return QVariant()
+
+    def columnCount(self, parent):
+        if len(self._data):
+            return 1
+        return 0
 
 
 

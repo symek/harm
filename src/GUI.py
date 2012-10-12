@@ -29,6 +29,30 @@ context = Context()
     
 class HarmMainWindowCallbacks():
     '''Holds only callbacks on various Qt Sigmals inside a main window.'''
+
+    def setupSLOTS(self):
+        # Update Job View SIGNAL:
+        self.connect(self.jobs_view, SIGNAL("clicked(const QModelIndex&)"),  
+                     self.jobs_view_clicked)
+        #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
+        #             self.finished_view_clicked)
+        #self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
+        #             self.tasks_view_clicked)
+        #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
+        #             self.update_std_views)
+        self.connect(self.refreshAction, SIGNAL('triggered()'), 
+                     self.refreshAll)
+        #self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
+        #             self.change_job_view)
+        #self.connect(self.machine_view_combo, SIGNAL('currentIndexChanged(int)'), 
+        #             self.change_machine_view)
+        #self.connect(self.jobs_filter_line, SIGNAL('textChanged(const QString&)'),\
+        #             self.set_jobs_proxy_model_wildcard)   
+        #self.connect(self.tasks_onlySelected_toggle, SIGNAL('stateChanged(int)'),\
+        #             self.set_tasks_proxy_model_filter)   
+        #self.connect(self.job_details_filter_line, SIGNAL('textChanged(const QString&)'),\
+        #             self.set_job_detail_proxy_model_wildcard)  
+
     def refreshAll(self):
         self.jobs_model.reset()
         self.jobs_model.update()
@@ -40,12 +64,20 @@ class HarmMainWindowCallbacks():
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()
 
-    def jobs_view_clicked(self, indices):
+    def jobs_view_clicked(self, index):
         '''Calls for selecting job on Jobs View.'''
-        self.update_job_model_from_jobs(indices)
-        self.set_tasks_proxy_model_filter(0)
-        job_id = self.jobs_model.root[indices.row()][0].text
-        self.update_stat_view(job_id)
+        #model = self.jobs_view.proxy_model
+        #print model.data(model.index(index.row(), 0)).toString()
+        s_index = self.jobs_view.proxy_model.mapToSource(index)
+        job_id_index = self.jobs_view.model.get_key_index("JB_job_number")
+        job_id  = self.jobs_view.model._data[s_index.row()][job_id_index]
+        if self.right_tab_widget.currentIndex() == 0:
+            self.job_detail_view.update(job_id)
+        elif self.right_tab_widget.currentIndex() == 3: pass
+        #self.update_job_model_from_jobs(indices)
+        #self.set_tasks_proxy_model_filter(0)
+        #job_id = self.jobs_model.root[indices.row()][0].text
+        #self.update_stat_view(job_id)
 
     
     def tasks_view_clicked(self, indices):
@@ -293,12 +325,12 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         context.splashMessage = self.splashMessage
         self.splashMessage("Setup Jobs Tabs...")
         self.setupJobsTab()
-        self.splashMessage("Setup History Tab...")
-        self.setupHistoryTab() 
+        #self.splashMessage("Setup History Tab...")
+        #self.setupHistoryTab() 
         self.splashMessage("Setup Machines Tab...")
         self.setupMachinesTab()
-        #self.splashMessage("Setup Task Detail Tab...")
-        #self.setupTaskDetailTab()
+        self.splashMessage("Setup Task Detail Tab...")
+        self.setupJobDetailTab()
         #self.splashMessage("Setup Stdout and stderr Tabs...")
         #self.setupTaskStdTab()
         #self.splashMessage("Setup Statistics Tab...")
@@ -344,8 +376,8 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.jobs_proxy_model = QSortFilterProxyModel()
         self.jobs_proxy_model.setSourceModel(self.jobs_model)
         self.jobs_proxy_model.setDynamicSortFilter(True)
-        context.models['jobs_model'] = self.jobs_model
-        context.models['jobs_proxy_model'] = self.jobs_proxy_model
+        #context.models['jobs_model'] = self.jobs_model
+        #context.models['jobs_proxy_model'] = self.jobs_proxy_model
     
         # History filters:
         #self.jobs_filter_menu = QtGui.QMenu()
@@ -403,19 +435,19 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         #self.machine_tree_view.setAlternatingRowColors(1)
         #self.machine_tree_view.hide()
 
-    def setupTaskDetailTab(self):
+    def setupJobDetailTab(self):
         '''Presents details of particular job (selected in either Jobs or Tasks View).
            This is specially treaky. I'm Considering of using WebKit and render this data
            as a HTML.'''
         # Task details view (Right Tabs):
-        self.job_tab          = QtGui.QWidget()
-        self.right_tab_widget.addTab(self.job_tab, "Task Details")
-        job_tab_vbox          = QtGui.QVBoxLayout(self.job_tab)
+        self.job_detail_tab  = QtGui.QWidget()
+        self.right_tab_widget.addTab(self.job_detail_tab, "Job Details")
+        job_detail_tab_vbox  = QtGui.QVBoxLayout(self.job_detail_tab)
 
         # Combo box for job views:
-        self.job_view_combo   = QtGui.QComboBox()
-        self.job_view_combo.addItems(['List View','Detailed View'])
-        job_tab_vbox.addWidget(self.job_view_combo)
+        #self.job_view_combo   = QtGui.QComboBox()
+        #self.job_view_combo.addItems(['List View','Detailed View'])
+        #job_tab_vbox.addWidget(self.job_view_combo)
 
         # Filter:
         '''self.job_details_filter_label = QtGui.QLabel()
@@ -427,33 +459,18 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         job_details_hbox.addWidget(self.job_view_combo)
         job_tab_vbox.insertLayout(0, job_details_hbox)'''
 
-        # Table job view setup:
-        job_id = None
-        self.job_model = SGEListModel2(None, "djob_info")
-        if len(self.jobs_model.root):
-            job_id = self.jobs_model.root[0][0].text
-            self.job_model.update(os.popen(SGE_JOB_DETAILS % job_id))
-        else:
-            self.job_model.update(os.popen(EMPTY_SGE_JOB_DETAILS))
-
-        self.job_view = QTableView()
-        #self.job_delagate = delegates.JobDelegate(context, self.job_model)
-        #self.job_view.setItemDelegate(self.job_delagate)
-        self.job_view.setSelectionBehavior(1)
-        self.job_view.setModel(self.job_model)
-        self.job_view.resizeColumnsToContents()
-        self.job_view.resizeRowsToContents()
-        job_tab_vbox.addWidget(self.job_view)
+        self.job_detail_view = views.JobDetailView(context)
+        job_detail_tab_vbox.addWidget(self.job_detail_view)
 
         # Tree job view setup:
-        if job_id:
-            self.job_tree_view = SGETreeView(os.popen(SGE_JOB_DETAILS % job_id))
-        else:
-            self.job_tree_view = SGETreeView(os.popen(EMPTY_SGE_JOB_DETAILS))
+        #if job_id:
+        #    self.job_tree_view = SGETreeView(os.popen(SGE_JOB_DETAILS % job_id))
+        #else:
+        #    self.job_tree_view = SGETreeView(os.popen(EMPTY_SGE_JOB_DETAILS))
 
-        job_tab_vbox.addWidget(self.job_tree_view)
-        self.job_tree_view.setAlternatingRowColors(1)
-        self.job_tree_view.hide()
+        #job_tab_vbox.addWidget(self.job_tree_view)
+        #self.job_tree_view.setAlternatingRowColors(1)
+        #self.job_tree_view.hide()
 
 
     def setupTaskStdTab(self):

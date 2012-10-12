@@ -44,6 +44,10 @@ class ViewBase():
         self.setSelectionBehavior(1)
         self.setAlternatingRowColors(1)
         self.setDragDropMode(4)
+        
+    def update(self, *arg):
+        self.model.reset()
+        self.model.update(*arg)
 
 
 ###############################################################
@@ -277,3 +281,36 @@ class MachineView(QTableView, ViewBase, ViewConfig):
 
 
 
+###############################################################
+#     Job Detail Table View                                      #
+###############################################################
+
+class JobDetailView(QTableView, ViewBase, ViewConfig):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.context.views['job_detail_view'] = self
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
+        self.configure()
+
+        # Models:
+        self.model = models.JobDetailModel()
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['job_detail_model'] = self.model
+        self.context.models['job_detail_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+    def openContextMenu(self, position): pass
+        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+
+    def update(self, jobid):
+        self.model.reset()
+        self.model.update(SGE_JOB_DETAILS % jobid, 'djob_info')
