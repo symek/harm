@@ -50,3 +50,17 @@ def clamp(value, _min, _max):
         
 def fit(x, a, b, c, d):
     return c+((x-a)/(b-a))*(d-c)
+
+
+def string_to_elapsed_time(value):
+    '''Returns time difference provided SGE specific string time.'''
+    import time, datetime
+    sge_time_format = "%Y-%m-%dT%H:%M:%S"
+    try:
+        started = time.mktime(time.strptime(value, sge_time_format))
+        now     = time.time()
+        elapsed = int(now - started)
+        value   = str(datetime.timedelta(seconds=elapsed))
+    except:
+        pass
+    return value

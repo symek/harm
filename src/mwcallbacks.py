@@ -1,4 +1,5 @@
 import utilities
+from constants import *
 #PyQt4:
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import * 
@@ -34,12 +35,9 @@ class HarmMainWindowCallbacks():
         #             self.set_job_detail_proxy_model_wildcard)  
 
     def refreshAll(self):
-        self.jobs_model.reset()
-        self.jobs_model.update()
-        self.tasks_model.reset()
-        self.tasks_model.update()
-        self.machine_model.reset()
-        self.machine_model.update()
+        self.jobs_view.update_model(SGE_JOBS_LIST_GROUPED)
+        self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
+        self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()
@@ -53,15 +51,20 @@ class HarmMainWindowCallbacks():
         job_id  = self.jobs_view.model._data[s_index.row()][job_id_index]
         if self.right_tab_widget.currentIndex() == 0:
             self.job_detail_view.update(job_id)
-        elif self.right_tab_widget.currentIndex() == 3: pass
+        #elif self.right_tab_widget.currentIndex() in (1, 2): pass
+            #self.update_stat_view(job_id)   
         #self.update_job_model_from_jobs(indices)
         #self.set_tasks_proxy_model_filter(0)
         #job_id = self.jobs_model.root[indices.row()][0].text
-        #self.update_stat_view(job_id)
 
+        #
     
     def tasks_view_clicked(self, indices):
         '''Calls for selecting job on Task View.'''
+        s_index = self.tasks_view.proxy_model.mapToSource(index)
+        job_id_index = self.jobs_view.model.get_key_index("JB_job_number")
+        job_id  = self.jobs_view.model._data[s_index.row()][job_id_index]
+
         self.update_job_model_from_tasks(indices)
         job_id = self.tasks_model.root[indices.row()][0].text
         self.update_stat_view(job_id)

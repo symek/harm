@@ -8,7 +8,7 @@ header['JB_submission_time'] = 'Submitted'
 header['queue_name'] = 'Machine'
 header['slots'] = 'Slots'
 header['tasks'] = 'Task'
-header['JAT_start_time'] = 'Started'
+header['JAT_start_time'] = 'Elapsed'
 
 header['arch_string'] = 'Archtecture'
 header['num_proc'] = 'Cores'

@@ -1,6 +1,7 @@
 from PyQt4.QtCore import *
 import tokens
 import utilities
+import views
 import os
 from ordereddict import OrderedDict
 
@@ -129,8 +130,6 @@ def rotate_nested_dict(d, key):
             if d[item][key] not in output.keys():
                 output[d[item][key]] = [d[item]]
             else:
-                #tmp = output[d[item][key]]
-                #output[d[item][key]] = [tmp]
                 output[d[item][key]].append(d[item])
     return output
 
@@ -140,7 +139,9 @@ def rotate_nested_dict(d, key):
 # ###############################################################
 
 class SgeTableModelBase():
-    def __init__(self):
+    def __init__(self, parent=None):
+        self.sge_view = parent
+        print "Initializing SgeTableModelBase."
         '''_tree is an ElementTree as parsed stright from a XML.
            _xml is stripped version of a tree in dict() format.
            _data is list of the lists version of item in _xml.
@@ -204,8 +205,12 @@ class SgeTableModelBase():
             return QVariant()
 
         # Read element from a elementTree sub-entry :
-        value = self._data[index.row()][index.column()]
-        value = self.data_hooks(index, value)
+        value  = None
+        try:
+            value = self._data[index.row()][index.column()]
+            value = self.data_hooks(index, value)
+        except:
+            print self
         if not value: return QVariant()        
         # Finally return something meaningfull:
         return QVariant(value)
@@ -240,8 +245,8 @@ class SgeTableModelBase():
 # the row name.                                                 #
 # ###############################################################
 class MachineModelBase(SgeTableModelBase):
-    def __init__(self):
-        super(self.__class__, self).__init__()
+    def __init__(self, parnet=None):
+        super(self.__class__, self).__init__(parent)
 
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
@@ -270,8 +275,11 @@ class MachineModelBase(SgeTableModelBase):
 
 class JobsModel(QAbstractTableModel, SgeTableModelBase):
     def __init__(self,  parent=None, *args):
-        super(self.__class__, self).__init__()
-      
+        super(self.__class__, self).__init__(parent)
+        self.sge_view = parent
+        self._tree = None
+        self._data = []
+        self._head = OrderedDict()
     def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
@@ -280,7 +288,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
         self._tree = ElementTree.parse(os.popen(sge_command))
         self._dict  = XmlDictConfig(self._tree.getroot())[token]
         self._data = []
-        self._head = {}
+        self._head = OrderedDict()
 
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
         if isinstance(self._dict, dict):
@@ -301,7 +309,11 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
     def hook_timestring(self, index, value):
         # Change time string formating:
         if self._head[index.column()] in tokens.time_strings: 
-            value = self.parse_time_string(value)
+            # Parse time string diffrently for tasks view:
+            if self._head[index.column()] == "JAT_start_time":
+                value = utilities.string_to_elapsed_time(value)
+            else: 
+                value = self.parse_time_string(value)
         return value
 
     def hook_machinename(self, index, value):
@@ -324,7 +336,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
 
 class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
     def __init__(self,  parent=None, *args):
-        super(self.__class__, self).__init__()
+        super(self.__class__, self).__init__(parent)
       
     def update(self, sge_command, sort_by_field='jobnumber', reverse_order=True, rotate_by_field=None):
         '''Main function of derived model. Builds _data list from input.'''
@@ -347,7 +359,7 @@ class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
 
 class MachineModel(QAbstractTableModel, MachineModelBase):
     def __init__(self,  parent=None, *args):
-        super(self.__class__, self).__init__()
+        super(self.__class__, self).__init__(parent)
         self._dict = OrderedDict()
         self._head = OrderedDict()
         self._data = []
@@ -355,6 +367,7 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
     def update(self, sge_command, token='job_info', sort_by_field='hostname', reverse_order=False):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
+        self._data = []
         self._tree = ElementTree.parse(os.popen(sge_command))
         self._dict = OrderedDict()
         # Build a dictionary of dictionaries:
@@ -365,7 +378,10 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
             if name == "global": continue
             self._dict[name] = OrderedDict()
             for x in item.getchildren():
-                self._dict[name][x.attrib['name']] = x.text
+                # hosts can have jobs attached to it.
+                # Get rid of it for now.
+                if not x.tag == 'job':
+                    self._dict[name][x.attrib['name']] = x.text
                 
         # Make a list of lists from that:
         self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
@@ -378,8 +394,6 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
                 self._data.reverse()
 
 
-
-
 ##################################################################
 #               Job Detail Table Model                           #
 # This one is yet customized as it consists with many rows and   #
@@ -390,7 +404,7 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
 
 class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
     def __init__(self, parent=None, *args):
-        super(self.__class__, self).__init__()
+        super(self.__class__, self).__init__(parent)
         self._dict = OrderedDict()
         self._head = OrderedDict()
         self._data = []
