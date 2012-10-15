@@ -68,6 +68,50 @@ def string_to_elapsed_time(value):
 
 #http://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
 def get_username():
+    '''Cross-platform method to get to the user name.'''
     from os import getuid
     from  pwd import getpwuid
     return getpwuid(getuid())[0]
+
+
+def get_basic_job_info(data):
+    '''Renders basic job information from job detail model.'''
+    def safe_key(key):
+        if key in data:
+            return data[key]
+        return None
+    import time
+    text = """
+    SGE job number : %s 
+    Tasks completed: %s (or in progress)
+    Tasks range    : %s-%s: %s
+    Job owner : %s
+    Group     : %s
+    Submitted : %s
+    Hostname  : %s
+    Jobname   : %s
+    --------------------------------------
+    Procslots : %s
+    $JOB      : %s
+    $PWD      : %s
+    Cluster   : %s
+    Output    : %s 
+    --------------------------------------
+   
+    PACKAGES  : %s
+
+
+
+
+
+    """ % (safe_key('JB_job_number'), safe_key('JAT_task_number'), safe_key("RN_min"), 
+           safe_key("RN_max"), safe_key("RN_step"),  safe_key('JB_owner'), safe_key('JB_group'), 
+          time.ctime(int(safe_key('JB_submission_time'))), safe_key('MR_host'), 
+          safe_key('JB_job_name'), safe_key('CE_stringval'),  safe_key('JOB'), 
+          safe_key('PWD'), safe_key('QR_name') , safe_key('OUTPUT_PICTURE'), safe_key("NEED_LOADED_PACKAGE"))
+    return text
+
+    # $PATH     : %s
+    # $LD_LIBRARY: %s
+    # $PYTHONPATH: %s
+    # safe_key("PATH"), safe_key("LD_LIBRARY_PATH"), safe_key("PYTHONPATH"),

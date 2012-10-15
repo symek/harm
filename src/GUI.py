@@ -174,21 +174,32 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
         # Combo box for job views:
         #self.job_view_combo   = QtGui.QComboBox()
-        #self.job_view_combo.addItems(['List View','Detailed View'])
-        #job_tab_vbox.addWidget(self.job_view_combo)
+        #self.job_view_combo.addItems(['Basic View','Detailed View', "Tree View"])
+        #job_detail_tab_vbox.addWidget(self.job_view_combo)
 
         # Filter:
-        '''self.job_details_filter_label = QtGui.QLabel()
+        self.job_details_filter_label = QtGui.QLabel()
         self.job_details_filter_label.setText("Variable filter")
         job_details_hbox = QtGui.QHBoxLayout()
         job_details_hbox.addWidget(self.job_details_filter_label)
         self.job_details_filter_line = QLineEdit()
         job_details_hbox.addWidget(self.job_details_filter_line)
-        job_details_hbox.addWidget(self.job_view_combo)
-        job_tab_vbox.insertLayout(0, job_details_hbox)'''
+        #job_details_hbox.addWidget(self.job_view_combo)
+        job_detail_tab_vbox.insertLayout(0, job_details_hbox)
 
+        details_tab_splitter  = QtGui.QSplitter(self.job_detail_tab)
+        details_tab_splitter.setOrientation(Qt.Vertical)
+        job_detail_tab_vbox.addWidget(details_tab_splitter)
+
+        # Detail view:
         self.job_detail_view = views.JobDetailView(context)
+        # Basic view:
+        self.job_detail_basic_view = QtGui.QTextBrowser(self.job_detail_tab)
+        job_detail_tab_vbox.addWidget(self.job_detail_basic_view)
         job_detail_tab_vbox.addWidget(self.job_detail_view)
+        details_tab_splitter.addWidget(self.job_detail_basic_view)
+        details_tab_splitter.addWidget(self.job_detail_view)
+
 
         # Tree job view setup:
         #if job_id:

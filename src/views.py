@@ -38,7 +38,7 @@ class ViewConfig():
 class ViewBase():
     order_columns = []
     hidden_columns = []
-    def __init__(self):
+    def base(self):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
         self.setSortingEnabled(True)
@@ -315,6 +315,7 @@ class JobDetailView(QTableView, ViewBase, ViewConfig):
         self.context.views['job_detail_view'] = self
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
+        self.base()
         self.configure()
 
         # Models:
@@ -322,6 +323,7 @@ class JobDetailView(QTableView, ViewBase, ViewConfig):
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
+        self.proxy_model.setFilterCaseSensitivity(0)
         self.context.models['job_detail_model'] = self.model
         self.context.models['job_detail_proxy_model'] = self.proxy_model
         self.setModel(self.proxy_model)
@@ -337,5 +339,5 @@ class JobDetailView(QTableView, ViewBase, ViewConfig):
     def update_model(self, jobid):
         self.model.reset()
         self.model.update(SGE_JOB_DETAILS % jobid, 'djob_info')
-        self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        self.resizeColumnsToContents()

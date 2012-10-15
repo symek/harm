@@ -418,7 +418,7 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
         self._data = []
         self.find_req(self._tree, self._data)
         self._dict = OrderedDict(self._data)
-        self._data = [(x[1], x[1]) for x in self._dict.items()]
+        self._data = [(x[0], x[1]) for x in self._dict.items()]
         self._head = self._tag2idx(self._dict)
 
     def find_req(self, tree, storage):
@@ -453,16 +453,20 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
         if role != Qt.DisplayRole:
             return QVariant()
         # Horizontal headers:
-        #if orientation == Qt.Horizontal and len(self._data):
-        #    return QVariant(header_replace(self._head[section]))
+        if orientation == Qt.Horizontal and len(self._data):
+            headers = ("Variable", "Value")
+            return QVariant(headers[section])
+            #return QVariant(header_replace(self._head[section]))
         # Vertical headers:
         if orientation == Qt.Vertical and len(self._data):
-            return QVariant(header_replace(self._head[section]))
+            if section in self._head:
+                return QVariant(section)
+                #return QVariant(header_replace(self._head[section]))
         return QVariant()
 
     def columnCount(self, parent):
         if len(self._data):
-            return 1
+            return len(self._data[0])
         return 0
 
 
