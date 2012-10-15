@@ -25,8 +25,8 @@ class HarmMainWindowCallbacks():
                      self.set_user)
         self.connect(self.jobs_filter_line, SIGNAL('textChanged(const QString&)'),\
                      self.set_jobs_view_filter) 
-        self.connect(self.job_details_filter_line, SIGNAL('textChanged(const QString&)'),\
-                     self.set_job_details_view_filter)   
+        self.connect(self.job_detail_filter_line, SIGNAL('textChanged(const QString&)'),\
+                     self.set_job_detail_view_filter)   
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
@@ -166,7 +166,10 @@ class HarmMainWindowCallbacks():
             print job_id
         else:
             self.tasks_view.proxy_model.setFilterWildcard("")
+
         self.tasks_view.resizeRowsToContents()
+        self.tasks_view.resizeColumnsToContents()
+        #self.tasks_view.HorizontalHeader().resizeSection(1, 30)
 
     def job_detail_basic_view_update(self):
         '''Updates texted in detail basic view.
@@ -175,7 +178,7 @@ class HarmMainWindowCallbacks():
         text = utilities.get_basic_job_info(self.job_detail_view.model._dict)
         self.job_detail_basic_view.setPlainText(str(text))
 
-    def set_job_details_view_filter(self, text):
+    def set_job_detail_view_filter(self, text):
         '''Filters job details view.'''
         key = str(self.job_details_filter_line.text())
         self.job_detail_view.proxy_model.setFilterWildcard(key)

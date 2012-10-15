@@ -331,6 +331,7 @@ class JobDetailView(QTableView, ViewBase, ViewConfig):
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        self.horizontalHeader().setResizeMode(3)
 
     def openContextMenu(self, position): pass
         #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))

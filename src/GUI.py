@@ -178,12 +178,12 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         #job_detail_tab_vbox.addWidget(self.job_view_combo)
 
         # Filter:
-        self.job_details_filter_label = QtGui.QLabel()
-        self.job_details_filter_label.setText("Variable filter")
+        self.job_detail_filter_label = QtGui.QLabel()
+        self.job_detail_filter_label.setText("Variable filter")
         job_details_hbox = QtGui.QHBoxLayout()
-        job_details_hbox.addWidget(self.job_details_filter_label)
-        self.job_details_filter_line = QLineEdit()
-        job_details_hbox.addWidget(self.job_details_filter_line)
+        job_details_hbox.addWidget(self.job_detail_filter_label)
+        self.job_detail_filter_line = QLineEdit()
+        job_details_hbox.addWidget(self.job_detail_filter_line)
         #job_details_hbox.addWidget(self.job_view_combo)
         job_detail_tab_vbox.insertLayout(0, job_details_hbox)
 

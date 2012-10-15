@@ -293,14 +293,18 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase):
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
         if isinstance(self._dict, dict):
             d = self._dict['job_list']
-            self._head = self._tag2idx(d[-1])
-            self._data += [[x[key] for key in x.keys()] for x in d]
-            # Sort list by specified header (given it's name, not index):
-            if sort_by_field in self._head.values():
-                key_index = self.get_key_index(sort_by_field)
-                self._data = sorted(self._data,  key=itemgetter(key_index))
-                if reverse_order:
-                    self._data.reverse()
+            if isinstance(d, list):
+                self._head = self._tag2idx(d[-1])
+                self._data += [[x[key] for key in x.keys()] for x in d]
+            elif isinstance(d, dict):
+                self._head = self._tag2idx(d)
+                self._data = d.values()
+                # Sort list by specified header (given it's name, not index):
+                if sort_by_field in self._head.values():
+                    key_index = self.get_key_index(sort_by_field)
+                    self._data = sorted(self._data,  key=itemgetter(key_index))
+                    if reverse_order:
+                        self._data.reverse()
             
     ####################################################################
     # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
