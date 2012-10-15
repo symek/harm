@@ -64,3 +64,10 @@ def string_to_elapsed_time(value):
     except:
         pass
     return value
+
+
+#http://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
+def get_username():
+    from os import getuid
+    from  pwd import getpwuid
+    return getpwuid(getuid())[0]

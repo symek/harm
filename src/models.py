@@ -408,6 +408,7 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
         self._dict = OrderedDict()
         self._head = OrderedDict()
         self._data = []
+        self._tree = None
 
     def update(self, sge_command, sort_by_field="", reverse_order=False):
         from operator import itemgetter

@@ -17,12 +17,14 @@ class HarmMainWindowCallbacks():
                      self.jobs_view_clicked)
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #             self.finished_view_clicked)
-        #self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
-        #             self.tasks_view_clicked)
+        self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
+                     self.tasks_view_clicked)
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
         self.connect(self.refreshAction, SIGNAL('triggered()'), 
                      self.refreshAll)
+        self.connect(self.set_user_action, SIGNAL('triggered()'), 
+                     self.set_user)
         #self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
         #             self.change_job_view)
         #self.connect(self.machine_view_combo, SIGNAL('currentIndexChanged(int)'), 
@@ -42,6 +44,11 @@ class HarmMainWindowCallbacks():
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()
 
+    def set_user(self):
+        user = utilities.get_username()
+        self.jobs_filter_line.setText("owner:%s" % user)
+        #self.set_jobs_view_filter()
+
     def jobs_view_clicked(self, index):
         '''Calls for selecting job on Jobs View.'''
         #model = self.jobs_view.proxy_model
@@ -56,37 +63,45 @@ class HarmMainWindowCallbacks():
         #self.update_job_model_from_jobs(indices)
         #self.set_tasks_proxy_model_filter(0)
         #job_id = self.jobs_model.root[indices.row()][0].text
-
-        #
     
-    def tasks_view_clicked(self, indices):
+    def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
         s_index = self.tasks_view.proxy_model.mapToSource(index)
-        job_id_index = self.jobs_view.model.get_key_index("JB_job_number")
-        job_id  = self.jobs_view.model._data[s_index.row()][job_id_index]
+        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
 
-        self.update_job_model_from_tasks(indices)
-        job_id = self.tasks_model.root[indices.row()][0].text
-        self.update_stat_view(job_id)
+        # That need to be done for others widgets relaying on job_detail_view
+        self.job_detail_view.update_model(job_id)
+
+        # Update both std out/err widgets:
+        tab_index = self.right_tab_widget.currentIndex() 
+        if tab_index in (1,2):
+            task_id_index = self.tasks_view.model.get_key_index('tasks')
+            task_id       = self.tasks_view.model._data[index.row()][task_id_index]
+            self.update_std_views(job_id, task_id, tab_index)
+
+        #self.update_job_model_from_tasks(indices)
+        #job_id = self.tasks_model.root[indices.row()][0].text
+        #self.update_stat_view(job_id)
         #self.update_image_view(job_id)
     
-    def finished_view_clicked(self, indices):
+    """def finished_view_clicked(self, indices):
         '''Calls for selecting job on Task View.'''
         tm = {}
         for index in range(len(self.finished_model.root[0])):
             tm[self.finished_model.root[0][index].tag] = index
         job_id = self.finished_model.root[indices.row()][tm['jobnumber']].text
-        self.update_stat_view(job_id)
+        self.update_stat_view(job_id)"""
            
 
-    def update_job_model_from_jobs(self, indices):
+    """def update_job_model_from_jobs(self, indices):
         '''Update job detialed view on selection in Jobs view.'''
         job_id  = self.jobs_model.root[indices.row()][0].text
         command = SGE_JOB_DETAILS % job_id
         self.job_model.update(os.popen(command))
-        self.job_view.reset()
+        self.job_view.reset()"""
 
-    def update_job_model_from_tasks(self, indices):
+    """def update_job_model_from_tasks(self, indices):
         '''Update job detialed view in seleciton in Tasks view.'''
         tagidx = utilities.tag2idx(self.tasks_model.root[0])
         job_id = self.tasks_model.root[indices.row()][tagidx['JB_job_number']].text
@@ -100,43 +115,36 @@ class HarmMainWindowCallbacks():
         else:
             self.job_tree_view.update(os.popen(command))
             #self.job_tree_view.populate(self.job_tree_view.root)
-            #print self.job_tree_view.data.find("OUTPUT_PICTURE").text
+            #print self.job_tree_view.data.find("OUTPUT_PICTURE").text"""
 
 
-    def update_std_views(self, tab_index):
+    def update_std_views(self, job_id, task_id, tab_index):
         '''Read from disk logs specified by selected tasks..'''
-        index  = self.tasks_view.currentIndex()
-        # TODO: 0 and -1 are problemetic. Should we have 
-        # a index map for tables?
-        try:
-            job_id = self.tasks_model.root[index.row()][0].text
-            task_id= self.tasks_model.root[index.row()][-1].text
-        except:
-            return
+        PN_path  = None
+        job_name = None            
+        data = self.job_detail_view.model._dict
+        if "PN_path" in data: PN_path = data['PN_path']    
+        if "JB_job_name" in data: job_name = data['JB_job_name']
 
         # Stdout Tab:
-        if tab_index == 1: # If second tab selected            
-            element = self.job_model.root[0]
-            stdout_path = element.find("JB_stdout_path_list")[0].find("PN_path").text
-            job_name    = element.find("JB_job_name").text
-            stdout_path += job_name + ".o" + job_id + "." + task_id
-            try: 
-                stdout_file  = open(stdout_path, 'r')
+        if PN_path and job_name and tab_index == 1:
+            PN_path = "%s%s.o%s.%s" % (PN_path, job_name, job_id, task_id)
+            try:
+                stdout_file  = open(PN_path, 'r')
                 self.stdout_view.setPlainText(stdout_file.read())
                 stdout_file.close()
-            except: pass
+            except: 
+                pass
 
         # Stderr Tab:
-        elif tab_index == 2:
-            element = self.job_model.root[0]
-            stderr_path = element.find("JB_stdout_path_list")[0].find("PN_path").text
-            job_name    = element.find("JB_job_name").text
-            stderr_path += job_name + ".e" + job_id + "." + task_id
+        elif PN_path and job_name and tab_index == 2:
+            PN_path = "%s%s.e%s.%s" % (PN_path, job_name, job_id, task_id)
             try: 
-                stderr_file  = open(stderr_path, 'r')
+                stderr_file  = open(PN_path, 'r')
                 self.stderr_view.setPlainText(stderr_file.read())
                 stderr_file.close()
-            except: pass
+            except: 
+                pass
 
     '''def update_image_view(self, job_id):
         if self.right_tab_widget.currentIndex() != 4:
@@ -178,10 +186,10 @@ class HarmMainWindowCallbacks():
         self.job_detail_tree_view.resizeRowsToContents() '''
         
 
-    def set_jobs_proxy_model_wildcard(self, wildcard):
+    def set_jobs_view_filter(self, wildcard):
         '''Sets a filter for jobs view according to user input in jobs_filter_line'''
         wildcard = wildcard.split(":")
-        self.jobs_proxy_model.setFilterWildcard(wildcard[-1])
+        self.jobs_view.proxy_model.setFilterWildcard(wildcard[-1])
         self.jobs_view.resizeRowsToContents()
         if len(wildcard) > 1:
             for x in range(len(self.jobs_model.root[0])):
@@ -189,11 +197,11 @@ class HarmMainWindowCallbacks():
                 if tag in tokens.header.keys():
                     column_name = tokens.header[tag]
                     if str(wildcard[0]).lower() == column_name.lower():
-                        self.jobs_proxy_model.setFilterKeyColumn(x)
+                        self.jobs_view.proxy_model.setFilterKeyColumn(x)
                         break
 
 
-    def set_tasks_proxy_model_filter(self, int):
+    def set_tasks_view_filter(self, int):
         '''Sets a filter according to job selection in jobs view.'''
         if self.tasks_onlySelected_toggle.isChecked():
             index  = self.jobs_view.currentIndex()

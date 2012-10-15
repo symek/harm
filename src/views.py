@@ -21,7 +21,7 @@ class ViewConfig():
     def configure(self):
         # Prototype of config class.
         conf = config.Config()
-        conf.load("src/harm.conf")
+        conf.load("/home/symek/work/harm-sge/src/harm.conf")
         if self.__class__.__name__ in conf.keys():
             c = conf[self.__class__.__name__]
             for item in c:
@@ -36,6 +36,8 @@ class ViewConfig():
 ###########################################################
 
 class ViewBase():
+    order_columns = []
+    hidden_columns = []
     def __init__(self):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
@@ -44,10 +46,16 @@ class ViewBase():
         self.setSelectionBehavior(1)
         self.setAlternatingRowColors(1)
         self.setDragDropMode(4)
+        self.order_columns = []
+        self.hidden_columns = []
         
     def update_model(self, *arg):
         self.model.reset()
         self.model.update(*arg)
+        if self.order_columns:
+            self.set_column_order(self.order_columns)
+        if self.hidden_columns:
+            self.set_column_hidden(self.hidden_columns)
 
     def set_column_order(self, ordered_items):
         # Reorder columns in bellow order:        
@@ -136,12 +144,11 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         self.resizeRowsToContents()
 
         # Order columns:
-        order_columns = 'JB_job_number tasks JB_owner JAT_start_time queue_name \
-                        JB_name'.split()
-        self.set_column_order(order_columns)
+        self.order_columns = 'JB_job_number tasks JB_owner JAT_start_time queue_name JB_name'.split()
+        self.set_column_order(self.order_columns)
 
-        hidden_columns = ("slots",)
-        self.set_column_hidden(hidden_columns)
+        self.hidden_columns = ("slots",)
+        self.set_column_hidden(self.hidden_columns)
 
     def openContextMenu(self, position):
         self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
@@ -172,15 +179,15 @@ class HistoryView(QTableView, ViewBase,ViewConfig):
 
         # Reorder columns in bellow order:        
         # FIXME: Move both bellow constants into Config class...
-        order_columns = 'jobnumber taskid owner qsub_time start_time end_time \
+        self.order_columns = 'jobnumber taskid owner qsub_time start_time end_time \
                         jobname cpu maxvmem exit_status failed'.split()
-        self.set_column_order(order_columns)
+        self.set_column_order(self.order_columns)
 
         # Hide columns:
-        hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
+        self.hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
         ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
         ru_oublock iow slots'.split()
-        self.set_column_hidden(hidden_columns)
+        self.set_column_hidden(self.hidden_columns)
 
         # Clean:
         self.resizeColumnsToContents()
@@ -327,6 +334,8 @@ class JobDetailView(QTableView, ViewBase, ViewConfig):
         #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
-    def update(self, jobid):
+    def update_model(self, jobid):
         self.model.reset()
         self.model.update(SGE_JOB_DETAILS % jobid, 'djob_info')
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()

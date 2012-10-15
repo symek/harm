@@ -63,10 +63,23 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
         # Toolbar:
         self.toolbar = self.addToolBar('Main')
+        # Rehresh:
         self.refreshAction = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/refresh.png'), 'Refresh', self)
         self.refreshAction.setShortcut('Ctrl+R')
         self.refreshAction.setStatusTip('Refresh jobs and task view from SGE.')
         self.toolbar.addAction(self.refreshAction)  
+        #Set user:
+        self.set_user_action = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/user.png'), 'Set user filter', self)
+        self.set_user_action.setShortcut('Ctrl+U')
+        self.set_user_action.setStatusTip('Set filter owner:$USER for jobs view.')
+        self.toolbar.addAction(self.set_user_action) 
+        #Quit:
+        self.exit_action = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/disconnect.png'), 'Exit.', self)
+        self.exit_action.setShortcut('Ctrl+E')
+        self.exit_action.setStatusTip('Exit application.')
+        self.exit_action.triggered.connect(QtGui.qApp.quit)
+        self.toolbar.addAction(self.exit_action) 
+
 
   
 
@@ -74,8 +87,13 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         '''List of tasks waiting for the execution and currently proccesed (in task view).
            Should have also list of recently finished jobs.'''
         # Tab Setup:
-        self.jobs_tab         = QtGui.QWidget()
-        jobs_tab_vbox         = QtGui.QVBoxLayout(self.jobs_tab)
+        self.jobs_tab  = QtGui.QWidget()
+        jobs_tab_vbox = QtGui.QVBoxLayout(self.jobs_tab) 
+
+        #
+        jobs_tab_splitter  = QtGui.QSplitter(self.jobs_tab)
+        jobs_tab_vbox.addWidget(jobs_tab_splitter)
+        jobs_tab_splitter.setOrientation(Qt.Vertical)
         self.left_tab_widget.addTab(self.jobs_tab, "Jobs")
 
          # Filter:
@@ -86,26 +104,18 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.jobs_filter_line = QLineEdit()
         jobs_filter_hbox.addWidget(self.jobs_filter_line)
         jobs_tab_vbox.insertLayout(0, jobs_filter_hbox)
-
-        # Jobs models (Left Tabs):
-        xml = os.popen(SGE_JOBS_LIST_GROUPED)
-        self.jobs_model = SGETableModel(xml, ["job_info"])
-        self.jobs_proxy_model = QSortFilterProxyModel()
-        self.jobs_proxy_model.setSourceModel(self.jobs_model)
-        self.jobs_proxy_model.setDynamicSortFilter(True)
-        #context.models['jobs_model'] = self.jobs_model
-        #context.models['jobs_proxy_model'] = self.jobs_proxy_model
     
         # History filters:
-        #self.jobs_filter_menu = QtGui.QMenu()
-        #self.jobs_filter_presets = QtGui.QMenu('Presets')
-        #self.jobs_filter_presets.addAction(QString("owner"))
-        #self.jobs_filter_menu.addMenu(self.jobs_filter_presets)
-        #jobs_filter_hbox.addWidget(self.jobs_filter_menu)
+        self.jobs_filter_menu = QtGui.QMenu()
+        self.jobs_filter_presets = QtGui.QMenu('Presets')
+        self.jobs_filter_presets.addAction(QString("owner"))
+        self.jobs_filter_menu.addMenu(self.jobs_filter_presets)
+        jobs_filter_hbox.addWidget(self.jobs_filter_menu)
 
         # Jobs View:
         self.jobs_view = views.JobsView(context)
-        jobs_tab_vbox.addWidget(self.jobs_view)
+        #jobs_tab_vbox.addWidget(self.jobs_view)
+        jobs_tab_splitter.addWidget(self.jobs_view)
 
         # Tasks view Controls:
         self.tasks_onlySelected_toggle = QtGui.QCheckBox()
@@ -117,6 +127,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.tasks_view = views.TasksView(context)
         jobs_tab_vbox.insertLayout(2, tasks_controls)
         jobs_tab_vbox.addWidget(self.tasks_view)
+        jobs_tab_splitter.addWidget(self.tasks_view)
 
     def setupHistoryTab(self):
         '''Historical jobs aquaured from qacct SGE utility. Heavy post-process
