@@ -127,6 +127,7 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         self.context.views['tasks_view'] = self
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
+        self.setEditTriggers(self.NoEditTriggers);
         self.configure()
 
         # Models:

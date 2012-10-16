@@ -1,3 +1,4 @@
+import os
 import utilities
 from constants import *
 #PyQt4:
@@ -27,6 +28,8 @@ class HarmMainWindowCallbacks():
                      self.set_jobs_view_filter) 
         self.connect(self.job_detail_filter_line, SIGNAL('textChanged(const QString&)'),\
                      self.set_job_detail_view_filter)   
+        self.connect(self.tasks_view, SIGNAL("doubleClicked(const QModelIndex&)"),  
+                     self.tasks_view_doubleClicked)
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
@@ -81,14 +84,33 @@ class HarmMainWindowCallbacks():
         tab_index = self.right_tab_widget.currentIndex() 
         if tab_index in (1,2):
             task_id_index = self.tasks_view.model.get_key_index('tasks')
-            task_id       = self.tasks_view.model._data[index.row()][task_id_index]
+            task_id       = self.tasks_view.model._data[s_index.row()][task_id_index]
             self.update_std_views(job_id, task_id, tab_index)
 
         #self.update_job_model_from_tasks(indices)
         #job_id = self.tasks_model.root[indices.row()][0].text
         #self.update_stat_view(job_id)
         #self.update_image_view(job_id)
-    
+
+    def tasks_view_doubleClicked(self, index):
+        """Double clicking on task calls image viewer (mplay for now)
+        TODO: place for Config() class."""
+        s_index       = self.tasks_view.proxy_model.mapToSource(index)
+        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
+
+        # Update job detail only if it's not already updated:
+        if self.job_detail_view.model._dict['JB_job_number'] != job_id:
+            self.job_detail_view.update_model(job_id)
+
+        # Get image info:            
+        if 'OUTPUT_PICTURE' in self.job_detail_view.model._dict:
+            picture = self.job_detail_view.model._dict['OUTPUT_PICTURE']
+            picture = utilities.padding(picture, 'shell')
+            os.system("/opt/package/houdini_12.0.687/bin/mplay %s" % picture[0])
+        else:
+            print "No image."
+
 
     def update_std_views(self, job_id, task_id, tab_index):
         '''Read from disk logs specified by selected tasks..'''
@@ -118,25 +140,6 @@ class HarmMainWindowCallbacks():
             except: 
                 self.stderr_view.setPlainText("Can't find %s" % PN_path)
 
-
-    def change_job_view(self, view):
-        '''Switch job view between table and tree views.'''
-        if view == 0:
-            self.job_tree_view.hide()
-            self.job_view.show()     
-        else:
-            self.job_view.hide()
-            self.job_tree_view.show()
-
-    def change_machine_view(self, view):
-        '''Switch machines view between table and tree views.'''
-        if view == 0:
-            self.machine_tree_view.hide()
-            self.machine_view.show()     
-        else:
-            self.machine_view.hide()
-            self.machine_tree_view.show()
-        
 
     def set_jobs_view_filter(self, wildcard):
         '''Sets a filter for jobs view according to user input in jobs_filter_line'''
@@ -180,7 +183,7 @@ class HarmMainWindowCallbacks():
 
     def set_job_detail_view_filter(self, text):
         '''Filters job details view.'''
-        key = str(self.job_details_filter_line.text())
+        key = str(self.job_detail_filter_line.text())
         self.job_detail_view.proxy_model.setFilterWildcard(key)
         self.job_detail_view.resizeRowsToContents()
         self.job_detail_view.resizeColumnsToContents()
@@ -188,6 +191,26 @@ class HarmMainWindowCallbacks():
 
     #####################################################################
     ### Old stuff
+
+
+    def change_job_view(self, view):
+        '''Switch job view between table and tree views.'''
+        if view == 0:
+            self.job_tree_view.hide()
+            self.job_view.show()     
+        else:
+            self.job_view.hide()
+            self.job_tree_view.show()
+
+    def change_machine_view(self, view):
+        '''Switch machines view between table and tree views.'''
+        if view == 0:
+            self.machine_tree_view.hide()
+            self.machine_view.show()     
+        else:
+            self.machine_view.hide()
+            self.machine_tree_view.show()
+        
 
     def update_stat_view(self, job_id):
         '''Retrieve statistics from qaccel for current job selection (jobs view)'''

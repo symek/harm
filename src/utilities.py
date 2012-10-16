@@ -99,11 +99,6 @@ def get_basic_job_info(data):
     --------------------------------------
    
     PACKAGES  : %s
-
-
-
-
-
     """ % (safe_key('JB_job_number'), safe_key('JAT_task_number'), safe_key("RN_min"), 
            safe_key("RN_max"), safe_key("RN_step"),  safe_key('JB_owner'), safe_key('JB_group'), 
           time.ctime(int(safe_key('JB_submission_time'))), safe_key('MR_host'), 
@@ -115,3 +110,21 @@ def get_basic_job_info(data):
     # $LD_LIBRARY: %s
     # $PYTHONPATH: %s
     # safe_key("PATH"), safe_key("LD_LIBRARY_PATH"), safe_key("PYTHONPATH"),
+
+def padding(file, format=None):
+    """ Recognizes padding convention of a file.
+        format: one of: nuke, houdini, shell
+        Returns: (host_specific_name, frame number, length, extension).
+        """
+    import re
+    _formats = {'nuke': '%0#', 'houdini': '$F#', 'shell':'*'}
+    frame, length, = None, None
+    base, ext = os.path.splitext(file)
+    if not base[-1].isdigit(): 
+        return (os.path.splitext(file)[0], 0, 0, os.path.splitext(file)[1])
+    l = re.split('(\d+)', file)
+    if l[-2].isdigit(): (frame, length)  = (int(l[-2]), len(l[-2]))
+    if format in _formats.keys():
+        format = _formats[format].replace("#",str(length))
+        return "".join(l[:-2])+ format + ext, frame, length, ext
+    return "".join(l[:-2]), frame, length, ext
