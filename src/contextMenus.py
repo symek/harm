@@ -116,6 +116,7 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         super(self.__class__, self).__init__()
         self.view    = context.views['tasks_view']
         self.model   = context.models['tasks_model']
+        self.context = context
         self.bind_actions(self.build_action_strings(self))
         self.execute(position)
 
@@ -157,5 +158,30 @@ class TasksContextMenu(QMenu, ContextMenuBase):
     def callback_clear_error(self):
         result = os.popen('qmod -cj %s' %  self._getIds()).read()
         print result
+
+    def compare_experimental(self):
+        # Get tasks:
+        ids = self._getIds()
+        ids = ids.split()
+        # Make sure user selected only two frames:
+        # TODO: make possible compare two sequences!
+        if len(ids) < 2:
+            return
+        elif len(ids) > 2:
+            ids = ids[:2]
+        ids = [x.split(".") for x in ids]
+
+        # Retrieve images from a model
+        # TODO: We don't have currently to get to the task details other
+        # than currently loaded in detail view.
+        # We could use the same model though... 
+        model = self.context.views['job_detail_view'].model
+        if 'OUTPUT_PICTURE' in model._dict:
+            p0 = model._dict['OUTPUT_PICTURE']
+            p0 = utilities.padding(p0, 'shell')
+            p1 = p0[0].replace("*", str(ids[0][1]).zfill(p0[2]))
+            p2 = p0[0].replace("*", str(ids[1][1]).zfill(p0[2]))
+            os.system("/opt/package/houdini_12.0.687/bin/mplay -e c %s %s" % (p1, p2))
+            
 
 
