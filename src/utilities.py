@@ -74,7 +74,7 @@ def get_username():
     return getpwuid(getuid())[0]
 
 
-def get_basic_job_info(data):
+def render_basic_job_info(data):
     '''Renders basic job information from job detail model.'''
     def safe_key(key):
         if key in data:
@@ -99,17 +99,29 @@ def get_basic_job_info(data):
     --------------------------------------
    
     PACKAGES  : %s
-    """ % (safe_key('JB_job_number'), safe_key('JAT_task_number'), safe_key("RN_min"), 
+
+    --------------------------------------
+    """ % \
+    (safe_key('JB_job_number'), safe_key('JAT_task_number'), safe_key("RN_min"), 
            safe_key("RN_max"), safe_key("RN_step"),  safe_key('JB_owner'), safe_key('JB_group'), 
           time.ctime(int(safe_key('JB_submission_time'))), safe_key('MR_host'), 
           safe_key('JB_job_name'), safe_key('CE_stringval'),  safe_key('JOB'), 
           safe_key('PWD'), safe_key('QR_name') , safe_key('OUTPUT_PICTURE'), safe_key("NEED_LOADED_PACKAGE"))
     return text
 
-    # $PATH     : %s
-    # $LD_LIBRARY: %s
-    # $PYTHONPATH: %s
-    # safe_key("PATH"), safe_key("LD_LIBRARY_PATH"), safe_key("PYTHONPATH"),
+def render_basic_task_info(data):
+    str_frame = "\n\n     Frames: (%s)\n\n" % ", ".join([f[1] for f in data])
+    for frame in data:
+        info = ""
+        if not frame[2]:
+            str_frame += "    frame %s: No data.\n" % frame[1]
+            continue
+        for item in frame[2]:
+            info += "     %s: %s\n" % item
+        str_frame += "     frame %s: \n%s\n" % (frame[1], info)
+        str_frame += "--------------------------------------\n"
+    return str_frame
+
 
 def padding(file, format=None):
     """ Recognizes padding convention of a file.

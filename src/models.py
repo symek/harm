@@ -420,10 +420,44 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
         self._tree = self._tree.find('djob_info')
         self._dict = OrderedDict()
         self._data = []
+        self._tasks = []
         self.find_req(self._tree, self._data)
+        self._tasks = self.find_task_details(self._tree)
         self._dict = OrderedDict(self._data)
-        self._data = [(x[0], x[1]) for x in self._dict.items()]
         self._head = self._tag2idx(self._dict)
+
+    def find_task_details(self, tree):
+        def get_task_info(task):
+            _list = []
+            for item in task.getchildren():
+                name  = item.find("UA_name")
+                value = item.find("UA_value")
+                _list.append((name.text, value.text))
+            return _list
+
+        def get_leaf(tree, leaf):
+            leafs = []
+            for ch in tree.getchildren():
+                if ch.tag == leaf:
+                    leafs.append(ch)
+                else:
+                    ch = get_leaf(ch, leaf)
+                    if ch: leafs += ch
+            return leafs
+
+        tasks_details = []
+        tasks_list = get_leaf(tree, "JB_ja_tasks")
+        if not tasks_list: return []
+        for sublist in tasks_list[0].getchildren():
+            status = sublist.find("JAT_status")
+            task_id= sublist.find("JAT_task_number")
+            usage  = sublist.find("JAT_scaled_usage_list")
+            if usage:
+                usage = get_task_info(usage)
+            tasks_details.append((status.text, task_id.text, usage))
+
+        return tasks_details
+
 
     def find_req(self, tree, storage):
         children = tree.getchildren()
