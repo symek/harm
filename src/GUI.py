@@ -63,9 +63,10 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
         # Toolbar:
         self.toolbar = self.addToolBar('Main')
-        # Rehresh:
-        self.refreshAction = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/refresh.png'), 'Refresh', self)
-        self.refreshAction.setShortcut('Ctrl+R')
+        # Refresh:
+        warning = 'Clicking more than once for 5 seconds will burn out your computer. (Not that one, YOURS)!'
+        self.refreshAction = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/refresh.png'), 'Refresh (%s)'% warning, self)
+        self.refreshAction.setShortcut('Ctrl+R') 
         self.refreshAction.setStatusTip('Refresh jobs and task view from SGE.')
         self.toolbar.addAction(self.refreshAction)  
         #Set user:
