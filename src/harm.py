@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, sys
+import os, sys, time
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import *
 from PyQt4.QtGui   import QIcon
@@ -23,10 +23,16 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.setupGUI(init=True)
         self.setupSLOTS()
 
+        # Timer:
+        self.tick = time.time()
+
     def splashMessage(self, text):             
         self.splash.showMessage(text, Qt.AlignBottom)
         self.app.processEvents()
-    
+
+    def tick_tack(self):
+        from time import time
+        self.tick = time()
     
 
 def main():

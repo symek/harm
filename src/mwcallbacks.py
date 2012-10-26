@@ -1,4 +1,4 @@
-import os
+import os, time
 import utilities
 from constants import *
 #PyQt4:
@@ -42,9 +42,12 @@ class HarmMainWindowCallbacks():
         #             self.set_job_detail_proxy_model_wildcard)  
 
     def refreshAll(self):
+        if time.time() - self.tick < 5:
+            time.sleep(3)           
         self.jobs_view.update_model(SGE_JOBS_LIST_GROUPED)
         self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
         self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
+        self.tick_tack()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()
@@ -77,7 +80,7 @@ class HarmMainWindowCallbacks():
         job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
 
-        # That need to be done for others widgets relaying on job_detail_view
+        # That needs to be done for others widgets relaying on job_detail_view
         # Update job detail only if it's not already updated:
         #if self.job_detail_view.model._dict['JB_job_number'] != job_id:
         self.job_detail_view.update_model(job_id)
