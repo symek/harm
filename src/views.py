@@ -21,7 +21,7 @@ class ViewConfig():
     def configure(self):
         # Prototype of config class.
         conf = config.Config()
-        conf.load("/home/symek/work/harm-sge/src/harm.conf")
+        conf.load("/STUDIO/scripts/harm-sge/src/harm.conf")
         if self.__class__.__name__ in conf.keys():
             c = conf[self.__class__.__name__]
             for item in c:
@@ -48,6 +48,7 @@ class ViewBase():
         self.setDragDropMode(4)
         self.order_columns = []
         self.hidden_columns = []
+        #self.horizontalHeader().setMovable(True)
         
     def update_model(self, *arg):
         self.model.reset()
@@ -59,7 +60,7 @@ class ViewBase():
 
     def set_column_order(self, ordered_items):
         # Reorder columns in bellow order:        
-        self.horizontalHeader().setMovable(True)
+        #self.horizontalHeader().setMovable(True)?
         for column in range(len(ordered_items)):
             if ordered_items[column] in self.model._head.values():
                 # We mind visual_index which changes on every loop's step, so this have to be rediscaverd from 
@@ -85,6 +86,7 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         self.context.views['jobs_view'] = self
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
+        self.base()
         self.configure()
 
         # Models:
@@ -98,8 +100,8 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         self.setModel(self.proxy_model)
         
         # Delegate:
-        #self.jobs_delagate = delegates.JobsDelegate(self.context, self.model)
-        #self.setItemDelegate(self.jobs_delagate)
+        self.delagate = delegates.JobsDelegate(self.context)
+        self.setItemDelegate(self.delagate)
 
         # Config:
         self.setColumnHidden(5, True)
@@ -127,7 +129,8 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         self.context.views['tasks_view'] = self
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
-        self.setEditTriggers(self.NoEditTriggers);
+        self.setEditTriggers(self.NoEditTriggers)
+        self.base()
         self.configure()
 
         # Models:
@@ -284,6 +287,7 @@ class MachineView(QTableView, ViewBase, ViewConfig):
         self.context.views['machine_view'] = self
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
+        self.base()
         self.configure()
 
         # Models:
@@ -299,6 +303,10 @@ class MachineView(QTableView, ViewBase, ViewConfig):
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+         # Delegate:
+        self.delagate = delegates.MachinesDelegate(self.context)
+        self.setItemDelegate(self.delagate)
 
     def openContextMenu(self, position): pass
         #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
