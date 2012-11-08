@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from couchdb import Server
 import sys, os
-sys.path.append("/home/symek/work/harm-sge/src")
+sys.path.append("/STUDIO/scripts/harm-sge-db/src")
 from models import JobDetailModel
 from constants import *
 
