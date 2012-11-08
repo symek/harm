@@ -66,6 +66,7 @@ class JobsContextMenu(QMenu, ContextMenuBase):
 
     def _getIds(self, view=None, model=None):
         indexes  = self.view.selectedIndexes()
+        indexes =  [self.view.proxy_model.mapToSource(index) for index in indexes]
         ids = []
         # FIXME: We should operate here on proxy_model, not model?
         job_id_index   = self.model.get_key_index('JB_job_number')
@@ -79,8 +80,9 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         return(" ".join(ids))
         
     def callback_delete(self):
-        result = os.popen('qdel %s' % self._getIds()).read()
+        result = os.popen('qdel -f %s' % self._getIds()).read()
         print result
+        #print self._getIds()
 
     def callback_hold(self):
         result = os.popen('qhold -h u %s' % self._getIds()).read()
@@ -121,7 +123,8 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         self.execute(position)
 
     def _getIds(self, view=None, model=None):
-        indexes        = self.view.selectedIndexes()
+        indexes = self.view.selectedIndexes()
+        indexes =  [self.view.proxy_model.mapToSource(index) for index in indexes]
         job_id_index   = self.model.get_key_index('JB_job_number')
         task_ids_index = self.model.get_key_index('tasks')
         job_ids  = [self.model._data[x.row()][job_id_index]   for x in indexes]
@@ -131,7 +134,7 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         return(" ".join(task_ids))
         
     def callback_delete(self):
-        result = os.popen('qdel %s' % self._getIds()).read()
+        result = os.popen('qdel -f %s' % self._getIds()).read()
         #result = self._getIds()
         print result
 
