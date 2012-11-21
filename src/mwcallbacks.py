@@ -69,7 +69,7 @@ class HarmMainWindowCallbacks():
             self.job_detail_view.update_model(job_id)
             self.job_detail_basic_view_update()
         # Call this in case toggle onle_Selected is checked:
-        self.set_tasks_view_filter(0)
+        self.set_tasks_view_filter(job_id)
         #elif self.right_tab_widget.currentIndex() in (1, 2): pass
             #self.update_stat_view(job_id)   
         #job_id = self.jobs_model.root[indices.row()][0].text
@@ -162,23 +162,16 @@ class HarmMainWindowCallbacks():
         #                 break
 
 
-    def set_tasks_view_filter(self, int):
+    def set_tasks_view_filter(self, job_id):
         '''Sets a filter according to job selection in jobs view.'''
+        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        self.tasks_view.proxy_model.setFilterKeyColumn(job_id_index)
         if self.tasks_onlySelected_toggle.isChecked():
-            index  = self.jobs_view.currentIndex()
-            if not index:
-                return
-            s_index       = self.jobs_view.proxy_model.mapToSource(index)
-            job_id_index  = self.jobs_view.model.get_key_index("JB_job_number")
-            job_id        = self.jobs_view.model._data[s_index.row()][job_id_index]
-            self.tasks_view.proxy_model.setFilterWildcard(job_id)
-            print job_id
+            self.tasks_view.proxy_model.setFilterWildcard(str(job_id))
         else:
             self.tasks_view.proxy_model.setFilterWildcard("")
-
         self.tasks_view.resizeRowsToContents()
         self.tasks_view.resizeColumnsToContents()
-        #self.tasks_view.HorizontalHeader().resizeSection(1, 30)
 
     def job_detail_basic_view_update(self):
         '''Updates texted in detail basic view.
