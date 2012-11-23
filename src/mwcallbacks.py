@@ -67,7 +67,7 @@ class HarmMainWindowCallbacks():
         # Or only id we didn't 'cached' some how job?
         if self.right_tab_widget.currentIndex() == 0:
             self.job_detail_view.update_model(job_id)
-            self.job_detail_basic_view_update()
+            self.job_detail_basic_view_update(job_id)
         # Call this in case toggle onle_Selected is checked:
         self.set_tasks_view_filter(job_id)
         #elif self.right_tab_widget.currentIndex() in (1, 2): pass
@@ -84,7 +84,7 @@ class HarmMainWindowCallbacks():
         # Update job detail only if it's not already updated:
         #if self.job_detail_view.model._dict['JB_job_number'] != job_id:
         self.job_detail_view.update_model(job_id)
-        self.job_detail_basic_view_update()
+        self.job_detail_basic_view_update(job_id)
         
         # Update both std out/err widgets:
         tab_index = self.right_tab_widget.currentIndex() 
@@ -173,12 +173,14 @@ class HarmMainWindowCallbacks():
         self.tasks_view.resizeRowsToContents()
         self.tasks_view.resizeColumnsToContents()
 
-    def job_detail_basic_view_update(self):
+    def job_detail_basic_view_update(self, job_id):
         '''Updates texted in detail basic view.
         It's a text viewer sutable for very simple
         presentation of data'''
+        #TODO: This is workaround for a lack of html widget.
         text = utilities.render_basic_job_info(self.job_detail_view.model._dict)
-        text += utilities.render_basic_task_info(self.job_detail_view.model._tasks)
+        # text += utilities.render_basic_task_info(self.job_detail_view.model._tasks)
+        text += utilities.read_rtime(job_id)
         self.job_detail_basic_view.setPlainText(str(text))
 
     def set_job_detail_view_filter(self, text):

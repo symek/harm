@@ -123,6 +123,10 @@ def render_basic_task_info(data):
     return str_frame
 
 
+def read_rtime(job_id):
+    result = os.popen("/STUDIO/scripts/rtime/rtime -f -j %s" % job_id).read()
+    return result
+
 def padding(file, format=None):
     """ Recognizes padding convention of a file.
         format: one of: nuke, houdini, shell
