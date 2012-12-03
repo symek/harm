@@ -51,8 +51,14 @@ class ViewBase():
         #self.horizontalHeader().setMovable(True)
         
     def update_model(self, *arg):
+        # FIXME: problems with resting models. 
+        # begin/endRestModel() were introduced in Qt4.6, which is too late for us
+        # Refreshing models causes empty rows to appear (and disapear after a couple of refreshes)
+        #self.model.beginResetModel()
+        self.proxy_model.reset()
         self.model.reset()
         self.model.update(*arg)
+        #self.model.endResetModel()
         if self.order_columns:
             self.set_column_order(self.order_columns)
         if self.hidden_columns:
@@ -112,6 +118,7 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        print self.model._head
 
     def openContextMenu(self, position):
         self.context_menu = JobsContextMenu(self.context, self.mapToGlobal(position))
