@@ -42,8 +42,9 @@ class HarmMainWindowCallbacks():
         #             self.set_job_detail_proxy_model_wildcard)  
 
     def refreshAll(self):
-        if time.time() - self.tick < 5:
-            time.sleep(3)           
+        # Disabling it for now:
+        #if time.time() - self.tick < 5:
+        #    time.sleep(3)           
         self.jobs_view.update_model(SGE_JOBS_LIST_GROUPED)
         self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
         self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
@@ -180,7 +181,8 @@ class HarmMainWindowCallbacks():
         #TODO: This is workaround for a lack of html widget.
         text = utilities.render_basic_job_info(self.job_detail_view.model._dict)
         # text += utilities.render_basic_task_info(self.job_detail_view.model._tasks)
-        text += utilities.read_rtime(job_id)
+        # FIXME: read_rtime() is very slow:
+        #text += utilities.read_rtime(job_id)
         self.job_detail_basic_view.setPlainText(str(text))
 
     def set_job_detail_view_filter(self, text):
