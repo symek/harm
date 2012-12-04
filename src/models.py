@@ -4,6 +4,7 @@ import utilities
 import views
 import os
 from ordereddict import OrderedDict
+import couchdb as cdb
 
 ##########################################################
 # Xml****Config are work-horses in custom Qt models      #
@@ -239,6 +240,59 @@ class SgeTableModelBase():
         return " ".join((time, date))
 
 
+
+#################################################################
+#               Database Table Model Base                       #
+# This class enable minimal  databse support for sge models     #
+# Current couchdb should be replaced by some abstraction layer! #
+# ###############################################################
+
+
+class CdbTableModel():
+    def append_jobs_history(self):
+        '''Append history from couchdb database'''
+        def convert_to_sge_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
+            '''Epoc to sge time string convertion.'''
+            import time, datetime
+            return  time.strftime(sge_time_format, time.gmtime(float(t)))
+        # A list of a jobs currently rendered or queued
+        # (thus whose kept track by SGE):
+        current_jobs = self._dict.keys()
+        # We need this!
+        try:
+            server = cdb.Server(os.getenv("CDB_SERVER"))    
+            db     = server['sge_db']
+        except:
+            return
+        # This is our map function with hand crafted requests fields:
+        # It mimics qstat data, with a state replaced by 'cdb', which will allow us 
+        # to treat it differently down the stream.
+        map_   = ''' function(doc) {
+            var js  = doc.JB_ja_structure.task_id_range;
+            var jss = "".concat(js.RN_min, "-", js.RN_max, ":", js.RN_step);
+            var que = doc.JB_hard_queue_list.destin_ident_list.QR_name;
+            emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc. JB_job_name, "1", \
+                 que, doc.JB_job_number, doc.JB_submission_time])
+        }'''
+        query = db.query(map_).rows
+        query = [x.value for x in query]
+        query.reverse()
+        # Convert a time string and remove jobs which were
+        # returned by qstat:
+        for item in range(len(query)):
+            if query[item][-2] not in current_jobs:
+                # FIXME: Instead of converting it to sge-ugly-string, we
+                # should convert qstat query to epoc float, and convert it
+                # in delegates!
+                query[item][-1] = convert_to_sge_time(query[item][-1])
+            else:
+                query.remove(item)
+        # Merge cdb with qstat:
+        self._data += query
+
+
+
+
 #################################################################
 #               Machine Table Model Base                        #
 # The only difference is headerData which takes machine name as #
@@ -273,13 +327,14 @@ class MachineModelBase(SgeTableModelBase):
 #               Job Table Model                                 #   
 # ###############################################################
 
-class JobsModel(QAbstractTableModel, SgeTableModelBase):
+class JobsModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self.sge_view = parent
         self._tree = None
         self._data = []
         self._head = OrderedDict()
+
     def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter

@@ -98,6 +98,8 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         # Models:
         self.model = models.JobsModel(self)
         self.model.update(SGE_JOBS_LIST_GROUPED)
+        # TODO: WIP couchdb  intruduction:
+        self.model.append_jobs_history()
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -118,10 +120,19 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-        print self.model._head
 
     def openContextMenu(self, position):
         self.context_menu = JobsContextMenu(self.context, self.mapToGlobal(position))
+
+    # TODO: THis is temporary to allow append_history to jobs view after refresh:
+    def update_model(self, *arg):
+        self.model.reset()
+        self.model.update(*arg)
+        self.model.append_jobs_history()
+        if self.order_columns:
+            self.set_column_order(self.order_columns)
+        if self.hidden_columns:
+            self.set_column_hidden(self.hidden_columns)
 
 
 
