@@ -367,5 +367,6 @@ class JobDetailView(QTableView, ViewBase, ViewConfig):
     def update_model(self, jobid):
         self.model.reset()
         self.model.update(SGE_JOB_DETAILS % jobid, 'djob_info')
+        #self.model.update_db(jobid)
         self.resizeRowsToContents()
         self.resizeColumnsToContents()

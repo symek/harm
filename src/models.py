@@ -469,6 +469,17 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
         self._data = []
         self._tree = None
 
+    def update_db(self, job_id, sort_by_field="",  reverse_order=False):
+        from couchdb import Server
+        server = Server(os.getenv("CDB_SERVER"))
+        db     = server['sge_db']
+        map_   = ''' function(doc) { emit(doc._id, doc) } '''
+        job    = db.query(map_, key=job_id).rows[0].value
+        self._dict  = OrderedDict(job)
+        self._head  = self._tag2idx(self._dict)
+        self._tasks = []
+        self._data  = zip(self._dict.keys(), self._dict.values())
+
     def update(self, sge_command, sort_by_field="", reverse_order=False):
         from operator import itemgetter
         self._tree = ElementTree.parse(os.popen(sge_command))

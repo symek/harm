@@ -108,7 +108,6 @@ _dict  = XmlDictConfig(tree.getroot())['djob_info']['element']
 
 model = Model()
 model._dict = _dict
-print _dict
 
 #'''
 
