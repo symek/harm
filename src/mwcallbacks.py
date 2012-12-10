@@ -62,7 +62,9 @@ class HarmMainWindowCallbacks():
         '''Calls for selecting job on Jobs View.'''
         s_index = self.jobs_view.proxy_model.mapToSource(index)
         job_id_index = self.jobs_view.model.get_key_index("JB_job_number")
+        state_index  = self.jobs_view.model.get_key_index("state")
         job_id  = self.jobs_view.model._data[s_index.row()][job_id_index]
+        state   = self.jobs_view.model._data[s_index.row()][state_index]
         # Update job detail view in case it's visible
         # TODO: Perhaps this should be always performed?
         # Or only id we didn't 'cached' some how job?
@@ -82,10 +84,16 @@ class HarmMainWindowCallbacks():
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
 
         # That needs to be done for others widgets relaying on job_detail_view
-        # Update job detail only if it's not already updated:
-        #if self.job_detail_view.model._dict['JB_job_number'] != job_id:
-        self.job_detail_view.update_model(job_id)
-        self.job_detail_basic_view_update(job_id)
+        # Update job detail only if it's not already up to date already:
+        update_details_flag = True
+        if 'JB_job_number' in self.job_detail_view.model._dict:
+            if self.job_detail_view.model._dict['JB_job_number'] == job_id:
+                update_details_flag == False
+            else:
+                update_details_flag == True
+        if update_details_flag:
+                self.job_detail_view.update_model(job_id)
+                self.job_detail_basic_view_update(job_id)
         
         # Update both std out/err widgets:
         tab_index = self.right_tab_widget.currentIndex() 
@@ -107,25 +115,31 @@ class HarmMainWindowCallbacks():
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
 
         # Update job detail only if it's not already updated:
+        # if 'JB_job_number' in self.job_detail_view.model._dict:
         if self.job_detail_view.model._dict['JB_job_number'] != job_id:
-            self.job_detail_view.update_model(job_id)
+           self.job_detail_view.update_model(job_id)
 
         # Get image info:            
-        if 'OUTPUT_PICTURE' in self.job_detail_view.model._dict:
-            picture = self.job_detail_view.model._dict['OUTPUT_PICTURE']
-            picture = utilities.padding(picture, 'shell')
+        picture = self.job_detail_view.model.get_value("OUTPUT_PICTURE")
+        #print self.job_detail_view.model._dict
+        #print picture
+        if picture:
+            picture = utilities.padding(picture[0], 'shell')
             os.system("/opt/package/houdini_12.0.687/bin/mplay %s" % picture[0])
         else:
-            print "No image."
+            print "No output-image information found."
 
 
     def update_std_views(self, job_id, task_id, tab_index):
-        '''Read from disk logs specified by selected tasks..'''
-        PN_path  = None
-        job_name = None            
-        data = self.job_detail_view.model._dict
-        if "PN_path" in data: PN_path = data['PN_path']    
-        if "JB_job_name" in data: job_name = data['JB_job_name']
+        '''Read from disk files logs specified by selected tasks..'''         
+        data     = self.job_detail_view.model
+        PN_path  = data.get_value('PN_path')[0]
+        job_name = data.get_value('JB_job_name')[0]
+        print PN_path
+        print job_name
+        # Abord if no details has been found:
+        if not PN_path or not job_name: 
+            return
 
         # Stdout Tab:
         if PN_path and job_name and tab_index == 1:
