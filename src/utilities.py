@@ -76,10 +76,32 @@ def get_username():
 
 def render_basic_job_info(data):
     '''Renders basic job information from job detail model.'''
-    def safe_key(key):
-        if key in data:
-            return data[key]
+    def safe_key(key, data):
+        def find(key, value):
+            for k, v in value.iteritems():
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
+                        yield result
+                elif isinstance(v, list):
+                    for d in v:
+                        if isinstance(d, dict):
+                            for result in find(key, d):
+                                yield result
+                        for result in find(key, d):
+                            yield result
+        if len(list(find(key, data))) > 0:
+            return list(find(key, data))[0]
+        else:
+            names = list(find("VA_variable", data))
+            value = list(find("VA_value", data))
+            if key in names and len(names) == len(value):
+                index = names.index(key)
+                return value[index]
         return None
+
+
     import time
     text = """
     SGE job number : %s 
@@ -102,11 +124,11 @@ def render_basic_job_info(data):
 
     --------------------------------------
     """ % \
-    (safe_key('JB_job_number'), safe_key('JAT_task_number'), safe_key("RN_min"), 
-           safe_key("RN_max"), safe_key("RN_step"),  safe_key('JB_owner'), safe_key('JB_group'), 
-          time.ctime(int(safe_key('JB_submission_time'))), safe_key('MR_host'), 
-          safe_key('JB_job_name'), safe_key('CE_stringval'),  safe_key('JOB'), 
-          safe_key('PWD'), safe_key('QR_name') , safe_key('OUTPUT_PICTURE'), safe_key("NEED_LOADED_PACKAGE"))
+    (safe_key('JB_job_number', data), safe_key('JAT_task_number', data), safe_key("RN_min", data), 
+           safe_key("RN_max", data), safe_key("RN_step", data),  safe_key('JB_owner', data), safe_key('JB_group', data), 
+          time.ctime(int(safe_key('JB_submission_time', data))), safe_key('MR_host', data), 
+          safe_key('JB_job_name', data), safe_key('CE_stringval', data),  safe_key('JOB', data), 
+          safe_key('PWD', data), safe_key('QR_name', data) , safe_key('OUTPUT_PICTURE',data), safe_key("NEED_LOADED_PACKAGE", data))
     return text
 
 def render_basic_task_info(data):
