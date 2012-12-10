@@ -249,6 +249,9 @@ class SgeTableModelBase():
 
 
 class CdbTableModel():
+    '''Query jobs information from couchdb database. There is a single method
+    append_jobs_history which queries db using standard python couchdb module.
+    This class is meant to be inherited by other models like JobsModel.'''
     def append_jobs_history(self):
         '''Append history from couchdb database'''
         def convert_to_sge_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
@@ -469,28 +472,32 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
         self._data = []
         self._tree = None
 
-    def update_db(self, job_id, sort_by_field="",  reverse_order=False):
+    def update_from_db(self, job_id, sort_by_field="",  reverse_order=False):
         from couchdb import Server
+        from structured import dict2et
         server = Server(os.getenv("CDB_SERVER"))
         db     = server['sge_db']
         map_   = ''' function(doc) { emit(doc._id, doc) } '''
         job    = db.query(map_, key=job_id).rows[0].value
-        self._dict  = OrderedDict(job)
-        self._head  = self._tag2idx(self._dict)
-        self._tasks = []
-        self._data  = zip(self._dict.keys(), self._dict.values())
+        cdb_dict = OrderedDict(job)
+        return cdb_dict
+       
 
     def update(self, sge_command, sort_by_field="", reverse_order=False):
         from operator import itemgetter
-        self._tree = ElementTree.parse(os.popen(sge_command))
-        self._tree = self._tree.find('djob_info')
-        self._dict = OrderedDict()
-        self._data = []
+        try:
+            self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
+            self._dict  = XmlDictConfig(self._tree)['djob_info']['element']
+        except:
+            job_id = sge_command.split()[-1]
+            self._dict = self.update_from_db(job_id)
+
+        self._data  = []
         self._tasks = []
-        self.find_req(self._tree, self._data)
-        self._tasks = self.find_task_details(self._tree)
-        self._dict = OrderedDict(self._data)
+        self._data  = zip(self._dict.keys(), self._dict.values())
+        # print self._dict
         self._head = self._tag2idx(self._dict)
+        # print self._head
 
     def find_task_details(self, tree):
         def get_task_info(task):
@@ -527,6 +534,7 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
 
     def find_req(self, tree, storage):
         children = tree.getchildren()
+        text = ""
         for child in range(len(children)):
             if children[child].text:
                 if len(children[child].text.strip()) == 0:
@@ -545,6 +553,41 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
                 if len(text.strip()) > 0 and (tag, text.strip()) not in storage:
                     storage.append((tag, text.strip()))
         return storage
+
+    def get_value(self, key, data=None):
+        '''Searches data model for particular value based on provided key. 
+        It should handle multi-nested dictionaries and lists.'''
+        def find(key, value):
+            '''http://stackoverflow.com/questions/9807634/find-all-occurences-of-a-key-in-nested-python-dictionaries-and-lists'''
+            for k, v in value.iteritems():
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
+                        yield result
+                elif isinstance(v, list):
+                    for d in v:
+                        if isinstance(d, dict):
+                            for result in find(key, d):
+                                yield result
+                        for result in find(key, d):
+                            yield result
+        # Data is our data:
+        if not data:
+            data = self._dict
+        # If find() is successful convert generator
+        # to list and return now:
+        if len(list(find(key, data))) > 0:
+            return list(find(key, data))
+        else:
+            # Overwise search for 'hidden' variables:
+            names = list(find("VA_variable", data))
+            value = list(find("VA_value", data))
+            # Trust only if variables count == values count?
+            if key in names:
+                index = names.index(key)
+                return value[index]
+        return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.'''
