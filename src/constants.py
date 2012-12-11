@@ -1,6 +1,6 @@
 
 # Constants:
-SGE_JOB_DETAILS         = 'qstat -ext -f -xml -j %s'
+SGE_JOB_DETAILS         = 'qstat -ext -g d -t -f -pri -xml -j %s'
 SGE_JOBS_LIST_GROUPED   = 'qstat -xml -u "*"'
 SGE_JOBS_LIST           = 'qstat -xml -g d -u "*"'
 SGE_CLUSTER_LIST        = 'qhost -xml -j'
