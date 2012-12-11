@@ -149,7 +149,7 @@ def read_rtime(job_id):
     result = os.popen("/STUDIO/scripts/rtime/rtime -f -j %s" % job_id).read()
     return result
 
-def padding(file, format=None):
+def padding(file, format=None, _frame=None):
     """ Recognizes padding convention of a file.
         format: one of: nuke, houdini, shell
         Returns: (host_specific_name, frame number, length, extension).
@@ -165,4 +165,6 @@ def padding(file, format=None):
     if format in _formats.keys():
         format = _formats[format].replace("#",str(length))
         return "".join(l[:-2])+ format + ext, frame, length, ext
+    if _frame:
+        return "".join(l[:-2]) + str(_frame).zfill(length) + ext, frame, length, ext
     return "".join(l[:-2]), frame, length, ext
