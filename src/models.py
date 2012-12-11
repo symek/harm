@@ -228,16 +228,78 @@ class SgeTableModelBase():
             return QVariant()
         # Horizontal headers:
         if orientation == Qt.Horizontal and len(self._data):
-            return QVariant(header_replace(self._head[section]))
+            if section in self._head:
+                return QVariant(header_replace(self._head[section]))
+            return QVariant()
         # Vertical headers:
         elif orientation == Qt.Vertical and len(self._data):
-            return QVariant(header_replace(int(section+1)))
+                return QVariant(header_replace(int(section+1)))
         return QVariant()
 
     def parse_time_string(self, time):
         '''Parses the time string to reasonable format.'''
         date, time = time.split("T")
         return " ".join((time, date))
+
+    def get_value(self, key, data=None):
+        '''Searches data model for particular value based on provided key. 
+        Returns a list of values (multiply occurance of key are possible),
+        or empty list. It should handle multi-nested dictionaries and lists. 
+        Note: it is very expensive. perhaps we should cache it.'''
+        def find(key, value):
+            '''http://stackoverflow.com/questions/9807634/\
+            find-all-occurences-of-a-key-in-nested-python-dictionaries-and-lists'''
+            for k, v in value.iteritems():
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
+                        yield result
+                elif isinstance(v, list):
+                    for d in v:
+                        if isinstance(d, dict):
+                            for result in find(key, d):
+                                yield result
+                        for result in find(key, d):
+                            yield result
+        # Data is our own:
+        if not data:
+            data = self._dict
+        # Return non-empy list:
+        result = list(find(key, data))
+        if len(result) > 0:
+            return result
+        else:
+            # Overwise search for 'hidden' variables:
+            names = list(find("VA_variable", data))
+            value = list(find("VA_value", data))
+            if key in names:
+                index = names.index(key)
+                return [value[index]]
+        return []
+
+    ####################################################################
+    # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
+    # when building table's items.                                     #
+    # ##################################################################
+    def hook_timestring(self, index, value):
+        # Change time string formating:
+        if self._head[index.column()] in tokens.time_strings: 
+            # Parse time string diffrently for tasks view:
+            if self._head[index.column()] == "JAT_start_time":
+                value = utilities.string_to_elapsed_time(value)
+            else: 
+                value = self.parse_time_string(value)
+        return value
+
+    def hook_machinename(self, index, value):
+        # Shorten machine name in Tasks view:
+        if self._head[index.column()] == 'queue_name':
+            if value: 
+                value = value.split("@")[-1]
+                if "." in value:
+                    value = value.split(".")[0]
+        return value
 
 
 
@@ -292,6 +354,19 @@ class CdbTableModel():
                 query.remove(item)
         # Merge cdb with qstat:
         self._data += query
+
+    def update_job_details_db(self, job_id, map_f="function(doc) { emit(doc._id, doc) }", 
+                              sort_by_field="",  reverse_order=False):
+        '''Retrieves job details from database.'''
+        from structured import dict2et
+        server = cdb.Server(os.getenv("CDB_SERVER"))
+        db     = server['sge_db']
+        job    = db.query(map_f, key=job_id).rows 
+        if len(job) > 0:
+            job = job[0].value
+            cdb_dict = OrderedDict(job)
+            return cdb_dict
+        return OrderedDict()
 
 
 
@@ -356,38 +431,73 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
                 self._data += [[x[key] for key in x.keys()] for x in d]
             elif isinstance(d, dict):
                 self._head = self._tag2idx(d)
-                self._data = d.values()
+                self._data = [d.values()]
                 # Sort list by specified header (given it's name, not index):
-                if sort_by_field in self._head.values():
+                if sort_by_field in self._head.values() and len(self._data) > 0:
                     key_index = self.get_key_index(sort_by_field)
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
             
-    ####################################################################
-    # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
-    # when building table's items.                                     #
-    # ##################################################################
-    def hook_timestring(self, index, value):
-        # Change time string formating:
-        if self._head[index.column()] in tokens.time_strings: 
-            # Parse time string diffrently for tasks view:
-            if self._head[index.column()] == "JAT_start_time":
-                value = utilities.string_to_elapsed_time(value)
-            else: 
-                value = self.parse_time_string(value)
-        return value
-
-    def hook_machinename(self, index, value):
-        # Shorten machine name in Tasks view:
-        if self._head[index.column()] == 'queue_name':
-            if value: 
-                value = value.split("@")[-1]
-                if "." in value:
-                    value = value.split(".")[0]
-        return value
 
 
+#################################################################
+#               Tasks Table Model                               #   
+# ###############################################################
+
+class TaskModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
+    ''''''
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__(parent)
+        # JobsModel.__init__(self, parent)
+        self.sge_view = parent
+        self._tree = None
+        self._data = []
+        self._head = OrderedDict()
+
+    def update_db(self, job_id, token=""):
+        data = self.update_job_details_db(job_id)
+        tasks  = self.get_value("JB_ja_tasks", data)
+        if len(tasks):
+            tasks = tasks[0]['ulong_sublist']
+            print job_id + ": " + str(len(tasks))
+
+
+        
+
+
+    def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
+        '''Main function of derived model. Builds _data list from input.'''
+        from operator import itemgetter
+        self._tree = None
+        self._dict = OrderedDict()
+        self._data = []
+        self._head = OrderedDict()
+        try:
+            self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
+            self._dict  = XmlDictConfig(self._tree)[token]
+        except:
+            #print self._dict
+            pass
+
+        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
+        if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
+            d = self._dict['job_list']
+            if isinstance(d, list):
+                self._head = self._tag2idx(d[-1])
+                self._data += [[x[key] for key in x.keys()] for x in d]
+            elif isinstance(d, dict):
+                self._head = self._tag2idx(d)
+                self._data = [d.values()]
+              
+                # Sort list by specified header (given it's name, not index):
+                if sort_by_field in self._head.values()  and len(self._data) > 0:
+                    key_index = self.get_key_index(sort_by_field)
+                    self._data = sorted(self._data,  key=itemgetter(key_index))
+                    if reverse_order:
+                        self._data.reverse()
+                 
+            
 
 
 #################################################################
@@ -459,30 +569,19 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
 ##################################################################
 #               Job Detail Table Model                           #
 # This one is yet customized as it consists with many rows and   #
-# two columns only (variable, value) TODO: relace with www rander#
+# two columns only (variable, value) TODO: replace with www rander#
 # page with fine tuned artists friendly look../                  #   
 # ################################################################
 
 
-class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
+class JobDetailModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
     def __init__(self, parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self._dict = OrderedDict()
         self._head = OrderedDict()
         self._data = []
         self._tree = None
-
-    def update_from_db(self, job_id, sort_by_field="",  reverse_order=False):
-        from couchdb import Server
-        from structured import dict2et
-        server = Server(os.getenv("CDB_SERVER"))
-        db     = server['sge_db']
-        map_   = ''' function(doc) { emit(doc._id, doc) } '''
-        job    = db.query(map_, key=job_id).rows[0].value
-        cdb_dict = OrderedDict(job)
-        return cdb_dict
        
-
     def update(self, sge_command, sort_by_field="", reverse_order=False):
         from operator import itemgetter
         try:
@@ -490,104 +589,12 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
             self._dict  = XmlDictConfig(self._tree)['djob_info']['element']
         except:
             job_id = sge_command.split()[-1]
-            self._dict = self.update_from_db(job_id)
+            self._dict = self.update_job_details_db(job_id)
 
         self._data  = []
         self._tasks = []
         self._data  = zip(self._dict.keys(), self._dict.values())
-        # print self._dict
         self._head = self._tag2idx(self._dict)
-        # print self._head
-
-    def find_task_details(self, tree):
-        def get_task_info(task):
-            _list = []
-            for item in task.getchildren():
-                name  = item.find("UA_name")
-                value = item.find("UA_value")
-                _list.append((name.text, value.text))
-            return _list
-
-        def get_leaf(tree, leaf):
-            leafs = []
-            for ch in tree.getchildren():
-                if ch.tag == leaf:
-                    leafs.append(ch)
-                else:
-                    ch = get_leaf(ch, leaf)
-                    if ch: leafs += ch
-            return leafs
-
-        tasks_details = []
-        tasks_list = get_leaf(tree, "JB_ja_tasks")
-        if not tasks_list: return []
-        for sublist in tasks_list[0].getchildren():
-            status = sublist.find("JAT_status")
-            task_id= sublist.find("JAT_task_number")
-            usage  = sublist.find("JAT_scaled_usage_list")
-            if usage:
-                usage = get_task_info(usage)
-            tasks_details.append((status.text, task_id.text, usage))
-
-        return tasks_details
-
-
-    def find_req(self, tree, storage):
-        children = tree.getchildren()
-        text = ""
-        for child in range(len(children)):
-            if children[child].text:
-                if len(children[child].text.strip()) == 0:
-                    self.find_req(children[child], storage)
-            elif not children[child].text:
-                self.find_req(children[child], storage)
-            if  children[child].text:
-                if  children[child].tag in ("VA_variable", "UA_name"): 
-                    tag  = children[child].text
-                    text =  children[utilities.clamp(child+1, 0, len(children)-1)].text
-                elif children[child].tag in ("VA_value", "UA_value"):
-                    pass
-                else: 
-                    tag  = children[child].tag
-                    text = children[child].text
-                if len(text.strip()) > 0 and (tag, text.strip()) not in storage:
-                    storage.append((tag, text.strip()))
-        return storage
-
-    def get_value(self, key, data=None):
-        '''Searches data model for particular value based on provided key. 
-        It should handle multi-nested dictionaries and lists.'''
-        def find(key, value):
-            '''http://stackoverflow.com/questions/9807634/find-all-occurences-of-a-key-in-nested-python-dictionaries-and-lists'''
-            for k, v in value.iteritems():
-                if k == key:
-                    yield v
-                elif isinstance(v, dict):
-                    for result in find(key, v):
-                        yield result
-                elif isinstance(v, list):
-                    for d in v:
-                        if isinstance(d, dict):
-                            for result in find(key, d):
-                                yield result
-                        for result in find(key, d):
-                            yield result
-        # Data is our data:
-        if not data:
-            data = self._dict
-        # If find() is successful convert generator
-        # to list and return now:
-        if len(list(find(key, data))) > 0:
-            return list(find(key, data))
-        else:
-            # Overwise search for 'hidden' variables:
-            names = list(find("VA_variable", data))
-            value = list(find("VA_value", data))
-            # Trust only if variables count == values count?
-            if key in names:
-                index = names.index(key)
-                return value[index]
-        return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.'''
