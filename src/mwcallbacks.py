@@ -60,22 +60,29 @@ class HarmMainWindowCallbacks():
 
     def jobs_view_clicked(self, index):
         '''Calls for selecting job on Jobs View.'''
-        s_index = self.jobs_view.proxy_model.mapToSource(index)
+        # First we map selected proxy index to the real one.
+        s_index      = self.jobs_view.proxy_model.mapToSource(index)
+        # then we look for our indices of fields in model header.
         job_id_index = self.jobs_view.model.get_key_index("JB_job_number")
         state_index  = self.jobs_view.model.get_key_index("state")
-        job_id  = self.jobs_view.model._data[s_index.row()][job_id_index]
-        state   = self.jobs_view.model._data[s_index.row()][state_index]
-        # Update job detail view in case it's visible
-        # TODO: Perhaps this should be always performed?
-        # Or only id we didn't 'cached' some how job?
+        # with that, we retrieve informations:
+        job_id       = self.jobs_view.model._data[s_index.row()][job_id_index]
+        state        = self.jobs_view.model._data[s_index.row()][state_index]
+
+        # Update job detail view in case its tab is visible:
         if self.right_tab_widget.currentIndex() == 0:
             self.job_detail_view.update_model(job_id)
             self.job_detail_basic_view_update(job_id)
-        # Call this in case toggle onle_Selected is checked:
-        self.set_tasks_view_filter(job_id)
-        #elif self.right_tab_widget.currentIndex() in (1, 2): pass
-            #self.update_stat_view(job_id)   
-        #job_id = self.jobs_model.root[indices.row()][0].text
+
+        # We set task view filter to currently selected AND runnig jobs,
+        # or update tasks view with past jobs using database:
+        if state != 'cdb':
+            self.set_tasks_view_filter(job_id)
+        else:
+            # updat_db() calls update_job_details_db() first to read database
+            # then parses query to look for per frame info and updats tasksModel._dict
+            # with that data.
+            self.tasks_view.model.update_db(job_id)
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
@@ -108,11 +115,13 @@ class HarmMainWindowCallbacks():
         #self.update_image_view(job_id)
 
     def tasks_view_doubleClicked(self, index):
-        """Double clicking on task calls image viewer (mplay for now)
-        TODO: place for Config() class."""
+        '''Double clicking on task calls image viewer (mplay for now)
+        TODO: place for Config() class.'''
         s_index       = self.tasks_view.proxy_model.mapToSource(index)
         job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        task_id_index = self.tasks_view.model.get_key_index("tasks")
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
+        task_id       = self.tasks_view.model._data[s_index.row()][task_id_index]
 
         # Update job detail only if it's not already updated:
         # if 'JB_job_number' in self.job_detail_view.model._dict:
@@ -121,10 +130,10 @@ class HarmMainWindowCallbacks():
 
         # Get image info:            
         picture = self.job_detail_view.model.get_value("OUTPUT_PICTURE")
-        #print self.job_detail_view.model._dict
-        #print picture
         if picture:
-            picture = utilities.padding(picture[0], 'shell')
+            # We want a single specific frame, not a whole sequence:
+            picture = utilities.padding(picture[0], None, task_id)
+            # FIXME: make image viewer configurable:
             os.system("/opt/package/houdini_12.0.687/bin/mplay %s" % picture[0])
         else:
             print "No output-image information found."
@@ -135,8 +144,6 @@ class HarmMainWindowCallbacks():
         data     = self.job_detail_view.model
         PN_path  = data.get_value('PN_path')[0]
         job_name = data.get_value('JB_job_name')[0]
-        print PN_path
-        print job_name
         # Abord if no details has been found:
         if not PN_path or not job_name: 
             return

@@ -18,6 +18,7 @@ import os
 ###########################################################
 
 class ViewConfig():
+    '''This is only placeholder for future Config class.'''
     def configure(self):
         # Prototype of config class.
         conf = config.Config()
@@ -36,6 +37,8 @@ class ViewConfig():
 ###########################################################
 
 class ViewBase():
+    '''This probably shouldn't be even needed.
+    TODO Fix base classes initialisation. '''
     order_columns = []
     hidden_columns = []
     def base(self):
@@ -51,29 +54,38 @@ class ViewBase():
         #self.horizontalHeader().setMovable(True)
         
     def update_model(self, *arg):
+        '''This method is called by callback whenever model should be updated with
+        data from database or qstat. It also hides and orders columns in models after that.'''
         # FIXME: problems with resting models. 
         # begin/endRestModel() were introduced in Qt4.6, which is too late for us
         # Refreshing models causes empty rows to appear (and disapear after a couple of refreshes)
+
         #self.model.beginResetModel()
         self.proxy_model.reset()
         self.model.reset()
         self.model.update(*arg)
         #self.model.endResetModel()
+
+        # Clean up stuff after refresh:
         if self.order_columns:
             self.set_column_order(self.order_columns)
         if self.hidden_columns:
             self.set_column_hidden(self.hidden_columns)
 
     def set_column_order(self, ordered_items):
-        # Reorder columns in bellow order:        
+        '''Reorder columns in provided order.'''
+        # TODO: With setMovable() ordering doesn't work?
         #self.horizontalHeader().setMovable(True)?
         for column in range(len(ordered_items)):
             if ordered_items[column] in self.model._head.values():
-                # We mind visual_index which changes on every loop's step, so this have to be rediscaverd from 
-                visual_index =  self.horizontalHeader().visualIndex(self.model.get_key_index(ordered_items[column]))
+                # We mind visual_index which changes on every loop's step, 
+                # so this have to be rediscaverd again:
+                column_index = self.model.get_key_index(ordered_items[column])
+                visual_index = self.horizontalHeader().visualIndex(column_index)
                 self.horizontalHeader().moveSection(visual_index, column)
 
     def set_column_hidden(self, hidden_columns):
+        '''Hides column according to a provided list.'''
         for column in hidden_columns:
             if column in self.model._head.values():
                 self.setColumnHidden(self.model.get_key_index(column), True)  
@@ -86,7 +98,16 @@ class ViewBase():
 ###############################################################
 
 class JobsView(QTableView, ViewBase, ViewConfig):
+    '''Keeps joined list of currently happening jobs, plus a history
+    retrieved from a database. Basic actions via context menus and callbacks
+    to tasks views and detail views.'''
     def __init__(self, context):
+        '''Adds self to a global context class, 
+           Binds context menues, 
+           Inits base() and config(), 
+           Creates models (main and proxy)
+           Sets deletegs
+           Resizes columns/rows.'''
         super(self.__class__, self).__init__()
         self.context = context
         self.context.views['jobs_view'] = self
@@ -122,10 +143,12 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         self.resizeRowsToContents()
 
     def openContextMenu(self, position):
+        '''Context menu entry.'''
         self.context_menu = JobsContextMenu(self.context, self.mapToGlobal(position))
 
     # TODO: THis is temporary to allow append_history to jobs view after refresh:
     def update_model(self, *arg):
+        '''Overwrites update_model() to allow append history jobs to a model.'''
         self.model.reset()
         self.model.update(*arg)
         self.model.append_jobs_history()
@@ -152,7 +175,7 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         self.configure()
 
         # Models:
-        self.model = models.JobsModel(self)
+        self.model = models.TaskModel(self)
         self.model.update(SGE_JOBS_LIST, 'queue_info', reverse_order=False)
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
@@ -174,6 +197,16 @@ class TasksView(QTableView, ViewBase, ViewConfig):
 
     def openContextMenu(self, position):
         self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+    def update_model(self, *arg):
+        '''Overwrites update_model() to allow append history jobs to a model.'''
+        self.model.reset()
+        self.model.update(*arg)
+        #self.model.update_db(*arg)
+        if self.order_columns:
+            self.set_column_order(self.order_columns)
+        if self.hidden_columns:
+            self.set_column_hidden(self.hidden_columns)
 
 
 
@@ -367,12 +400,5 @@ class JobDetailView(QTableView, ViewBase, ViewConfig):
     def update_model(self, jobid):
         self.model.reset()
         self.model.update(SGE_JOB_DETAILS % jobid, 'djob_info')
-        # print self.model.get_value("OUTPUT_PICTURE")
-        # print self.model.get_value("JB_script_file")
-        # print self.model.get_value("PN_path")
-        # print self.model.get_value("JB_stderr_path_list")
-       
-
-
         self.resizeRowsToContents()
         self.resizeColumnsToContents()
