@@ -79,7 +79,7 @@ class JobsDelegate(QItemDelegate):
             jobid = self.model._data[s_index.row()][jobid_idx]
 
             tasks_model =  self.context.models['tasks_model']
-            tasks_idx   = tasks_model.get_key_index("tasks")
+            tasks_idx   = tasks_model.get_key_index("JB_job_number")
             running_ids = [x[tasks_idx] for x in tasks_model._data]
         except:
             painter.restore()
@@ -91,7 +91,7 @@ class JobsDelegate(QItemDelegate):
         if state == 'cdb':
             painter.setBrush(QBrush(QColor(Qt.white)))
         if state == 'qw':
-            if jobid in running_ids:
+            if jobid.strip() in running_ids:
                 painter.setBrush(QBrush(self.qwC))
             else:
                 painter.setBrush(QBrush(self.qwWaitingC))
