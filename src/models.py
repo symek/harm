@@ -164,7 +164,7 @@ class SgeTableModelBase():
             return len(self._data[-1])
         return 0
 
-    def _tag2idx(self, item):
+    def build_header_dict(self, item):
         '''This builds self._head dict {1:header, 2:another, ...}'''
         _map = OrderedDict()
         for x in range(len(item.keys())):
@@ -211,7 +211,8 @@ class SgeTableModelBase():
             value = self._data[index.row()][index.column()]
             value = self.data_hooks(index, value)
         except:
-            print self
+            # FIXME: ?
+           pass
         if not value: return QVariant()        
         # Finally return something meaningfull:
         return QVariant(value)
@@ -310,11 +311,11 @@ class SgeTableModelBase():
 # ###############################################################
 
 
-class CdbTableModel():
+class DBTableModel():
     '''Query jobs information from couchdb database. There is a single method
     append_jobs_history which queries db using standard python couchdb module.
     This class is meant to be inherited by other models like JobsModel.'''
-    def append_jobs_history(self):
+    def get_jobs_db(self):
         '''Append history from couchdb database'''
         def convert_to_sge_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
             '''Epoc to sge time string convertion.'''
@@ -353,9 +354,9 @@ class CdbTableModel():
             else:
                 query.remove(item)
         # Merge cdb with qstat:
-        self._data += query
+        return query
 
-    def update_job_details_db(self, job_id, map_f="function(doc) { emit(doc._id, doc) }", 
+    def get_job_details_db(self, job_id, map_f="function(doc) { emit(doc._id, doc) }", 
                               sort_by_field="",  reverse_order=False):
         '''Retrieves job details from database.'''
         from structured import dict2et
@@ -405,32 +406,51 @@ class MachineModelBase(SgeTableModelBase):
 #               Job Table Model                                 #   
 # ###############################################################
 
-class JobsModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
+class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self.sge_view = parent
         self._tree = None
         self._data = []
         self._head = OrderedDict()
+        self._dict = OrderedDict()
+
+    def append_jobs_history(self):
+        '''Appends history jobs from a database (using DBTableModel.get_jobs_db()) '''
+        query = self.get_jobs_db()
+        self._data += query
+        # FIXME!
+        # This has to be (?) hard coded here, as we don't retrieve fields' names
+        # from a database atm. This is unfortunate, since general rule here is creating everything on the fly, 
+        # It's not properly tested though...
+        # If not headers yet:
+        if len(self._head) == 0:
+            self._head = OrderedDict({1:"JB_owner", 2:"state", 3:"tasks", 4:"JB_priority", 5:"JB_job_name", 6:"slots", \
+                          7:"queue_name", 8:"JB_job_number", 9:"JB_submission_time"})
+
 
     def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
-        self._tree = ElementTree.parse(os.popen(sge_command))
-        self._dict  = XmlDictConfig(self._tree.getroot())[token]
         self._data = []
         self._head = OrderedDict()
+        self._tree = ElementTree.parse(os.popen(sge_command))
+        self._dict = XmlDictConfig(self._tree.getroot())[token]
+        if not isinstance(self._dict, dict):
+            self._dict = OrderedDict()
+        else:
+            self._dict = OrderedDict(self._dict)
 
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        if isinstance(self._dict, dict):
+        if 'job_list' in self._dict:
             d = self._dict['job_list']
             if isinstance(d, list):
-                self._head = self._tag2idx(d[-1])
+                self._head = self.build_header_dict(d[-1])
                 self._data += [[x[key] for key in x.keys()] for x in d]
             elif isinstance(d, dict):
-                self._head = self._tag2idx(d)
+                self._head = self.build_header_dict(d)
                 self._data = [d.values()]
                 # Sort list by specified header (given it's name, not index):
                 if sort_by_field in self._head.values() and len(self._data) > 0:
@@ -438,14 +458,13 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
-            
 
 
 #################################################################
 #               Tasks Table Model                               #   
 # ###############################################################
 
-class TaskModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
+class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     ''''''
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)
@@ -456,7 +475,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
         self._head = OrderedDict()
 
     def update_db(self, job_id, token=""):
-        data = self.update_job_details_db(job_id)
+        data = self.get_job_details_db(job_id)
         tasks  = self.get_value("JB_ja_tasks", data)
         if len(tasks):
             tasks = tasks[0]['ulong_sublist']
@@ -484,10 +503,10 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
         if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
             d = self._dict['job_list']
             if isinstance(d, list):
-                self._head = self._tag2idx(d[-1])
+                self._head = self.build_header_dict(d[-1])
                 self._data += [[x[key] for key in x.keys()] for x in d]
             elif isinstance(d, dict):
-                self._head = self._tag2idx(d)
+                self._head = self.build_header_dict(d)
                 self._data = [d.values()]
               
                 # Sort list by specified header (given it's name, not index):
@@ -514,7 +533,7 @@ class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
         self._dict = qccet_to_dict(os.popen(sge_command).read(), True)
-        self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
+        self._head = self.build_header_dict(self._dict[self._dict.keys()[-1]])
         self._data = [self._dict[item].values() for item in self._dict]
         # Sort list by specified header (given it's name, not index):
         if sort_by_field in self._head.values():
@@ -556,7 +575,7 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
                     self._dict[name][x.attrib['name']] = x.text
                 
         # Make a list of lists from that:
-        self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
+        self._head = self.build_header_dict(self._dict[self._dict.keys()[-1]])
         self._data = [self._dict[item].values() for item in self._dict]
         # Sort list by specified header (given it's name, not index):
         if sort_by_field in self._head.values():
@@ -574,7 +593,7 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
 # ################################################################
 
 
-class JobDetailModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
+class JobDetailModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def __init__(self, parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self._dict = OrderedDict()
@@ -589,12 +608,12 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase, CdbTableModel):
             self._dict  = XmlDictConfig(self._tree)['djob_info']['element']
         except:
             job_id = sge_command.split()[-1]
-            self._dict = self.update_job_details_db(job_id)
+            self._dict = self.get_job_details_db(job_id)
 
         self._data  = []
         self._tasks = []
         self._data  = zip(self._dict.keys(), self._dict.values())
-        self._head = self._tag2idx(self._dict)
+        self._head = self.build_header_dict(self._dict)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.'''
