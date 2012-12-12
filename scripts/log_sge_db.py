@@ -86,31 +86,50 @@ class XmlDictConfig(dict):
                 self.update({element.tag: element.text})
 ## end of http://code.activestate.com/recipes/410469/ }}}
 
+#  http://stackoverflow.com/questions/9807634/find-all-occurences-of-a-key-in-nested-python-dictionaries-and-lists
+def find(key, value):
+    for k, v in value.iteritems():
+        if k == key:
+            yield v
+        elif isinstance(v, dict):
+            for result in find(key, v):
+                yield result
+        elif isinstance(v, list):
+            for d in v:
+                if isinstance(d, dict):
+                    for result in find(key, d):
+                        yield result
+                for result in find(key, d):
+                    yield result
+
 
 class Model:
     pass
 
+# Our variables
 db    = 'sge_db'
 jobid = sys.argv[1]
-
 server = Server(os.getenv("CDB_SERVER"))
 
-
+# Connect to database
 if db in server:
     db = server[db]
 else:
     db = server.create(db)
 
 
+# Get data or exit on fail:
+try:
+    tree = ElementTree.parse(os.popen(SGE_JOB_DETAILS % jobid))
+    _dict  = XmlDictConfig(tree.getroot())['djob_info']['element']
+except:
+    sys.exit()
 
-tree = ElementTree.parse(os.popen(SGE_JOB_DETAILS % jobid))
-_dict  = XmlDictConfig(tree.getroot())['djob_info']['element']
 
 model = Model()
 model._dict = _dict
 
-#'''
-
+# Process fields to remove unlegal character:
 for key in model._dict:
     if key.startswith("__"):
         nkey  = key[2:]
@@ -121,14 +140,37 @@ for key in model._dict:
     value = model._dict.pop(key)
     model._dict[nkey] = value
 
-
+# Create new db document in case it's not already there:
 if not jobid in db:
     db[jobid] = dict(model._dict)
     job       = db[jobid]
+# Or update existing one:
 else:
     job       = db[jobid]
+    # The tricky part is to make sure we are not overwriting per task informations.
+    # As much as I wanted to keep this data in raw form so thay conform with qstat output,
+    # I can't do this here. Overwise I would have to store per frame information in different place.
+    old_tasks = job["JB_ja_tasks"]['ulong_sublist']
+    cur_tasks = model._dict["JB_ja_tasks"]['ulong_sublist']
+
+    # Make sure we deal with lists of dictionaries, not stright dictionaries. 
+    if isinstance(cur_tasks, dict):
+        cur_tasks = [cur_tasks]
+    if isinstance(old_tasks, dict):
+        old_tasks = [old_tasks]
+
+    #print old_tasks
+    #print cur_tasks
+    # For every task in old job
+    for task in old_tasks:
+        old_task_id = task['JAT_task_number']
+        if old_task_id not in [t['JAT_task_number'] for t in cur_tasks]:
+            cur_tasks.append(task)
     for key in model._dict:
         job[key] = model._dict[key]
+    # Copy combined tasks into job:    
+    job["JB_ja_tasks"]['ulong_sublist'] = cur_tasks
+    # Save job in database:
     db[jobid] = job
 
 
