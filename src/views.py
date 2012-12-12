@@ -202,7 +202,18 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         '''Overwrites update_model() to allow append history jobs to a model.'''
         self.model.reset()
         self.model.update(*arg)
-        #self.model.update_db(*arg)
+        if self.order_columns:
+            self.set_column_order(self.order_columns)
+        if self.hidden_columns:
+            self.set_column_hidden(self.hidden_columns)
+
+    # FIXME: These two update_* should be the same function
+    # but currently api doesn't allow it. I have to rethink
+    # it. (like DataHandler object for models that returns dict-like object
+    # without model knowing of its source)
+    def update_model_db(self, job_id):
+        self.model.reset()
+        self.model.update_db(job_id)
         if self.order_columns:
             self.set_column_order(self.order_columns)
         if self.hidden_columns:

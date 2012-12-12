@@ -10,7 +10,7 @@ import utilities
 #             Jobs View Delegate                         #
 #  - bg colors for states                                #
 #  - deletated editor for priority                       #
-#  - apps icons in Jobs name field                       #
+#  - host_apps icons in Jobs name field                       #
 #  - ?                                                   #
 ##########################################################
 
@@ -48,21 +48,22 @@ class JobsDelegate(QItemDelegate):
 
     def paint(self, painter, option, index):
         # Icon drawing:
-        app = None
-        waiting = index.data(Qt.DecorationRole).toBool()
+        host_app     = None
+        waiting      = index.data(Qt.DecorationRole).toBool()
         job_name_idx = self.model.get_key_index("JB_name")
-        s_index = self.proxy.mapToSource(index)
+        s_index      = self.proxy.mapToSource(index)
+        running_ids  = []
 
         painter.save()
         if not waiting and index.column() == job_name_idx:
             job_name     = self.model._data[s_index.row()][job_name_idx]
-            if ".hip_" in job_name:   app = 'houdini'
-            elif ".nk_" in job_name:  app = 'nuke'
-            elif ".scn_" in job_name: app = 'xsi'
+            if ".hip_" in job_name:   host_app = 'houdini'
+            elif ".nk_" in job_name:  host_app = 'nuke'
+            elif ".scn_" in job_name: host_app = 'xsi'
 
             option = option.__class__(option) #?
-            if app in self.app_icons.keys():
-                image = QImage(self.app_icons[app])
+            if host_app in self.app_icons.keys():
+                image = QImage(self.app_icons[host_app])
                 painter.drawImage(option.rect.topLeft(), image)
                 option.rect = option.rect.translated(20, 0)    
                 QItemDelegate.paint(self, painter, option, index)

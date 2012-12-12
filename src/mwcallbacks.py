@@ -76,13 +76,15 @@ class HarmMainWindowCallbacks():
 
         # We set task view filter to currently selected AND runnig jobs,
         # or update tasks view with past jobs using database:
-        if state != 'cdb':
+        if state != 'cdb': 
+            self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
             self.set_tasks_view_filter(job_id)
         else:
             # updat_db() calls update_job_details_db() first to read database
             # then parses query to look for per frame info and updats tasksModel._dict
             # with that data.
-            self.tasks_view.model.update_db(job_id)
+            self.set_tasks_view_filter(None)
+            self.tasks_view.update_model_db(job_id)
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
@@ -186,12 +188,24 @@ class HarmMainWindowCallbacks():
 
     def set_tasks_view_filter(self, job_id):
         '''Sets a filter according to job selection in jobs view.'''
-        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
-        self.tasks_view.proxy_model.setFilterKeyColumn(job_id_index)
-        if self.tasks_onlySelected_toggle.isChecked():
-            self.tasks_view.proxy_model.setFilterWildcard(str(job_id))
-        else:
+        # Early exit on non-ids:
+        if job_id == None: 
             self.tasks_view.proxy_model.setFilterWildcard("")
+            self.tasks_view.resizeRowsToContents()
+            self.tasks_view.resizeColumnsToContents()
+            return
+
+        # Proceed with setting filter on job number column:
+        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        # Our column might not exist:
+        if job_id_index:
+            self.tasks_view.proxy_model.setFilterKeyColumn(job_id_index)
+            if self.tasks_onlySelected_toggle.isChecked():
+                self.tasks_view.proxy_model.setFilterWildcard(str(job_id))
+            else:
+                self.tasks_view.proxy_model.setFilterWildcard("")
+
+        # Usual clean up:
         self.tasks_view.resizeRowsToContents()
         self.tasks_view.resizeColumnsToContents()
 

@@ -9,6 +9,12 @@ header['queue_name'] = 'Machine'
 header['slots'] = 'Slots'
 header['tasks'] = 'Task'
 header['JAT_start_time'] = 'Elapsed'
+header['JAT_task_number'] = 'Task'
+header['JAT_status'] = 'Task Status'
+header['cpu'] = 'Cpu Time'
+header['mem'] = 'Momory Used'
+header['vmem'] = 'Virtual Momory'
+
 
 header['arch_string'] = 'Archtecture'
 header['num_proc'] = 'Cores'

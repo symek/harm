@@ -5,6 +5,7 @@ import views
 import os
 from ordereddict import OrderedDict
 import couchdb as cdb
+from constants import *
 
 ##########################################################
 # Xml****Config are work-horses in custom Qt models      #
@@ -315,6 +316,8 @@ class DBTableModel():
     '''Query jobs information from couchdb database. There is a single method
     append_jobs_history which queries db using standard python couchdb module.
     This class is meant to be inherited by other models like JobsModel.'''
+    _server = None
+    _db     = None
     def get_jobs_db(self):
         '''Append history from couchdb database'''
         def convert_to_sge_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
@@ -325,22 +328,25 @@ class DBTableModel():
         # (thus whose kept track by SGE):
         current_jobs = self._dict.keys()
         # We need this!
-        try:
-            server = cdb.Server(os.getenv("CDB_SERVER"))    
-            db     = server['sge_db']
-        except:
-            return
+        if not self._server:
+            try:
+                self._server = cdb.Server(os.getenv("CDB_SERVER"))    
+                self._db     = self._server['sge_db']
+            except:
+                return []
         # This is our map function with hand crafted requests fields:
         # It mimics qstat data, with a state replaced by 'cdb', which will allow us 
         # to treat it differently down the stream.
-        map_   = ''' function(doc) {
+        map_   = '''function(doc) {
             var js  = doc.JB_ja_structure.task_id_range;
             var jss = "".concat(js.RN_min, "-", js.RN_max, ":", js.RN_step);
             var que = doc.JB_hard_queue_list.destin_ident_list.QR_name;
-            emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc. JB_job_name, "1", \
-                 que, doc.JB_job_number, doc.JB_submission_time])
-        }'''
-        query = db.query(map_).rows
+            emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc.JB_job_name, 
+                     "1", que, doc.JB_job_number, doc.JB_submission_time]);}'''
+        from time import time
+        t = time()
+        query = self._db.query(map_).rows
+        print time() -t
         query = [x.value for x in query]
         query.reverse()
         # Convert a time string and remove jobs which were
@@ -360,9 +366,16 @@ class DBTableModel():
                               sort_by_field="",  reverse_order=False):
         '''Retrieves job details from database.'''
         from structured import dict2et
-        server = cdb.Server(os.getenv("CDB_SERVER"))
-        db     = server['sge_db']
-        job    = db.query(map_f, key=job_id).rows 
+        from time import time
+        if not self._server:
+            try:
+                self._server = cdb.Server(os.getenv("CDB_SERVER"))
+                self._db     = self._server['sge_db']
+            except:
+                return OrderedDict()
+        t = time()
+        job    = self._db.query(map_f, key=job_id).rows 
+        print time() - t
         if len(job) > 0:
             job = job[0].value
             cdb_dict = OrderedDict(job)
@@ -465,27 +478,47 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
 # ###############################################################
 
 class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
-    ''''''
+    '''Holds per task details of a job as retrieved from qstat -g d or database.'''
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)
-        # JobsModel.__init__(self, parent)
         self.sge_view = parent
         self._tree = None
         self._data = []
         self._head = OrderedDict()
 
     def update_db(self, job_id, token=""):
-        data = self.get_job_details_db(job_id)
-        tasks  = self.get_value("JB_ja_tasks", data)
+        '''Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field).'''
+        self._dict = self.get_job_details_db(job_id)
+        tasks  = self.get_value("JB_ja_tasks", self._dict)
+        self._data = []
+        self._head = OrderedDict()
+        # Proceed if there are any tasks:
         if len(tasks):
             tasks = tasks[0]['ulong_sublist']
-            print job_id + ": " + str(len(tasks))
+            # Make sure we have a list here:
+            if isinstance(tasks, dict):
+                tasks = [tasks]
+            # Make header first:
+            self._head[0] = "JAT_task_number"
+            self._head[1] = "JAT_status"
+            if "JAT_scaled_usage_list" in tasks[0]:
+                scaled = tasks[0]["JAT_scaled_usage_list"]['scaled']
+                offset = len(self._head) + 1
+                for item in range(len(scaled)):
+                    self._head[item+offset] = scaled[item]['UA_name']
+
+            # Make self._data:
+            for task in tasks:
+                _data = []
+                _data += [task['JAT_task_number'], task['JAT_status']]
+                if "JAT_scaled_usage_list" in tasks[0]:
+                    scaled = tasks[0]["JAT_scaled_usage_list"]['scaled']
+                    for item in range(len(scaled)):
+                       _data.append(scaled[item]['UA_value'])
+                self._data.append(_data)
 
 
-        
-
-
-    def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
+    def update(self, sge_command, token='queue_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
         self._tree = None
@@ -508,7 +541,6 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             elif isinstance(d, dict):
                 self._head = self.build_header_dict(d)
                 self._data = [d.values()]
-              
                 # Sort list by specified header (given it's name, not index):
                 if sort_by_field in self._head.values()  and len(self._data) > 0:
                     key_index = self.get_key_index(sort_by_field)
@@ -609,6 +641,7 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         except:
             job_id = sge_command.split()[-1]
             self._dict = self.get_job_details_db(job_id)
+            #print "JB_submission_time: " + str("JB_submission_time" in self._dict)
 
         self._data  = []
         self._tasks = []
