@@ -71,17 +71,20 @@ class JobsDelegate(QItemDelegate):
 
         # set background color
         painter.setPen(QPen(Qt.NoPen))
-        # In case root[] is empty:
-        try:
-            state_idx = self.model.get_key_index("state")
-            jobid_idx = self.model.get_key_index("JB_job_number")
-            state = self.model._data[s_index.row()][state_idx]
-            jobid = self.model._data[s_index.row()][jobid_idx]
+        # FIXME: This should not be nesecery?
+        if self.model._data:
+            try:
+                state_idx = self.model.get_key_index("state")
+                jobid_idx = self.model.get_key_index("JB_job_number")
+                state = self.model._data[s_index.row()][state_idx]
+                jobid = self.model._data[s_index.row()][jobid_idx]
 
-            tasks_model =  self.context.models['tasks_model']
-            tasks_idx   = tasks_model.get_key_index("JB_job_number")
-            running_ids = [x[tasks_idx] for x in tasks_model._data]
-        except:
+                tasks_model =  self.context.models['tasks_model']
+                tasks_idx   = tasks_model.get_key_index("JB_job_number")
+                running_ids = [x[tasks_idx] for x in tasks_model._data]
+            except:
+                pass
+        else:
             painter.restore()
             return
 
