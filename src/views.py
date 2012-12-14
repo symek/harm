@@ -192,7 +192,7 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         self.order_columns = 'JB_job_number tasks JB_owner JAT_start_time queue_name JB_name'.split()
         self.set_column_order(self.order_columns)
 
-        self.hidden_columns = ("slots",)
+        self.hidden_columns = ("slots", "maxvmem", "vmem")
         self.set_column_hidden(self.hidden_columns)
 
     def openContextMenu(self, position):
@@ -206,18 +206,24 @@ class TasksView(QTableView, ViewBase, ViewConfig):
             self.set_column_order(self.order_columns)
         if self.hidden_columns:
             self.set_column_hidden(self.hidden_columns)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
 
     # FIXME: These two update_* should be the same function
     # but currently api doesn't allow it. I have to rethink
     # it. (like DataHandler object for models that returns dict-like object
     # without model knowing of its source)
     def update_model_db(self, job_id):
-        self.model.reset()
         self.model.update_db(job_id)
+        self.model.reset()
         if self.order_columns:
             self.set_column_order(self.order_columns)
         if self.hidden_columns:
             self.set_column_hidden(self.hidden_columns)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
 
 
 
