@@ -320,11 +320,7 @@ class DBTableModel():
     _db     = None
     def get_jobs_db(self):
         '''Append history from couchdb database'''
-        def convert_to_sge_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
-            '''Epoc to sge time string convertion.'''
-            import time, datetime
-            return  time.strftime(sge_time_format, time.gmtime(float(t)))
-        # A list of a jobs currently rendered or queued
+        # A list of a jobs currently rendered or queued -
         # (thus whose kept track by SGE):
         current_jobs = self._dict.keys()
         # We need this!
@@ -346,7 +342,8 @@ class DBTableModel():
         from time import time
         t = time()
         query = self._db.query(map_).rows
-        print "Past jobs query:  " + str(time() -t)
+        if DEBUG:
+            print "Past jobs query:  " + str(time() -t)
         query = [x.value for x in query]
         query.reverse()
         # Convert a time string and remove jobs which were
@@ -356,14 +353,13 @@ class DBTableModel():
                 # FIXME: Instead of converting it to sge-ugly-string, we
                 # should convert qstat query to epoc float, and convert it
                 # in delegates!
-                query[item][-1] = convert_to_sge_time(query[item][-1])
+                query[item][-1] = utilities.epoc_to_str_time(query[item][-1])
             else:
                 query.remove(item)
         # Merge cdb with qstat:
         return query
 
-    def get_job_details_db(self, job_id, map_f="function(doc) { emit(doc._id, doc) }", 
-                              sort_by_field="",  reverse_order=False):
+    def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
         '''Retrieves job details from database.'''
         from structured import dict2et
         from time import time
@@ -375,7 +371,8 @@ class DBTableModel():
                 return OrderedDict()
         t   = time()
         job = self._db.get(job_id, OrderedDict())
-        print "Tasks query:  " + str(time() - t)
+        if DEBUG:
+            print "Tasks query:  " + str(time() - t)
         return job
 
 
@@ -482,10 +479,12 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
 
     def update_db(self, job_id, token=""):
         '''Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field).'''
+        # FIXME: I should consider prepering data on a database side, not process it here. 
         self._dict = self.get_job_details_db(job_id)
-        tasks  = self.get_value("JB_ja_tasks", self._dict)
+        tasks      = self.get_value("JB_ja_tasks", self._dict)
         self._data = []
         self._head = OrderedDict()
+
         # Proceed if there are any tasks:
         if len(tasks):
             tasks = tasks[0]['ulong_sublist']
@@ -493,23 +492,45 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             if isinstance(tasks, dict):
                 tasks = [tasks]
             # Make header first:
-            self._head[0] = "JAT_task_number"
-            self._head[1] = "JAT_status"
-            if "JAT_scaled_usage_list" in tasks[0]:
-                scaled = tasks[0]["JAT_scaled_usage_list"]['scaled']
-                offset = len(self._head) + 1
-                for item in range(len(scaled)):
-                    self._head[item+offset] = scaled[item]['UA_name']
+            self._head[0] = "JB_job_number"
+            # WARNING: bellow is not JAT_task_number for TaskModel compatibility with qstat
+            self._head[1] = "tasks" 
+            self._head[2] = "JB_owner"
+            self._head[3] = "JAT_status"
+
 
             # Make self._data:
             for task in tasks:
-                _data = []
-                _data += [task['JAT_task_number'], task['JAT_status']]
+                #Some fields might me missing in some frames (they usually do):
+                _data = [None for x in self._head]
+                # These are mandatory:
+                _data[0] = job_id
+                _data[1] = task['JAT_task_number']
+                _data[2] = self._dict['JB_owner']
+                _data[3] = task['JAT_status']
+                # If usage data is present:
                 if "JAT_scaled_usage_list" in task:
                     scaled = task["JAT_scaled_usage_list"]['scaled']
                     for item in range(len(scaled)):
-                       _data.append(scaled[item]['UA_value'])
+                        _data.append(None)
+                        # Name of the variable:
+                        var_name = scaled[item]['UA_name']
+                        # and index of it in header:
+                        if not var_name in self._head.values():
+                            var_idx = len(self._head.keys())
+                            self._head[var_idx] = var_name
+                        else:
+                            var_idx  = self._head.values().index(var_name)
+                            if DEBUG:
+                                print var_name,
+                                print self._head[var_idx]
+                        # This should not ever happen:
+                        assert var_name in [v for v in self._head.values()], \
+                            "Variabe %s should be in header %s already" % (var_name, self._head)
+                        # Index of that variable in header 
+                        _data[var_idx] = scaled[item]['UA_value']
                 self._data.append(_data)
+
 
 
     def update(self, sge_command, token='queue_info', sort_by_field='JB_job_number', reverse_order=True):
@@ -541,7 +562,28 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
-                 
+
+    def hook_cputime(self, index, value):
+        # Shorten machine name in Tasks view:
+        from datetime import timedelta
+        if self._head[index.column()] == 'cpu':
+            if value: 
+                value = int(float(value)/8.0)
+                value = str(timedelta(seconds=value))
+        return value
+
+    def hook_sge_time(self, index, value):
+        import time
+        if self._head[index.column()] in ('submission_time', "start_time", "end_time"):
+            value = utilities.epoc_to_str_time(float(value), "%H:%M:%S %d-%m-%Y")
+        return value
+
+    def hook_mem_usage(self, index, value):
+        import time
+        if self._head[index.column()] in ('mem',):
+            value = str(float(value)/1000.0)[0:4] + " GB"
+        return value
+
             
 
 
