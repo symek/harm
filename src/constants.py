@@ -1,5 +1,5 @@
 
-# Constants:
+# SGE commands:
 SGE_JOB_DETAILS         = 'qstat -ext -g d -t -f -pri -xml -j %s'
 SGE_JOBS_LIST_GROUPED   = 'qstat -xml -u "*"'
 SGE_JOBS_LIST           = 'qstat -xml -g d -u "*"'
@@ -16,6 +16,10 @@ EMPTY_SGE_JOB_DETAILS   = 'cat empty_job_details.xml'
 #SGE_JOBS_LIST           = 'cat jobsListed.xml '
 #SGE_CLUSTER_LIST        = 'cat clusterList.xml'
 
-
+# Color settings for delegates:
 SGE_HOST_RAM_WARNING   = .95 # Percent of RAM beyond which host is marked in red.
 SGE_HOST_SWAP_WARNING  = .05 # Amout of SWAP usage beyond which host is marked in red.
+
+# Debug or nor to debug?
+import os
+DEBUG = os.getenv("DEBUG", False)
