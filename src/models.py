@@ -373,16 +373,10 @@ class DBTableModel():
                 self._db     = self._server['sge_db']
             except:
                 return OrderedDict()
-        t = time()
-        job    = self._db.query(map_f, key=job_id).rows 
+        t   = time()
+        job = self._db.get(job_id, OrderedDict())
         print "Tasks query:  " + str(time() - t)
-        if len(job) > 0:
-            job = job[0].value
-            cdb_dict = OrderedDict(job)
-            return cdb_dict
-        return OrderedDict()
-
-
+        return job
 
 
 #################################################################
