@@ -12,8 +12,9 @@ header['JAT_start_time'] = 'Elapsed'
 header['JAT_task_number'] = 'Task'
 header['JAT_status'] = 'Task Status'
 header['cpu'] = 'Cpu Time'
-header['mem'] = 'Momory Used'
-header['vmem'] = 'Virtual Momory'
+header['mem'] = 'Memory Used'
+header['vmem'] = 'Virtual Memory'
+header['maxvmem'] = 'Max Virtual Memory'
 
 
 header['arch_string'] = 'Archtecture'
