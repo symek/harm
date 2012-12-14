@@ -26,6 +26,15 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         # Timer:
         self.tick = time.time()
 
+        self.timer = QTimer()
+        # FIXME: This should configurable also:
+        # FIXME: Auto-update should be disabled when ever 
+        # user has selected job in cdb state (from database)
+        self.timer.setInterval(1000*120) # update once for 2 minute .
+        self.timer.timeout.connect(self.refreshAll)
+        self.timer.start()
+
+
     def splashMessage(self, text):             
         self.splash.showMessage(text, Qt.AlignBottom)
         self.app.processEvents()
