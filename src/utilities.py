@@ -52,6 +52,11 @@ def fit(x, a, b, c, d):
     return c+((x-a)/(b-a))*(d-c)
 
 
+def epoc_to_str_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
+    '''Epoc to sge time string convertion.'''
+    import time
+    return  time.strftime(sge_time_format, time.gmtime(float(t)))
+        
 def string_to_elapsed_time(value):
     '''Returns time difference provided SGE specific string time.'''
     import time, datetime
