@@ -346,7 +346,7 @@ class DBTableModel():
         from time import time
         t = time()
         query = self._db.query(map_).rows
-        print time() -t
+        print "Past jobs query:  " + str(time() -t)
         query = [x.value for x in query]
         query.reverse()
         # Convert a time string and remove jobs which were
@@ -375,7 +375,7 @@ class DBTableModel():
                 return OrderedDict()
         t = time()
         job    = self._db.query(map_f, key=job_id).rows 
-        print time() - t
+        print "Tasks query:  " + str(time() - t)
         if len(job) > 0:
             job = job[0].value
             cdb_dict = OrderedDict(job)
@@ -511,8 +511,8 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             for task in tasks:
                 _data = []
                 _data += [task['JAT_task_number'], task['JAT_status']]
-                if "JAT_scaled_usage_list" in tasks[0]:
-                    scaled = tasks[0]["JAT_scaled_usage_list"]['scaled']
+                if "JAT_scaled_usage_list" in task:
+                    scaled = task["JAT_scaled_usage_list"]['scaled']
                     for item in range(len(scaled)):
                        _data.append(scaled[item]['UA_value'])
                 self._data.append(_data)
