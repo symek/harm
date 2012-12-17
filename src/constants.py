@@ -20,6 +20,20 @@ EMPTY_SGE_JOB_DETAILS   = 'cat empty_job_details.xml'
 SGE_HOST_RAM_WARNING   = .95 # Percent of RAM beyond which host is marked in red.
 SGE_HOST_SWAP_WARNING  = .05 # Amout of SWAP usage beyond which host is marked in red.
 
+
+# Nuke ReadNode string:
+NUKE_READ_NODE_STRING = '''Read {
+        				inputs 0
+        				file %s
+        				format "1280 720 0 0 1280 720 1 "
+        				first %s
+        				last  %s
+        				origset true
+        				name Read1
+        				selected true
+        				xpos -221
+        				ypos -160 }'''
+
 # Debug or nor to debug?
 import os
 DEBUG = os.getenv("DEBUG", False)
