@@ -43,13 +43,10 @@ class HarmMainWindowCallbacks():
         #             self.set_job_detail_proxy_model_wildcard)  
 
     def refreshAll(self):
-        # Disabling it for now:
-        #if time.time() - self.tick < 5:
-        #    time.sleep(3)           
+        '''Refreshes jobs/tasks/machine views. Automatically called by self.timer too. '''
         self.jobs_view.update_model(SGE_JOBS_LIST_GROUPED)
         self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
         self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
-        self.tick_tack()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()

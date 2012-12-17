@@ -36,6 +36,7 @@ context = Context()
 class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupGUI(self,  init):
         context.app = self.app
+        context.conf= self.conf
         # Main Tabs:
         self.statusBar()
         self.left_tab_widget   = QtGui.QTabWidget()
@@ -66,23 +67,24 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         # Toolbar:
         self.toolbar = self.addToolBar('Main')
         # Refresh:
-        warning = 'Clicking more than once for 5 seconds will burn out your computer. (Not that one, YOURS)!'
-        self.refreshAction = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/refresh.png'), 'Refresh (%s)'% warning, self)
+        icon = self.conf.get_icon_path('refresh.png')
+        self.refreshAction = QtGui.QAction(QtGui.QIcon(icon), 'Refresh', self)
         self.refreshAction.setShortcut('Ctrl+R') 
         self.refreshAction.setStatusTip('Refresh jobs and task view from SGE.')
         self.toolbar.addAction(self.refreshAction)  
         #Set user:
-        self.set_user_action = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/user.png'), 'Set user filter', self)
+        icon = self.conf.get_icon_path('user.png')
+        self.set_user_action = QtGui.QAction(QtGui.QIcon(icon), 'Set user filter', self)
         self.set_user_action.setShortcut('Ctrl+U')
         self.set_user_action.setStatusTip('Set filter owner:$USER for jobs view.')
         self.toolbar.addAction(self.set_user_action) 
         #Quit:
-        self.exit_action = QtGui.QAction(QtGui.QIcon('/STUDIO/scripts/harm/icons/disconnect.png'), 'Exit.', self)
+        icon = self.conf.get_icon_path('disconnect.png')
+        self.exit_action = QtGui.QAction(QtGui.QIcon(icon), 'Exit.', self)
         self.exit_action.setShortcut('Ctrl+E')
         self.exit_action.setStatusTip('Exit application.')
         self.exit_action.triggered.connect(QtGui.qApp.quit)
         self.toolbar.addAction(self.exit_action) 
-
 
   
 

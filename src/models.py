@@ -498,7 +498,6 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             self._head[2] = "JB_owner"
             self._head[3] = "JAT_status"
 
-
             # Make self._data:
             for task in tasks:
                 #Some fields might me missing in some frames (they usually do):
@@ -581,7 +580,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def hook_mem_usage(self, index, value):
         import time
         if self._head[index.column()] in ('mem',):
-            value = str(float(value)/1000.0)[0:4] + " GB"
+            value = str(float(value)/10000.0)[0:4] + " GB"
         return value
 
             
