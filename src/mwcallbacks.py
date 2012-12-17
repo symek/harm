@@ -1,6 +1,7 @@
 import os, time
 import utilities
 from constants import *
+import tokens
 #PyQt4:
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import * 
@@ -55,7 +56,7 @@ class HarmMainWindowCallbacks():
 
     def set_user(self):
         user = utilities.get_username()
-        self.jobs_filter_line.setText("owner:%s" % user)
+        self.jobs_filter_line.setText("Owner:%s" % user)
         #self.set_jobs_view_filter()
 
     def jobs_view_clicked(self, index):
@@ -172,19 +173,33 @@ class HarmMainWindowCallbacks():
 
 
     def set_jobs_view_filter(self, wildcard):
-        '''Sets a filter for jobs view according to user input in jobs_filter_line'''
-        wildcard = wildcard.split(":")
-        self.jobs_view.proxy_model.setFilterWildcard(wildcard[-1])
-        self.jobs_view.resizeRowsToContents()
-        # if len(wildcard) > 1:
-        #     for x in range(len(self.jobs_model.root[0])):
-        #         tag = str(self.jobs_model.root[0][x].tag)
-        #         if tag in tokens.header.keys():
-        #             column_name = tokens.header[tag]
-        #             if str(wildcard[0]).lower() == column_name.lower():
-        #                 self.jobs_view.proxy_model.setFilterKeyColumn(x)
-        #                 break
+        '''Sets a filter for jobs view according to user input in jobs_filter_line.
+        Basic syntax is header_name:value, where header_name might either alias used
+        in GUI, or real name used in model. We should provide the latter one with popup
+        or something.'''
+        from fnmatch import fnmatch
+        # By default we filter users: 
+        column_name   = 'JB_owner'
+        wildcard      = str(wildcard)
+        # basic syntax for specifying headers:
+        wildcard    = wildcard.split(":")
+        if len(wildcard) > 1:
+            column_name = wildcard[0]
+            wildcard  = wildcard[1]
+        else:
+            wildcard = wildcard[0]
+        # Find real variable name from header name:
+        if column_name in tokens.header.values():
+            real_name = tokens.header.keys()[tokens.header.values().index(column_name)]
+            # If token matches real name or alias name assign new column:
+            if fnmatch(column_name, real_name) or fnmatch(column_name, tokens.header[real_name]):
+                column_name = real_name
 
+        # Finally our job:
+        column_index = self.jobs_view.model.get_key_index(column_name)
+        self.jobs_view.proxy_model.setFilterKeyColumn(column_index)
+        self.jobs_view.proxy_model.setFilterWildcard(wildcard)
+        self.jobs_view.resizeRowsToContents()
 
     def set_tasks_view_filter(self, job_id):
         '''Sets a filter according to job selection in jobs view.'''
