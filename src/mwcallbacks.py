@@ -1,6 +1,7 @@
 import os, time
 import utilities
 from constants import *
+import tokens
 #PyQt4:
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import * 
@@ -42,37 +43,46 @@ class HarmMainWindowCallbacks():
         #             self.set_job_detail_proxy_model_wildcard)  
 
     def refreshAll(self):
-        if time.time() - self.tick < 5:
-            time.sleep(3)           
+        '''Refreshes jobs/tasks/machine views. Automatically called by self.timer too. '''
         self.jobs_view.update_model(SGE_JOBS_LIST_GROUPED)
         self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
         self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
-        self.tick_tack()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()
 
     def set_user(self):
         user = utilities.get_username()
-        self.jobs_filter_line.setText("owner:%s" % user)
+        self.jobs_filter_line.setText("Owner:%s" % user)
         #self.set_jobs_view_filter()
 
     def jobs_view_clicked(self, index):
         '''Calls for selecting job on Jobs View.'''
-        s_index = self.jobs_view.proxy_model.mapToSource(index)
+        # First we map selected proxy index to the real one.
+        s_index      = self.jobs_view.proxy_model.mapToSource(index)
+        # then we look for our indices of fields in model header.
         job_id_index = self.jobs_view.model.get_key_index("JB_job_number")
-        job_id  = self.jobs_view.model._data[s_index.row()][job_id_index]
-        # Update job detail view in case it's visible
-        # TODO: Perhaps this should be always performed?
-        # Or only id we didn't 'cached' some how job?
+        state_index  = self.jobs_view.model.get_key_index("state")
+        # with that, we retrieve informations:
+        job_id       = self.jobs_view.model._data[s_index.row()][job_id_index]
+        state        = self.jobs_view.model._data[s_index.row()][state_index]
+
+        # Update job detail view in case its tab is visible:
         if self.right_tab_widget.currentIndex() == 0:
             self.job_detail_view.update_model(job_id)
-            self.job_detail_basic_view_update()
-        # Call this in case toggle onle_Selected is checked:
-        self.set_tasks_view_filter(0)
-        #elif self.right_tab_widget.currentIndex() in (1, 2): pass
-            #self.update_stat_view(job_id)   
-        #job_id = self.jobs_model.root[indices.row()][0].text
+            self.job_detail_basic_view_update(job_id)
+
+        # We set task view filter to currently selected AND runnig jobs,
+        # or update tasks view with past jobs using database:
+        if state != 'cdb': 
+            self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
+            self.set_tasks_view_filter(job_id)
+        else:
+            # updat_db() calls update_job_details_db() first to read database
+            # then parses query to look for per frame info and updats tasksModel._dict
+            # with that data.
+            self.set_tasks_view_filter(None)
+            self.tasks_view.update_model_db(job_id)
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
@@ -81,10 +91,16 @@ class HarmMainWindowCallbacks():
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
 
         # That needs to be done for others widgets relaying on job_detail_view
-        # Update job detail only if it's not already updated:
-        #if self.job_detail_view.model._dict['JB_job_number'] != job_id:
-        self.job_detail_view.update_model(job_id)
-        self.job_detail_basic_view_update()
+        # Update job detail only if it's not already up to date already:
+        update_details_flag = True
+        if 'JB_job_number' in self.job_detail_view.model._dict:
+            if self.job_detail_view.model._dict['JB_job_number'] == job_id:
+                update_details_flag == False
+            else:
+                update_details_flag == True
+        if update_details_flag:
+                self.job_detail_view.update_model(job_id)
+                self.job_detail_basic_view_update(job_id)
         
         # Update both std out/err widgets:
         tab_index = self.right_tab_widget.currentIndex() 
@@ -99,32 +115,38 @@ class HarmMainWindowCallbacks():
         #self.update_image_view(job_id)
 
     def tasks_view_doubleClicked(self, index):
-        """Double clicking on task calls image viewer (mplay for now)
-        TODO: place for Config() class."""
+        '''Double clicking on task calls image viewer (mplay for now)
+        TODO: place for Config() class.'''
         s_index       = self.tasks_view.proxy_model.mapToSource(index)
         job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        task_id_index = self.tasks_view.model.get_key_index("tasks")
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
+        task_id       = self.tasks_view.model._data[s_index.row()][task_id_index]
 
         # Update job detail only if it's not already updated:
+        # if 'JB_job_number' in self.job_detail_view.model._dict:
         if self.job_detail_view.model._dict['JB_job_number'] != job_id:
-            self.job_detail_view.update_model(job_id)
+           self.job_detail_view.update_model(job_id)
 
         # Get image info:            
-        if 'OUTPUT_PICTURE' in self.job_detail_view.model._dict:
-            picture = self.job_detail_view.model._dict['OUTPUT_PICTURE']
-            picture = utilities.padding(picture, 'shell')
+        picture = self.job_detail_view.model.get_value("OUTPUT_PICTURE")
+        if picture:
+            # We want a single specific frame, not a whole sequence:
+            picture = utilities.padding(picture[0], None, task_id)
+            # FIXME: make image viewer configurable:
             os.system("/opt/package/houdini_12.0.687/bin/mplay %s" % picture[0])
         else:
-            print "No image."
+            print "No output-image information found."
 
 
     def update_std_views(self, job_id, task_id, tab_index):
-        '''Read from disk logs specified by selected tasks..'''
-        PN_path  = None
-        job_name = None            
-        data = self.job_detail_view.model._dict
-        if "PN_path" in data: PN_path = data['PN_path']    
-        if "JB_job_name" in data: job_name = data['JB_job_name']
+        '''Read from disk files logs specified by selected tasks..'''         
+        data     = self.job_detail_view.model
+        PN_path  = data.get_value('PN_path')[0]
+        job_name = data.get_value('JB_job_name')[0]
+        # Abord if no details has been found:
+        if not PN_path or not job_name: 
+            return
 
         # Stdout Tab:
         if PN_path and job_name and tab_index == 1:
@@ -148,44 +170,66 @@ class HarmMainWindowCallbacks():
 
 
     def set_jobs_view_filter(self, wildcard):
-        '''Sets a filter for jobs view according to user input in jobs_filter_line'''
-        wildcard = wildcard.split(":")
-        self.jobs_view.proxy_model.setFilterWildcard(wildcard[-1])
-        self.jobs_view.resizeRowsToContents()
-        # if len(wildcard) > 1:
-        #     for x in range(len(self.jobs_model.root[0])):
-        #         tag = str(self.jobs_model.root[0][x].tag)
-        #         if tag in tokens.header.keys():
-        #             column_name = tokens.header[tag]
-        #             if str(wildcard[0]).lower() == column_name.lower():
-        #                 self.jobs_view.proxy_model.setFilterKeyColumn(x)
-        #                 break
-
-
-    def set_tasks_view_filter(self, int):
-        '''Sets a filter according to job selection in jobs view.'''
-        if self.tasks_onlySelected_toggle.isChecked():
-            index  = self.jobs_view.currentIndex()
-            if not index:
-                return
-            s_index       = self.jobs_view.proxy_model.mapToSource(index)
-            job_id_index  = self.jobs_view.model.get_key_index("JB_job_number")
-            job_id        = self.jobs_view.model._data[s_index.row()][job_id_index]
-            self.tasks_view.proxy_model.setFilterWildcard(job_id)
-            print job_id
+        '''Sets a filter for jobs view according to user input in jobs_filter_line.
+        Basic syntax is header_name:value, where header_name might either alias used
+        in GUI, or real name used in model. We should provide the latter one with popup
+        or something.'''
+        from fnmatch import fnmatch
+        # By default we filter users: 
+        column_name   = 'JB_owner'
+        wildcard      = str(wildcard)
+        # basic syntax for specifying headers:
+        wildcard    = wildcard.split(":")
+        if len(wildcard) > 1:
+            column_name = wildcard[0]
+            wildcard  = wildcard[1]
         else:
-            self.tasks_view.proxy_model.setFilterWildcard("")
+            wildcard = wildcard[0]
+        # Find real variable name from header name:
+        if column_name in tokens.header.values():
+            real_name = tokens.header.keys()[tokens.header.values().index(column_name)]
+            # If token matches real name or alias name assign new column:
+            if fnmatch(column_name, real_name) or fnmatch(column_name, tokens.header[real_name]):
+                column_name = real_name
 
+        # Finally our job:
+        column_index = self.jobs_view.model.get_key_index(column_name)
+        self.jobs_view.proxy_model.setFilterKeyColumn(column_index)
+        self.jobs_view.proxy_model.setFilterWildcard(wildcard)
+        self.jobs_view.resizeRowsToContents()
+
+    def set_tasks_view_filter(self, job_id):
+        '''Sets a filter according to job selection in jobs view.'''
+        # Early exit on non-ids:
+        if job_id == None: 
+            self.tasks_view.proxy_model.setFilterWildcard("")
+            self.tasks_view.resizeRowsToContents()
+            self.tasks_view.resizeColumnsToContents()
+            return
+
+        # Proceed with setting filter on job number column:
+        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        # Our column might not exist:
+        if job_id_index:
+            self.tasks_view.proxy_model.setFilterKeyColumn(job_id_index)
+            if self.tasks_onlySelected_toggle.isChecked():
+                self.tasks_view.proxy_model.setFilterWildcard(str(job_id))
+            else:
+                self.tasks_view.proxy_model.setFilterWildcard("")
+
+        # Usual clean up:
         self.tasks_view.resizeRowsToContents()
         self.tasks_view.resizeColumnsToContents()
-        #self.tasks_view.HorizontalHeader().resizeSection(1, 30)
 
-    def job_detail_basic_view_update(self):
+    def job_detail_basic_view_update(self, job_id):
         '''Updates texted in detail basic view.
         It's a text viewer sutable for very simple
         presentation of data'''
+        #TODO: This is workaround for a lack of html widget.
         text = utilities.render_basic_job_info(self.job_detail_view.model._dict)
-        text += utilities.render_basic_task_info(self.job_detail_view.model._tasks)
+        # text += utilities.render_basic_task_info(self.job_detail_view.model._tasks)
+        # FIXME: read_rtime() is very slow:
+        #text += utilities.read_rtime(job_id)
         self.job_detail_basic_view.setPlainText(str(text))
 
     def set_job_detail_view_filter(self, text):

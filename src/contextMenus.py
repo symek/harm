@@ -1,6 +1,8 @@
 from PyQt4.QtGui import QMenu, QIcon, QAction
 import os
 import utilities
+import constants
+#from models import JobDetailModel
 
 ##########################################################
 # Base Class for Context Menues:                         #
@@ -61,14 +63,15 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         super(self.__class__, self).__init__()
         self.view    = context.views['jobs_view']
         self.model   = context.models['jobs_model']
+        self.app     = context.app
+        self.context = context
         self.bind_actions(self.build_action_strings(self))
         self.execute(position)
 
-    def _getIds(self, view=None, model=None):
+    def get_item_id(self, view=None, model=None):
         indexes  = self.view.selectedIndexes()
         indexes =  [self.view.proxy_model.mapToSource(index) for index in indexes]
         ids = []
-        # FIXME: We should operate here on proxy_model, not model?
         job_id_index   = self.model.get_key_index('JB_job_number')
         task_ids_index = self.model.get_key_index('tasks')
         for index in indexes:
@@ -80,33 +83,57 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         return(" ".join(ids))
         
     def callback_delete(self):
-        result = os.popen('qdel -f %s' % self._getIds()).read()
+        result = os.popen('qdel -f %s' % self.get_item_id()).read()
         print result
-        #print self._getIds()
+        #print self.get_item_id()
 
     def callback_hold(self):
-        result = os.popen('qhold -h u %s' % self._getIds()).read()
+        result = os.popen('qhold -h u %s' % self.get_item_id()).read()
         print result
         
     def callback_unhold(self):
-        result = os.popen('qalter -h U %s' % self._getIds()).read()
+        result = os.popen('qalter -h U %s' % self.get_item_id()).read()
         print result
 
     def callback_suspend(self):
-        result = os.popen('qmod -sj %s' %  self._getIds()).read()
+        result = os.popen('qmod -sj %s' %  self.get_item_id()).read()
         print result
 
     def callback_unsuspend(self):
-        result = os.popen('qmod -usj %s' %  self._getIds()).read()
+        result = os.popen('qmod -usj %s' %  self.get_item_id()).read()
         print result
 
     def callback_reschedule(self):
-        result = os.popen('qmod -rj %s' %  self._getIds()).read()
+        result = os.popen('qmod -rj %s' %  self.get_item_id()).read()
         print result
 
     def callback_clear_error(self):
-        result = os.popen('qmod -cj %s' %  self._getIds()).read()
+        result = os.popen('qmod -cj %s' %  self.get_item_id()).read()
         print result
+
+    def callback_copy_to_nuke(self):
+        '''Creates a Nuke's paste string to create ReadNodes from 
+        selected render jobs.'''
+        indices = self.view.selectedIndexes()
+        indices = [self.view.proxy_model.mapToSource(index) for index in indices]
+        job_ids = list(set([index.row() for index in indices]))
+        job_id_index = self.model.get_key_index('JB_job_number')
+        clipboard    = self.app.clipboard()
+        read  = []; nuke_paste_in = ""
+        model = self.context.views['job_detail_view'].model
+        for index in indices:
+            job_id  = self.model._data[index.row()][job_id_index]
+            if job_id not in read: 
+                model.update(constants.SGE_JOB_DETAILS % job_id)
+                picture = model.get_value('OUTPUT_PICTURE')
+                rn_min  = model.get_value("RN_min")[0]
+                rn_max  = model.get_value('RN_max')[0]
+                read.append(job_id)
+                if picture:
+                   p0 = utilities.padding(picture[0], 'nuke')[0]
+                   nuke_paste_in += constants.NUKE_READ_NODE_STRING % (p0, rn_min, rn_max)
+                   nuke_paste_in += "\n"
+        clipboard.setText(nuke_paste_in)
 
 
 #####################################################################
@@ -122,7 +149,7 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         self.bind_actions(self.build_action_strings(self))
         self.execute(position)
 
-    def _getIds(self, view=None, model=None):
+    def get_item_id(self, view=None, model=None):
         indexes = self.view.selectedIndexes()
         indexes =  [self.view.proxy_model.mapToSource(index) for index in indexes]
         job_id_index   = self.model.get_key_index('JB_job_number')
@@ -134,57 +161,43 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         return(" ".join(task_ids))
         
     def callback_delete(self):
-        result = os.popen('qdel -f %s' % self._getIds()).read()
-        #result = self._getIds()
+        result = os.popen('qdel -f %s' % self.get_item_id()).read()
+        #result = self.get_item_id()
         print result
 
     def callback_hold(self):
-        result = os.popen('qhold -h u %s' % self._getIds()).read()
+        result = os.popen('qhold -h u %s' % self.get_item_id()).read()
         print result
         
     def callback_unhold(self):
-        result = os.popen('qalter -h U %s' % self._getIds()).read()
+        result = os.popen('qalter -h U %s' % self.get_item_id()).read()
         print result
 
     def callback_suspend(self):
-        result = os.popen('qmod -sj %s' %  self._getIds()).read()
+        result = os.popen('qmod -sj %s' %  self.get_item_id()).read()
         print result
 
     def callback_unsuspend(self):
-        result = os.popen('qmod -usj %s' %  self._getIds()).read()
+        result = os.popen('qmod -usj %s' %  self.get_item_id()).read()
         print result
 
     def callback_reschedule(self):
-        result = os.popen('qmod -rj %s' %  self._getIds()).read()
+        result = os.popen('qmod -rj %s' %  self.get_item_id()).read()
         print result
 
     def callback_clear_error(self):
-        result = os.popen('qmod -cj %s' %  self._getIds()).read()
+        result = os.popen('qmod -cj %s' %  self.get_item_id()).read()
         print result
 
-    def compare_experimental(self):
+    def callback_show_sequence(self):
         # Get tasks:
-        ids = self._getIds()
-        ids = ids.split()
-        # Make sure user selected only two frames:
-        # TODO: make possible compare two sequences!
-        if len(ids) < 2:
-            return
-        elif len(ids) > 2:
-            ids = ids[:2]
-        ids = [x.split(".") for x in ids]
-
-        # Retrieve images from a model
-        # TODO: We don't have currently to get to the task details other
-        # than currently loaded in detail view.
-        # We could use the same model though... 
+        ids = self.get_item_id()
+        ids = ids.split()[0]
         model = self.context.views['job_detail_view'].model
-        if 'OUTPUT_PICTURE' in model._dict:
-            p0 = model._dict['OUTPUT_PICTURE']
-            p0 = utilities.padding(p0, 'shell')
-            p1 = p0[0].replace("*", str(ids[0][1]).zfill(p0[2]))
-            p2 = p0[0].replace("*", str(ids[1][1]).zfill(p0[2]))
-            os.system("/opt/package/houdini_12.0.687/bin/mplay -e c %s %s" % (p1, p2))
+        picture = model.get_value('OUTPUT_PICTURE')
+        if picture:
+            p0 = utilities.padding(picture[0], 'shell')[0]
+            os.system("/opt/package/houdini_12.0.687/bin/mplay %s" % p0)
             
 
 

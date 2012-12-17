@@ -4,6 +4,8 @@ import utilities
 import views
 import os
 from ordereddict import OrderedDict
+import couchdb as cdb
+from constants import *
 
 ##########################################################
 # Xml****Config are work-horses in custom Qt models      #
@@ -163,7 +165,7 @@ class SgeTableModelBase():
             return len(self._data[-1])
         return 0
 
-    def _tag2idx(self, item):
+    def build_header_dict(self, item):
         '''This builds self._head dict {1:header, 2:another, ...}'''
         _map = OrderedDict()
         for x in range(len(item.keys())):
@@ -210,7 +212,8 @@ class SgeTableModelBase():
             value = self._data[index.row()][index.column()]
             value = self.data_hooks(index, value)
         except:
-            print self
+            # FIXME: ?
+           pass
         if not value: return QVariant()        
         # Finally return something meaningfull:
         return QVariant(value)
@@ -227,16 +230,150 @@ class SgeTableModelBase():
             return QVariant()
         # Horizontal headers:
         if orientation == Qt.Horizontal and len(self._data):
-            return QVariant(header_replace(self._head[section]))
+            if section in self._head:
+                return QVariant(header_replace(self._head[section]))
+            return QVariant()
         # Vertical headers:
         elif orientation == Qt.Vertical and len(self._data):
-            return QVariant(header_replace(int(section+1)))
+                return QVariant(header_replace(int(section+1)))
         return QVariant()
 
     def parse_time_string(self, time):
         '''Parses the time string to reasonable format.'''
         date, time = time.split("T")
         return " ".join((time, date))
+
+    def get_value(self, key, data=None):
+        '''Searches data model for particular value based on provided key. 
+        Returns a list of values (multiply occurance of key are possible),
+        or empty list. It should handle multi-nested dictionaries and lists. 
+        Note: it is very expensive. perhaps we should cache it.'''
+        def find(key, value):
+            '''http://stackoverflow.com/questions/9807634/\
+            find-all-occurences-of-a-key-in-nested-python-dictionaries-and-lists'''
+            for k, v in value.iteritems():
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
+                        yield result
+                elif isinstance(v, list):
+                    for d in v:
+                        if isinstance(d, dict):
+                            for result in find(key, d):
+                                yield result
+                        for result in find(key, d):
+                            yield result
+        # Data is our own:
+        if not data:
+            data = self._dict
+        # Return non-empy list:
+        result = list(find(key, data))
+        if len(result) > 0:
+            return result
+        else:
+            # Overwise search for 'hidden' variables:
+            names = list(find("VA_variable", data))
+            value = list(find("VA_value", data))
+            if key in names:
+                index = names.index(key)
+                return [value[index]]
+        return []
+
+    ####################################################################
+    # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
+    # when building table's items.                                     #
+    # ##################################################################
+    def hook_timestring(self, index, value):
+        # Change time string formating:
+        if self._head[index.column()] in tokens.time_strings: 
+            # Parse time string diffrently for tasks view:
+            if self._head[index.column()] == "JAT_start_time":
+                value = utilities.string_to_elapsed_time(value)
+            else: 
+                value = self.parse_time_string(value)
+        return value
+
+    def hook_machinename(self, index, value):
+        # Shorten machine name in Tasks view:
+        if self._head[index.column()] == 'queue_name':
+            if value: 
+                value = value.split("@")[-1]
+                if "." in value:
+                    value = value.split(".")[0]
+        return value
+
+
+
+#################################################################
+#               Database Table Model Base                       #
+# This class enable minimal  databse support for sge models     #
+# Current couchdb should be replaced by some abstraction layer! #
+# ###############################################################
+
+
+class DBTableModel():
+    '''Query jobs information from couchdb database. There is a single method
+    append_jobs_history which queries db using standard python couchdb module.
+    This class is meant to be inherited by other models like JobsModel.'''
+    _server = None
+    _db     = None
+    def get_jobs_db(self):
+        '''Append history from couchdb database'''
+        # A list of a jobs currently rendered or queued -
+        # (thus whose kept track by SGE):
+        current_jobs = self._dict.keys()
+        # We need this!
+        if not self._server:
+            try:
+                self._server = cdb.Server(os.getenv("CDB_SERVER"))    
+                self._db     = self._server['sge_db']
+            except:
+                return []
+        # This is our map function with hand crafted requests fields:
+        # It mimics qstat data, with a state replaced by 'cdb', which will allow us 
+        # to treat it differently down the stream.
+        map_   = '''function(doc) {
+            var js  = doc.JB_ja_structure.task_id_range;
+            var jss = "".concat(js.RN_min, "-", js.RN_max, ":", js.RN_step);
+            var que = doc.JB_hard_queue_list.destin_ident_list.QR_name;
+            emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc.JB_job_name, 
+                     "1", que, doc.JB_job_number, doc.JB_submission_time]);}'''
+        from time import time
+        t = time()
+        query = self._db.query(map_).rows
+        if DEBUG:
+            print "Past jobs query:  " + str(time() -t)
+        query = [x.value for x in query]
+        query.reverse()
+        # Convert a time string and remove jobs which were
+        # returned by qstat:
+        for item in range(len(query)):
+            if query[item][-2] not in current_jobs:
+                # FIXME: Instead of converting it to sge-ugly-string, we
+                # should convert qstat query to epoc float, and convert it
+                # in delegates!
+                query[item][-1] = utilities.epoc_to_str_time(query[item][-1])
+            else:
+                query.remove(item)
+        # Merge cdb with qstat:
+        return query
+
+    def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
+        '''Retrieves job details from database.'''
+        from structured import dict2et
+        from time import time
+        if not self._server:
+            try:
+                self._server = cdb.Server(os.getenv("CDB_SERVER"))
+                self._db     = self._server['sge_db']
+            except:
+                return OrderedDict()
+        t   = time()
+        job = self._db.get(job_id, OrderedDict())
+        if DEBUG:
+            print "Tasks query:  " + str(time() - t)
+        return job
 
 
 #################################################################
@@ -273,63 +410,180 @@ class MachineModelBase(SgeTableModelBase):
 #               Job Table Model                                 #   
 # ###############################################################
 
-class JobsModel(QAbstractTableModel, SgeTableModelBase):
+class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self.sge_view = parent
         self._tree = None
         self._data = []
         self._head = OrderedDict()
+        self._dict = OrderedDict()
+
+    def append_jobs_history(self):
+        '''Appends history jobs from a database (using DBTableModel.get_jobs_db()) '''
+        query = self.get_jobs_db()
+        self._data += query
+        # FIXME!
+        # This has to be (?) hard coded here, as we don't retrieve fields' names
+        # from a database atm. This is unfortunate, since general rule here is creating everything on the fly, 
+        # It's not properly tested though...
+        # If not headers yet:
+        if len(self._head) == 0:
+            self._head = OrderedDict({1:"JB_owner", 2:"state", 3:"tasks", 4:"JB_priority", 5:"JB_job_name", 6:"slots", \
+                          7:"queue_name", 8:"JB_job_number", 9:"JB_submission_time"})
+
+
     def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
-        self._tree = ElementTree.parse(os.popen(sge_command))
-        self._dict  = XmlDictConfig(self._tree.getroot())[token]
         self._data = []
         self._head = OrderedDict()
+        self._tree = ElementTree.parse(os.popen(sge_command))
+        self._dict = XmlDictConfig(self._tree.getroot())[token]
+        if not isinstance(self._dict, dict):
+            self._dict = OrderedDict()
+        else:
+            self._dict = OrderedDict(self._dict)
 
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        if isinstance(self._dict, dict):
+        if 'job_list' in self._dict:
             d = self._dict['job_list']
             if isinstance(d, list):
-                self._head = self._tag2idx(d[-1])
+                self._head = self.build_header_dict(d[-1])
                 self._data += [[x[key] for key in x.keys()] for x in d]
             elif isinstance(d, dict):
-                self._head = self._tag2idx(d)
-                self._data = d.values()
+                self._head = self.build_header_dict(d)
+                self._data = [d.values()]
                 # Sort list by specified header (given it's name, not index):
-                if sort_by_field in self._head.values():
+                if sort_by_field in self._head.values() and len(self._data) > 0:
                     key_index = self.get_key_index(sort_by_field)
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
-            
-    ####################################################################
-    # hook_*'s are pickedup automatically by SgeTableModelBase.data()  #
-    # when building table's items.                                     #
-    # ##################################################################
-    def hook_timestring(self, index, value):
-        # Change time string formating:
-        if self._head[index.column()] in tokens.time_strings: 
-            # Parse time string diffrently for tasks view:
-            if self._head[index.column()] == "JAT_start_time":
-                value = utilities.string_to_elapsed_time(value)
-            else: 
-                value = self.parse_time_string(value)
-        return value
 
-    def hook_machinename(self, index, value):
+
+#################################################################
+#               Tasks Table Model                               #   
+# ###############################################################
+
+class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
+    '''Holds per task details of a job as retrieved from qstat -g d or database.'''
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__(parent)
+        self.sge_view = parent
+        self._tree = None
+        self._data = []
+        self._head = OrderedDict()
+
+    def update_db(self, job_id, token=""):
+        '''Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field).'''
+        # FIXME: I should consider prepering data on a database side, not process it here. 
+        self._dict = self.get_job_details_db(job_id)
+        tasks      = self.get_value("JB_ja_tasks", self._dict)
+        self._data = []
+        self._head = OrderedDict()
+
+        # Proceed if there are any tasks:
+        if len(tasks):
+            tasks = tasks[0]['ulong_sublist']
+            # Make sure we have a list here:
+            if isinstance(tasks, dict):
+                tasks = [tasks]
+            # Make header first:
+            self._head[0] = "JB_job_number"
+            # WARNING: bellow is not JAT_task_number for TaskModel compatibility with qstat
+            self._head[1] = "tasks" 
+            self._head[2] = "JB_owner"
+            self._head[3] = "JAT_status"
+
+            # Make self._data:
+            for task in tasks:
+                #Some fields might me missing in some frames (they usually do):
+                _data = [None for x in self._head]
+                # These are mandatory:
+                _data[0] = job_id
+                _data[1] = task['JAT_task_number']
+                _data[2] = self._dict['JB_owner']
+                _data[3] = task['JAT_status']
+                # If usage data is present:
+                if "JAT_scaled_usage_list" in task:
+                    scaled = task["JAT_scaled_usage_list"]['scaled']
+                    for item in range(len(scaled)):
+                        _data.append(None)
+                        # Name of the variable:
+                        var_name = scaled[item]['UA_name']
+                        # and index of it in header:
+                        if not var_name in self._head.values():
+                            var_idx = len(self._head.keys())
+                            self._head[var_idx] = var_name
+                        else:
+                            var_idx  = self._head.values().index(var_name)
+                            if DEBUG:
+                                print var_name,
+                                print self._head[var_idx]
+                        # This should not ever happen:
+                        assert var_name in [v for v in self._head.values()], \
+                            "Variabe %s should be in header %s already" % (var_name, self._head)
+                        # Index of that variable in header 
+                        _data[var_idx] = scaled[item]['UA_value']
+                self._data.append(_data)
+
+
+
+    def update(self, sge_command, token='queue_info', sort_by_field='JB_job_number', reverse_order=True):
+        '''Main function of derived model. Builds _data list from input.'''
+        from operator import itemgetter
+        self._tree = None
+        self._dict = OrderedDict()
+        self._data = []
+        self._head = OrderedDict()
+        try:
+            self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
+            self._dict  = XmlDictConfig(self._tree)[token]
+        except:
+            #print self._dict
+            pass
+
+        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
+        if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
+            d = self._dict['job_list']
+            if isinstance(d, list):
+                self._head = self.build_header_dict(d[-1])
+                self._data += [[x[key] for key in x.keys()] for x in d]
+            elif isinstance(d, dict):
+                self._head = self.build_header_dict(d)
+                self._data = [d.values()]
+                # Sort list by specified header (given it's name, not index):
+                if sort_by_field in self._head.values()  and len(self._data) > 0:
+                    key_index = self.get_key_index(sort_by_field)
+                    self._data = sorted(self._data,  key=itemgetter(key_index))
+                    if reverse_order:
+                        self._data.reverse()
+
+    def hook_cputime(self, index, value):
         # Shorten machine name in Tasks view:
-        if self._head[index.column()] == 'queue_name':
+        from datetime import timedelta
+        if self._head[index.column()] == 'cpu':
             if value: 
-                value = value.split("@")[-1]
-                if "." in value:
-                    value = value.split(".")[0]
+                value = int(float(value)/8.0)
+                value = str(timedelta(seconds=value))
         return value
 
+    def hook_sge_time(self, index, value):
+        import time
+        if self._head[index.column()] in ('submission_time', "start_time", "end_time"):
+            value = utilities.epoc_to_str_time(float(value), "%H:%M:%S %d-%m-%Y")
+        return value
 
+    def hook_mem_usage(self, index, value):
+        import time
+        if self._head[index.column()] in ('mem',):
+            value = str(float(value)/10000.0)[0:4] + " GB"
+        return value
+
+            
 
 
 #################################################################
@@ -346,7 +600,7 @@ class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
         self._dict = qccet_to_dict(os.popen(sge_command).read(), True)
-        self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
+        self._head = self.build_header_dict(self._dict[self._dict.keys()[-1]])
         self._data = [self._dict[item].values() for item in self._dict]
         # Sort list by specified header (given it's name, not index):
         if sort_by_field in self._head.values():
@@ -388,7 +642,7 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
                     self._dict[name][x.attrib['name']] = x.text
                 
         # Make a list of lists from that:
-        self._head = self._tag2idx(self._dict[self._dict.keys()[-1]])
+        self._head = self.build_header_dict(self._dict[self._dict.keys()[-1]])
         self._data = [self._dict[item].values() for item in self._dict]
         # Sort list by specified header (given it's name, not index):
         if sort_by_field in self._head.values():
@@ -401,84 +655,33 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
 ##################################################################
 #               Job Detail Table Model                           #
 # This one is yet customized as it consists with many rows and   #
-# two columns only (variable, value) TODO: relace with www rander#
+# two columns only (variable, value) TODO: replace with www rander#
 # page with fine tuned artists friendly look../                  #   
 # ################################################################
 
 
-class JobDetailModel(QAbstractTableModel, SgeTableModelBase):
+class JobDetailModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def __init__(self, parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self._dict = OrderedDict()
         self._head = OrderedDict()
         self._data = []
         self._tree = None
-
+       
     def update(self, sge_command, sort_by_field="", reverse_order=False):
         from operator import itemgetter
-        self._tree = ElementTree.parse(os.popen(sge_command))
-        self._tree = self._tree.find('djob_info')
-        self._dict = OrderedDict()
-        self._data = []
+        try:
+            self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
+            self._dict  = XmlDictConfig(self._tree)['djob_info']['element']
+        except:
+            job_id = sge_command.split()[-1]
+            self._dict = self.get_job_details_db(job_id)
+            #print "JB_submission_time: " + str("JB_submission_time" in self._dict)
+
+        self._data  = []
         self._tasks = []
-        self.find_req(self._tree, self._data)
-        self._tasks = self.find_task_details(self._tree)
-        self._dict = OrderedDict(self._data)
-        self._head = self._tag2idx(self._dict)
-
-    def find_task_details(self, tree):
-        def get_task_info(task):
-            _list = []
-            for item in task.getchildren():
-                name  = item.find("UA_name")
-                value = item.find("UA_value")
-                _list.append((name.text, value.text))
-            return _list
-
-        def get_leaf(tree, leaf):
-            leafs = []
-            for ch in tree.getchildren():
-                if ch.tag == leaf:
-                    leafs.append(ch)
-                else:
-                    ch = get_leaf(ch, leaf)
-                    if ch: leafs += ch
-            return leafs
-
-        tasks_details = []
-        tasks_list = get_leaf(tree, "JB_ja_tasks")
-        if not tasks_list: return []
-        for sublist in tasks_list[0].getchildren():
-            status = sublist.find("JAT_status")
-            task_id= sublist.find("JAT_task_number")
-            usage  = sublist.find("JAT_scaled_usage_list")
-            if usage:
-                usage = get_task_info(usage)
-            tasks_details.append((status.text, task_id.text, usage))
-
-        return tasks_details
-
-
-    def find_req(self, tree, storage):
-        children = tree.getchildren()
-        for child in range(len(children)):
-            if children[child].text:
-                if len(children[child].text.strip()) == 0:
-                    self.find_req(children[child], storage)
-            elif not children[child].text:
-                self.find_req(children[child], storage)
-            if  children[child].text:
-                if  children[child].tag in ("VA_variable", "UA_name"): 
-                    tag  = children[child].text
-                    text =  children[utilities.clamp(child+1, 0, len(children)-1)].text
-                elif children[child].tag in ("VA_value", "UA_value"):
-                    pass
-                else: 
-                    tag  = children[child].tag
-                    text = children[child].text
-                if len(text.strip()) > 0 and (tag, text.strip()) not in storage:
-                    storage.append((tag, text.strip()))
-        return storage
+        self._data  = zip(self._dict.keys(), self._dict.values())
+        self._head = self.build_header_dict(self._dict)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.'''

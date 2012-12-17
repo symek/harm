@@ -52,6 +52,11 @@ def fit(x, a, b, c, d):
     return c+((x-a)/(b-a))*(d-c)
 
 
+def epoc_to_str_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
+    '''Epoc to sge time string convertion.'''
+    import time
+    return  time.strftime(sge_time_format, time.gmtime(float(t)))
+        
 def string_to_elapsed_time(value):
     '''Returns time difference provided SGE specific string time.'''
     import time, datetime
@@ -76,10 +81,32 @@ def get_username():
 
 def render_basic_job_info(data):
     '''Renders basic job information from job detail model.'''
-    def safe_key(key):
-        if key in data:
-            return data[key]
+    def safe_key(key, data):
+        def find(key, value):
+            for k, v in value.iteritems():
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
+                        yield result
+                elif isinstance(v, list):
+                    for d in v:
+                        if isinstance(d, dict):
+                            for result in find(key, d):
+                                yield result
+                        for result in find(key, d):
+                            yield result
+        if len(list(find(key, data))) > 0:
+            return list(find(key, data))[0]
+        else:
+            names = list(find("VA_variable", data))
+            value = list(find("VA_value", data))
+            if key in names and len(names) == len(value):
+                index = names.index(key)
+                return value[index]
         return None
+
+
     import time
     text = """
     SGE job number : %s 
@@ -102,11 +129,11 @@ def render_basic_job_info(data):
 
     --------------------------------------
     """ % \
-    (safe_key('JB_job_number'), safe_key('JAT_task_number'), safe_key("RN_min"), 
-           safe_key("RN_max"), safe_key("RN_step"),  safe_key('JB_owner'), safe_key('JB_group'), 
-          time.ctime(int(safe_key('JB_submission_time'))), safe_key('MR_host'), 
-          safe_key('JB_job_name'), safe_key('CE_stringval'),  safe_key('JOB'), 
-          safe_key('PWD'), safe_key('QR_name') , safe_key('OUTPUT_PICTURE'), safe_key("NEED_LOADED_PACKAGE"))
+    (safe_key('JB_job_number', data), safe_key('JAT_task_number', data), safe_key("RN_min", data), 
+           safe_key("RN_max", data), safe_key("RN_step", data),  safe_key('JB_owner', data), safe_key('JB_group', data), 
+          time.ctime(int(safe_key('JB_submission_time', data))), safe_key('MR_host', data), 
+          safe_key('JB_job_name', data), safe_key('CE_stringval', data),  safe_key('JOB', data), 
+          safe_key('PWD', data), safe_key('QR_name', data) , safe_key('OUTPUT_PICTURE',data), safe_key("NEED_LOADED_PACKAGE", data))
     return text
 
 def render_basic_task_info(data):
@@ -123,13 +150,17 @@ def render_basic_task_info(data):
     return str_frame
 
 
-def padding(file, format=None):
+def read_rtime(job_id):
+    result = os.popen("/STUDIO/scripts/rtime/rtime -f -j %s" % job_id).read()
+    return result
+
+def padding(file, format=None, _frame=None):
     """ Recognizes padding convention of a file.
         format: one of: nuke, houdini, shell
         Returns: (host_specific_name, frame number, length, extension).
         """
     import re
-    _formats = {'nuke': '%0#', 'houdini': '$F#', 'shell':'*'}
+    _formats = {'nuke': '%0#d', 'houdini': '$F#', 'shell':'*'}
     frame, length, = None, None
     base, ext = os.path.splitext(file)
     if not base[-1].isdigit(): 
@@ -139,4 +170,6 @@ def padding(file, format=None):
     if format in _formats.keys():
         format = _formats[format].replace("#",str(length))
         return "".join(l[:-2])+ format + ext, frame, length, ext
+    if _frame:
+        return "".join(l[:-2]) + str(_frame).zfill(length) + ext, frame, length, ext
     return "".join(l[:-2]), frame, length, ext

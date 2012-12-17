@@ -75,7 +75,7 @@ class XmlDictConfig(dict):
 
 
 class Model:
-	pass
+    pass
 
 db    = 'sge_db'
 jobid = sys.argv[1]
@@ -99,23 +99,22 @@ model._dict = _dict
 #'''
 
 for key in model._dict:
-	if key.startswith("__"):
-		nkey  = key[2:]
-	elif key.startswith("_"):
-		nkey = key[1:]
-	else:
-		continue
-	value = model._dict.pop(key)
-	model._dict[nkey] = value
+    if key.startswith("__"):
+        nkey  = key[2:]
+    elif key.startswith("_"):
+        nkey = key[1:]
+    else:
+        continue
+    value = model._dict.pop(key)
+    model._dict[nkey] = value
 
 
 if not jobid in db:
-	db[jobid] = dict(model._dict)
-	job       = db[jobid]
+    db[jobid] = dict(model._dict)
+    job       = db[jobid]
 else:
-	job       = db[jobid]
-	for key in model._dict:
-		job[key] = model._dict[key]
-	db[jobid] = job
-
+    job       = db[jobid]
+    for key in model._dict:
+        job[key] = model._dict[key]
+    db[jobid] = job
 

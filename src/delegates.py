@@ -10,7 +10,7 @@ import utilities
 #             Jobs View Delegate                         #
 #  - bg colors for states                                #
 #  - deletated editor for priority                       #
-#  - apps icons in Jobs name field                       #
+#  - host_apps icons in Jobs name field                       #
 #  - ?                                                   #
 ##########################################################
 
@@ -48,79 +48,73 @@ class JobsDelegate(QItemDelegate):
 
     def paint(self, painter, option, index):
         # Icon drawing:
-        app = None
-        waiting = index.data(Qt.DecorationRole).toBool()
+        host_app     = None
+        waiting      = index.data(Qt.DecorationRole).toBool()
         job_name_idx = self.model.get_key_index("JB_name")
-        s_index = self.proxy.mapToSource(index)
+        s_index      = self.proxy.mapToSource(index)
+        running_ids  = []
 
+        painter.save()
         if not waiting and index.column() == job_name_idx:
             job_name     = self.model._data[s_index.row()][job_name_idx]
-            if ".hip_" in job_name:   app = 'houdini'
-            elif ".nk_" in job_name:  app = 'nuke'
-            elif ".scn_" in job_name: app = 'xsi'
+            if ".hip_" in job_name:   host_app = 'houdini'
+            elif ".nk_" in job_name:  host_app = 'nuke'
+            elif ".scn_" in job_name: host_app = 'xsi'
 
             option = option.__class__(option) #?
-            if app in self.app_icons.keys():
-                image = QImage(self.app_icons[app])
+            if host_app in self.app_icons.keys():
+                image = QImage(self.app_icons[host_app])
                 painter.drawImage(option.rect.topLeft(), image)
                 option.rect = option.rect.translated(20, 0)    
                 QItemDelegate.paint(self, painter, option, index)
                 #return
 
-        painter.save()
 
         # set background color
         painter.setPen(QPen(Qt.NoPen))
-        # In case root[] is empty:
-        try:
-            state_idx = self.model.get_key_index("state")
-            jobid_idx = self.model.get_key_index("JB_job_number")
-            state = self.model._data[s_index.row()][state_idx]
-            jobid = self.model._data[s_index.row()][jobid_idx]
+        # FIXME: This should not be nesecery?
+        if self.model._data:
+            try:
+                state_idx = self.model.get_key_index("state")
+                jobid_idx = self.model.get_key_index("JB_job_number")
+                state = self.model._data[s_index.row()][state_idx]
+                jobid = self.model._data[s_index.row()][jobid_idx]
 
-            tasks_model =  self.context.models['tasks_model']
-            tasks_idx   = tasks_model.get_key_index("tasks")
-            running_ids = [x[tasks_idx] for x in tasks_model._data]
-        except:
+                tasks_model =  self.context.models['tasks_model']
+                tasks_idx   = tasks_model.get_key_index("JB_job_number")
+                running_ids = [x[tasks_idx] for x in tasks_model._data]
+            except:
+                pass
+        else:
             painter.restore()
             return
 
         # Set job state colors:
         if state in('hqw', 'hRq'):
-           painter.setBrush(QBrush(self.hqwC))
+            painter.setBrush(QBrush(self.hqwC))
+        if state == 'cdb':
+            painter.setBrush(QBrush(QColor(Qt.white)))
         if state == 'qw':
-            if jobid in running_ids:
+            if jobid.strip() in running_ids:
                 painter.setBrush(QBrush(self.qwC))
             else:
                 painter.setBrush(QBrush(self.qwWaitingC))
-        #if state == 'Rr':
-        #    color = QColor()
-        #    color.setHsvF(.45, .3, 1)
-        #    painter.setBrush(QBrush(color))            
+
+        # Set background for selected objects:
         if option.state & QStyle.State_Selected:
             painter.setBrush(QBrush(self.selectedC))
 
-        #TODO Set job progress gradient:
-        if index.column() == 765432: # TODO: change it to 2 to enable this part           
-            grad   = QLinearGradient(QPointF(0,.2), QPointF(1, .2))
-            grad.setCoordinateMode(2)
-            grad.setColorAt(0.0, self.waitingC)
-            grad.setColorAt(0.5, self.waitingC)
-            grad.setColorAt(.51, self.progresC)
-            grad.setColorAt(.75, self.progresC)
-            grad.setColorAt(.76, self.finisheC)
-            grad.setColorAt(1.0, self.finisheC)
-            brush  = QBrush(grad)
-            painter.setBrush(brush)
 
         painter.drawRect(option.rect)
         painter.setPen(QPen(Qt.black))
         value = index.data(Qt.DisplayRole)
+
         if value.isValid():
             text = value.toString()
             painter.drawText(option.rect, Qt.AlignLeft, text)
 
         painter.restore()
+        
     
     def createEditor(self, parent, option, index):
         priority_idx = self.model.get_key_index("JAT_prio")
@@ -333,7 +327,18 @@ class JobDelegate(QStyledItemDelegate):
         painter.restore()
 
 
-
+ # #TODO Set job progress gradient:
+ #        if index.column() == 765432: # TODO: change it to 2 to enable this part           
+ #            grad   = QLinearGradient(QPointF(0,.2), QPointF(1, .2))
+ #            grad.setCoordinateMode(2)
+ #            grad.setColorAt(0.0, self.waitingC)
+ #            grad.setColorAt(0.5, self.waitingC)
+ #            grad.setColorAt(.51, self.progresC)
+ #            grad.setColorAt(.75, self.progresC)
+ #            grad.setColorAt(.76, self.finisheC)
+ #            grad.setColorAt(1.0, self.finisheC)
+ #            brush  = QBrush(grad)
+ #            painter.setBrush(brush)
 
 
 
