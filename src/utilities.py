@@ -160,7 +160,7 @@ def padding(file, format=None, _frame=None):
         Returns: (host_specific_name, frame number, length, extension).
         """
     import re
-    _formats = {'nuke': '%0#', 'houdini': '$F#', 'shell':'*'}
+    _formats = {'nuke': '%0#d', 'houdini': '$F#', 'shell':'*'}
     frame, length, = None, None
     base, ext = os.path.splitext(file)
     if not base[-1].isdigit(): 
