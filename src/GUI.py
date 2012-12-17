@@ -25,7 +25,9 @@ class Context(object):
         self.models = {}
         self.menues = {}
         self.views  = {}
+        self.app    = None
 
+# Register common objects:
 context = Context()
     
 
@@ -33,7 +35,7 @@ context = Context()
 
 class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupGUI(self,  init):
-
+        context.app = self.app
         # Main Tabs:
         self.statusBar()
         self.left_tab_widget   = QtGui.QTabWidget()
