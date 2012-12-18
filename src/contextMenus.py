@@ -25,7 +25,7 @@ class ContextMenuBase():
 
     def find_icons(self):
         icons = {}
-        path = "/STUDIO/scripts/harm/icons"
+        path  = self.context.config['HARM_ICON']
         files = os.listdir(path)
         for file in files:
             if os.path.isfile(os.path.join(path, file)):
@@ -69,8 +69,8 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         self.execute(position)
 
     def get_item_id(self, view=None, model=None):
-        indexes  = self.view.selectedIndexes()
-        indexes =  [self.view.proxy_model.mapToSource(index) for index in indexes]
+        indexes = self.view.selectedIndexes()
+        indexes = [self.view.proxy_model.mapToSource(index) for index in indexes]
         ids = []
         job_id_index   = self.model.get_key_index('JB_job_number')
         task_ids_index = self.model.get_key_index('tasks')
@@ -193,11 +193,10 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         # Get tasks:
         ids = self.get_item_id()
         ids = ids.split()[0]
-        model = self.context.views['job_detail_view'].model
+        config  = self.context.config
+        model   = self.context.views['job_detail_view'].model
         picture = model.get_value('OUTPUT_PICTURE')
         if picture:
-            p0 = utilities.padding(picture[0], 'shell')[0]
-            os.system("/opt/package/houdini_12.0.687/bin/mplay %s" % p0)
-            
-
-
+            picture = utilities.padding(picture[0], 'shell')[0]
+            viewer  = config.convert_platform_path(config['image_viewer'])
+            os.system(viewer + " " + picture)
