@@ -35,12 +35,12 @@ context = Context()
 
 class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupGUI(self,  init):
-        context.app = self.app
-        context.conf= self.conf
+        context.app    = self.app
+        context.config = self.config
         # Main Tabs:
         self.statusBar()
-        self.left_tab_widget   = QtGui.QTabWidget()
-        self.right_tab_widget  = QtGui.QTabWidget()
+        self.left_tab_widget  = QtGui.QTabWidget()
+        self.right_tab_widget = QtGui.QTabWidget()
 
         context.splashMessage = self.splashMessage
         self.splashMessage("Setup Jobs Tabs...")
@@ -67,19 +67,19 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         # Toolbar:
         self.toolbar = self.addToolBar('Main')
         # Refresh:
-        icon = self.conf.get_icon_path('refresh.png')
+        icon = self.config.get_icon_path('refresh.png')
         self.refreshAction = QtGui.QAction(QtGui.QIcon(icon), 'Refresh', self)
         self.refreshAction.setShortcut('Ctrl+R') 
         self.refreshAction.setStatusTip('Refresh jobs and task view from SGE.')
         self.toolbar.addAction(self.refreshAction)  
         #Set user:
-        icon = self.conf.get_icon_path('user.png')
+        icon = self.config.get_icon_path('user.png')
         self.set_user_action = QtGui.QAction(QtGui.QIcon(icon), 'Set user filter', self)
         self.set_user_action.setShortcut('Ctrl+U')
         self.set_user_action.setStatusTip('Set filter owner:$USER for jobs view.')
         self.toolbar.addAction(self.set_user_action) 
         #Quit:
-        icon = self.conf.get_icon_path('disconnect.png')
+        icon = self.config.get_icon_path('disconnect.png')
         self.exit_action = QtGui.QAction(QtGui.QIcon(icon), 'Exit.', self)
         self.exit_action.setShortcut('Ctrl+E')
         self.exit_action.setStatusTip('Exit application.')
