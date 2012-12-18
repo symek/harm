@@ -124,17 +124,20 @@ class HarmMainWindowCallbacks():
         task_id       = self.tasks_view.model._data[s_index.row()][task_id_index]
 
         # Update job detail only if it's not already updated:
-        # if 'JB_job_number' in self.job_detail_view.model._dict:
         if self.job_detail_view.model._dict['JB_job_number'] != job_id:
            self.job_detail_view.update_model(job_id)
 
-        # Get image info:            
+        # Get image info, it might not be there though:            
         picture = self.job_detail_view.model.get_value("OUTPUT_PICTURE")
         if picture:
-            # We want a single specific frame, not a whole sequence:
+            # We want a single specific frame, not a whole sequence,
+            # this is what padding(filename, None, frame) is doing:
             picture = utilities.padding(picture[0], None, task_id)
-            # FIXME: make image viewer configurable:
-            os.system("/opt/package/houdini_12.0.687/bin/mplay %s" % picture[0])
+            # Note: convert_* is inside config as it allows us to customize
+            # platform specific prefixes in coherent way, otherwise it should
+            # be probably placed in utilities module: 
+            viewer  = self.config.convert_platform_path(self.config['image_viewer'])
+            os.system(viewer + " " + picture[0])
         else:
             print "No output-image information found."
 
@@ -151,22 +154,24 @@ class HarmMainWindowCallbacks():
         # Stdout Tab:
         if PN_path and job_name and tab_index == 1:
             PN_path = "%s%s.o%s.%s" % (PN_path, job_name, job_id, task_id)
+            PN_path = self.config.convert_platform_path(PN_path)
             try:
                 stdout_file  = open(PN_path, 'r')
                 self.stdout_view.setPlainText(stdout_file.read())
                 stdout_file.close()
             except: 
-                self.stdout_view.setPlainText("Can't find %s" % PN_path)
+                self.stdout_view.setPlainText("Couldn't open %s" % PN_path)
 
         # Stderr Tab:
         elif PN_path and job_name and tab_index == 2:
             PN_path = "%s%s.e%s.%s" % (PN_path, job_name, job_id, task_id)
+            PN_path = self.config.convert_platform_path(PN_path)
             try: 
                 stderr_file  = open(PN_path, 'r')
                 self.stderr_view.setPlainText(stderr_file.read())
                 stderr_file.close()
             except: 
-                self.stderr_view.setPlainText("Can't find %s" % PN_path)
+                self.stderr_view.setPlainText("Couldn't open %s" % PN_path)
 
 
     def set_jobs_view_filter(self, wildcard):
