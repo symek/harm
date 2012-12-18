@@ -21,21 +21,56 @@ class Config(dict):
         self['HARM_ICON']   = os.getenv("HARM_ICON",   os.path.join(self['HARM_HOME'], "icons"))
         self['HARM_SCRIPT'] = os.getenv("HARM_SCRIPT", os.path.join(self['HARM_HOME'], "scripts"))
         self['HARM_MENU']   = os.getenv("HARM_MENU",   os.path.join(self['HARM_HOME'], "menu"))
-        self['HARM_PREFIXES']= [('/PROD/dev', 'Z:/PROD/dev'), 
-                               ('/STUDIO', 'Z:/STUDIO')]
+        self['HARM_PREFIXES']= [('/PROD/dev', 'Z:\\PROD\\dev'), 
+                               ('/STUDIO', 'Z:\\STUDIO'),
+                               "/opt/package/", "C:\\Program Files\\"]
 
-        # Auto-update interval:
-        self['HarmMainWindow'] = {'timer':{}}
-        self['HarmMainWindow']['timer']['setInterval'] = 1000*120
+        # Use built-in setup:
+        self.setup()
 
         # If home was found, find config file:
         if self['HARM_HOME']:
-            self['HARM_CONFIG'] = os.path.join(self['HARM_HOME'], "../config.xml")
+            self['HARM_CONFIG'] = os.path.join(self['HARM_HOME'], "harm.config")
             # TODO:
             # Parse and apply confing file HERE:
         # or make it clear there is no config file:
         if not os.path.isfile(self['HARM_CONFIG']):
             self['HARM_CONFIG'] = None
+
+    def setup(self):
+        '''Setup default values of a class. This should be enough for Harm to operate,
+        without harm.config file found.'''
+        # Auto-update interval:
+        self['HarmMainWindow'] = {'timer':{}}
+        self['HarmMainWindow']['timer']['setInterval'] = 1000*120
+        self['HarmMainWindow']['timer']['timerColor'] = (1,2,3)
+
+        # Image viewer:
+        self['image_viewer'] = '/opt/package/houdini_12.0.687/bin/mplay'
+
+    def get_value(self, keys, _self=None, denom="/"):
+        '''Providing a key in form of /key1/key2/key3 search Config 
+        reqursively for a given final key. Return None on Fail.'''
+        # Make sure data is correct:
+        if isinstance(keys, str): 
+            keys = keys.split(denom)
+        else: 
+            assert type(keys) in (list, tuple), \
+            "Config.get_value(key) expects string, list or tuple."
+        # Early exit:
+        if not _self: _self = self
+        if not keys[0] in _self.keys(): 
+            return
+        # return final value:
+        if len(keys) == 1:
+            return _self[keys[0]]  
+        # Search deeper:
+        if isinstance(_self[keys[0]], dict):
+            for k, v in _self[keys[0]].iteritems():
+                return self.get_value(keys[1:], _self[keys[0]])
+        return None
+
+
 
     def load(self, filename):
         '''Loads and apply an entire config file.'''
