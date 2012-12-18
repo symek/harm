@@ -22,11 +22,11 @@ class ViewConfig():
     def configure(self):
         # Prototype of config class.
         conf = config.Config()
-        conf.load("/STUDIO/scripts/harm-sge/src/harm.conf")
-        if self.__class__.__name__ in conf.keys():
-            c = conf[self.__class__.__name__]
-            for item in c:
-                self.__getattribute__(item[0])(item[1][0])
+        # conf.load("/STUDIO/scripts/harm-sge/src/harm.conf")
+        # if self.__class__.__name__ in conf.keys():
+        #     c = conf[self.__class__.__name__]
+        #     for item in c:
+        #         self.__getattribute__(item[0])(item[1][0])
             
     def save_configure(self):
         pass
@@ -37,11 +37,14 @@ class ViewConfig():
 ###########################################################
 
 class ViewBase():
-    '''This probably shouldn't be even needed.
-    TODO Fix base classes initialisation. '''
+    '''Base Class for custom View objects. Perhpas should be replaced by
+    more general concept (common for all harm objects). Main purpose of this class
+    is to read/write configurations.'''
     order_columns = []
     hidden_columns = []
-    def base(self):
+    def configure(self):
+        '''Sets minimal configuration settings, then
+        reads rest of the settings form config object.'''
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
         self.setSortingEnabled(True)
@@ -49,28 +52,18 @@ class ViewBase():
         self.setSelectionBehavior(1)
         self.setAlternatingRowColors(1)
         self.setDragDropMode(4)
-        self.order_columns = []
-        self.hidden_columns = []
-        #self.horizontalHeader().setMovable(True)
+        self.horizontalHeader().setMovable(True)
         
     def update_model(self, *arg):
         '''This method is called by callback whenever model should be updated with
         data from database or qstat. It also hides and orders columns in models after that.'''
-        # FIXME: problems with resting models. 
-        # begin/endRestModel() were introduced in Qt4.6, which is too late for us
-        # Refreshing models causes empty rows to appear (and disapear after a couple of refreshes)
-
-        #self.model.beginResetModel()
         self.proxy_model.reset()
         self.model.reset()
         self.model.update(*arg)
-        #self.model.endResetModel()
 
-        # Clean up stuff after refresh:
-        if self.order_columns:
-            self.set_column_order(self.order_columns)
-        if self.hidden_columns:
-            self.set_column_hidden(self.hidden_columns)
+        # Clean up stuff after refresh: 
+        self.set_column_order(self.order_columns)
+        self.set_column_hidden(self.hidden_columns)
 
     def set_column_order(self, ordered_items):
         '''Reorder columns in provided order.'''
@@ -97,29 +90,23 @@ class ViewBase():
 #           rely on absract types.                            # 
 ###############################################################
 
-class JobsView(QTableView, ViewBase, ViewConfig):
+class JobsView(QTableView, ViewBase):
     '''Keeps joined list of currently happening jobs, plus a history
     retrieved from a database. Basic actions via context menus and callbacks
     to tasks views and detail views.'''
     def __init__(self, context):
-        '''Adds self to a global context class, 
-           Binds context menues, 
-           Inits base() and config(), 
-           Creates models (main and proxy)
-           Sets deletegs
-           Resizes columns/rows.'''
+        '''We're: adding self to a global context class, binding context menues, 
+           creating models (main and proxy), seting deletegs,  initializing config(),
+           resizing columns/rows.'''
         super(self.__class__, self).__init__()
+        # those are mandatory.
         self.context = context
         self.context.views['jobs_view'] = self
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.openContextMenu)
-        self.base()
         self.configure()
-
         # Models:
         self.model = models.JobsModel(self)
         self.model.update(SGE_JOBS_LIST_GROUPED)
-        # TODO: WIP couchdb  intruduction:
+        # FIXME: history should be appended in update()...
         self.model.append_jobs_history()
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
@@ -132,12 +119,12 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         self.delagate = delegates.JobsDelegate(self.context)
         self.setItemDelegate(self.delagate)
 
-        # Config:
-        self.setColumnHidden(5, True)
-        self.setColumnHidden(6, True)
-        #self.horizontalHeader().setMovable(True)
-        self.horizontalHeader().moveSection(7,0)
-        
+        # Hiding/ordering:
+        self.order_columns = 'JB_job_number JB_owner state tasks JB_name JAT_prio JB_submission_time queue_name'.split()
+        self.set_column_order(self.order_columns)
+        self.hidden_columns = ("slots", "queue_name")
+        self.set_column_hidden(self.hidden_columns)
+
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -146,16 +133,14 @@ class JobsView(QTableView, ViewBase, ViewConfig):
         '''Context menu entry.'''
         self.context_menu = JobsContextMenu(self.context, self.mapToGlobal(position))
 
-    # TODO: THis is temporary to allow append_history to jobs view after refresh:
+    # TODO: This is temporary to allow append_history to jobs view after refresh:
     def update_model(self, *arg):
         '''Overwrites update_model() to allow append history jobs to a model.'''
         self.model.reset()
         self.model.update(*arg)
-        self.model.append_jobs_history()
-        if self.order_columns:
-            self.set_column_order(self.order_columns)
-        if self.hidden_columns:
-            self.set_column_hidden(self.hidden_columns)
+        self.model.append_jobs_history()  
+        self.set_column_order(self.order_columns)
+        self.set_column_hidden(self.hidden_columns)
 
 
 
@@ -163,15 +148,12 @@ class JobsView(QTableView, ViewBase, ViewConfig):
 #     Task Table View                                         #
 ###############################################################
 
-class TasksView(QTableView, ViewBase, ViewConfig):
+class TasksView(QTableView, ViewBase):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.context = context
         self.context.views['tasks_view'] = self
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.openContextMenu)
         self.setEditTriggers(self.NoEditTriggers)
-        self.base()
         self.configure()
 
         # Models:
@@ -184,43 +166,26 @@ class TasksView(QTableView, ViewBase, ViewConfig):
         self.context.models['tasks_proxy_model'] = self.proxy_model
         self.setModel(self.proxy_model)
 
+        # Order/hidden:
+        self.order_columns = 'JB_job_number tasks JB_owner JAT_start_time queue_name JB_name'.split()
+        self.set_column_order(self.order_columns)
+        self.hidden_columns = ("slots", )
+        self.set_column_hidden(self.hidden_columns)
+        print self.model._head
+
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-
-        # Order columns:
-        self.order_columns = 'JB_job_number tasks JB_owner JAT_start_time queue_name JB_name'.split()
-        self.set_column_order(self.order_columns)
-
-        self.hidden_columns = ("slots", "maxvmem", "vmem")
-        self.set_column_hidden(self.hidden_columns)
 
     def openContextMenu(self, position):
         self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
-    def update_model(self, *arg):
-        '''Overwrites update_model() to allow append history jobs to a model.'''
-        self.model.reset()
-        self.model.update(*arg)
-        if self.order_columns:
-            self.set_column_order(self.order_columns)
-        if self.hidden_columns:
-            self.set_column_hidden(self.hidden_columns)
-        # Clean:
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
-    # FIXME: These two update_* should be the same function
-    # but currently api doesn't allow it. I have to rethink
-    # it. (like DataHandler object for models that returns dict-like object
-    # without model knowing of its source)
+    #FIXME: this probably shouldn't exists. 
     def update_model_db(self, job_id):
         self.model.update_db(job_id)
         self.model.reset()
-        if self.order_columns:
-            self.set_column_order(self.order_columns)
-        if self.hidden_columns:
-            self.set_column_hidden(self.hidden_columns)
+        self.set_column_order(self.order_columns)
+        self.set_column_hidden(self.hidden_columns)
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -233,7 +198,7 @@ class TasksView(QTableView, ViewBase, ViewConfig):
 #  displayed along with current Job, but SGE doesn't work this way #
 ####################################################################
 
-class HistoryView(QTableView, ViewBase,ViewConfig):
+class HistoryView(QTableView, ViewBase):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.context = context
@@ -273,7 +238,7 @@ class HistoryView(QTableView, ViewBase,ViewConfig):
 #  rotating, which allows it to build tree by arbitrary key.             #
 ##########################################################################
 
-class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
+class JobsTreeHistoryView(QTreeWidget, ViewBase):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
@@ -348,14 +313,13 @@ class JobsTreeHistoryView(QTreeWidget, ViewBase, ViewConfig):
 #     Machine Table View                                      #
 ###############################################################
 
-class MachineView(QTableView, ViewBase, ViewConfig):
+class MachineView(QTableView, ViewBase):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.context = context
         self.context.views['machine_view'] = self
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
-        self.base()
         self.configure()
 
         # Models:
@@ -385,14 +349,13 @@ class MachineView(QTableView, ViewBase, ViewConfig):
 #     Job Detail Table View                                      #
 ###############################################################
 
-class JobDetailView(QTableView, ViewBase, ViewConfig):
+class JobDetailView(QTableView, ViewBase):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.context = context
         self.context.views['job_detail_view'] = self
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
-        self.base()
         self.configure()
 
         # Models:

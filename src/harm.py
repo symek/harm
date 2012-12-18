@@ -10,7 +10,7 @@ import config
 
 
 class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
-    def __init__(self, conf, app, splash,  *args):
+    def __init__(self, _config, app, splash,  *args):
         QWidget.__init__(self, *args)
         # Basics:
         self.setGeometry(0,0, 1200,750)
@@ -20,7 +20,7 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         #self.setMinimumSize(500,650)
         self.app    = app
         self.splash = splash
-        self.conf   = conf
+        self.config = _config
 
         self.setupGUI(init=True)
         self.setupSLOTS()
@@ -28,7 +28,8 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.timer = QTimer()
         # FIXME: Auto-update should be disabled when ever 
         # user has selected job in cdb state (from database)
-        interval = self.conf['HarmMainWindow']['timer']['setInterval']
+        # FIXME: This is experimental notation:
+        interval = self.config.get_value("HarmMainWindow/timer/setInterval")
         self.timer.setInterval(interval)
         self.timer.timeout.connect(self.refreshAll)
         self.timer.start()
@@ -41,16 +42,16 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
 def main():
 
     # App setup:
-    app  = QApplication(sys.argv)
-    conf = config.Config()
+    app     = QApplication(sys.argv)
+    _config = config.Config()
     
     # Splash setup:
-    splash_pix = QPixmap(conf.get_harm_path('head.jpg', "HARM_ICON"))
+    splash_pix = QPixmap(_config.get_harm_path('head.jpg', "HARM_ICON"))
     splash     = QSplashScreen(splash_pix, Qt.WindowStaysOnTopHint)
     splash.show()
     splash.showMessage("Reading SGE details...")
     app.processEvents()
-    w = HarmMainWindow(conf, app, splash)
+    w = HarmMainWindow(_config, app, splash)
     splash.finish(w)
     # Show main window:
     w.show()

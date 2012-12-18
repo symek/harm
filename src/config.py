@@ -43,7 +43,6 @@ class Config(dict):
         # Auto-update interval:
         self['HarmMainWindow'] = {'timer':{}}
         self['HarmMainWindow']['timer']['setInterval'] = 1000*120
-        self['HarmMainWindow']['timer']['timerColor'] = (1,2,3)
 
         # Image viewer:
         self['image_viewer'] = '/opt/package/houdini_12.0.687/bin/mplay'
@@ -85,20 +84,19 @@ class Config(dict):
         file.close()
 
     def convert_platform_path(self, path):
-        '''Converts linux paths into Windows one and vice versa.'''
+        '''Converts  paths between different platforms (OS).'''
         # FIXME: How aboud Darwin?
+        linux = 0; windows = 1; 
         if sys.platform in ('win32', 'win64'):
             for prefix in self['HARM_PREFIXES']:
-                if path.startswith(prefix[0]):
-                    path = path.replace(prefix[0], prefix[1])
+                if path.startswith(prefix[linux]):
+                    path = path.replace(prefix[linux], prefix[windows])
                     path = os.path.normpath(path)
-                    print path
-                    break
-                    
+                    break      
         elif sys.platform in ('linux2'):
             for prefix in self['HARM_PREFIXES']:
-                if path.startswith(prefix[1]):
-                    path = path.replace(prefix[1], prefix[0])
+                if path.startswith(prefix[windows]):
+                    path = path.replace(prefix[windows], prefix[linux])
                     path = os.path.normpath(path)
                     break
         return path
