@@ -171,7 +171,6 @@ class TasksView(QTableView, ViewBase):
         self.set_column_order(self.order_columns)
         self.hidden_columns = ("slots", )
         self.set_column_hidden(self.hidden_columns)
-        print self.model._head
 
         # Clean:
         self.resizeColumnsToContents()

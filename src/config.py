@@ -47,6 +47,40 @@ class Config(dict):
         # Image viewer:
         self['image_viewer'] = '/opt/package/houdini_12.0.687/bin/mplay'
 
+        # self.selectedC.setHsvF(0.108, 0.95, 1)
+        # self.waitingC.setHsvF(0.30, 0.3, 1)
+        # self.progresC.setHsvF(0.0, 0.2, 1)
+        # self.finisheC.setHsvF(0.69, 0.2, 1)
+        # self.hqwC = QColor()
+        # self.hqwC.setHsvF(.15, .2, 1)
+        # self.qwC = QColor()
+        # self.qwC.setHsvF(.30, .2, 1)
+        # self.qwWaitingC = QColor()
+        # self.qwWaitingC.setHsvF(.6, .2, 1)
+
+    def set_value(self, keys, value, _self=None, denom='/'):
+        # Make sure data is correct:
+        # FIXME: broken.
+        if isinstance(keys, str): 
+            keys = keys.split(denom)
+        else: 
+            assert type(keys) in (list, tuple), \
+            "Config.set_value(key) expects string, list or tuple."
+        if not _self: _self = self
+        if len(keys) == 1:
+            _self[keys[0]] = value
+            print "I set %s in %s" % (value, str(_self[keys[0]]))
+            return True
+        if keys[0] in _self.keys():
+            if isinstance(_self(keys[0]), dict):
+                return self.set_value(keys[1:], value, _self(keys[0]))
+        else:
+            _self[keys[0]] = {}
+            return self.set_value(keys[1:], value, _self[keys[0]])
+        return False
+       
+
+
     def get_value(self, keys, _self=None, denom="/"):
         '''Providing a key in form of /key1/key2/key3 search Config 
         reqursively for a given final key. Return None on Fail.'''
