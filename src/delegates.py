@@ -92,9 +92,9 @@ class JobsDelegate(QItemDelegate):
         # Set job state colors:
         if state in('hqw', 'hRq'):
             painter.setBrush(QBrush(self.hqwC))
-        if state == 'cdb':
+        elif state == 'cdb':
             painter.setBrush(QBrush(QColor(Qt.white)))
-        if state == 'qw':
+        elif state in ('qw', 'Rq'):
             if jobid.strip() in running_ids:
                 painter.setBrush(QBrush(self.qwC))
             else:
