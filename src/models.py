@@ -343,11 +343,10 @@ class DBTableModel():
         t = time()
         # FIXME: job_count should come from Config()
         # WARNING: Newer couchdb changes 'count' for 'limit' afaik.
-        query = self._db.query(map_, count=job_count).rows
+        query = self._db.query(map_, count=job_count, descending=True).rows
         if DEBUG:
             print "Past jobs query:  " + str(time() -t)
         query = [x.value for x in query]
-        query.reverse()
         # Convert a time string and remove jobs which were
         # returned by qstat:
         for item in range(len(query)):
