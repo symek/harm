@@ -318,7 +318,7 @@ class DBTableModel():
     This class is meant to be inherited by other models like JobsModel.'''
     _server = None
     _db     = None
-    def get_jobs_db(self):
+    def get_jobs_db(self, job_count=50):
         '''Append history from couchdb database'''
         # A list of a jobs currently rendered or queued -
         # (thus whose kept track by SGE):
@@ -341,7 +341,9 @@ class DBTableModel():
                      "1", que, doc.JB_job_number, doc.JB_submission_time]);}'''
         from time import time
         t = time()
-        query = self._db.query(map_).rows
+        # FIXME: job_count should come from Config()
+        # WARNING: Newer couchdb changes 'count' for 'limit' afaik.
+        query = self._db.query(map_, count=job_count).rows
         if DEBUG:
             print "Past jobs query:  " + str(time() -t)
         query = [x.value for x in query]
