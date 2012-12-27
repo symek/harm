@@ -79,62 +79,6 @@ class XmlDictConfig(dict):
 ## end of http://code.activestate.com/recipes/410469/ }}}
 
 
-# #####################################################
-#  Input text is an output from qccet SGE utility     #
-########################################################
-
-def qccet_to_dict(text, tasks=False, order_list=None):
-    def getValue(value):
-        if value.isdigit(): 
-            value = int(value)
-        else:
-            try: 
-                value = float(value)
-            except: 
-                pass
-        return value
-    def reorder_dict(d, l):
-        out = OrderedDict()
-        left = []
-        for key in l:
-            if key in d.keys():
-                out[key] = d[key]
-        for key in d:
-            if key not in out:
-                out[key] = d[key]
-        return out
-
-    f = text.split(62*"=")
-    out = OrderedDict()
-    for job in f:
-        j = OrderedDict()
-        job = job.split("\n")
-        for tag in job:
-            tag = tag.strip().split()
-            if len(tag) > 1:
-                j[tag[0]] = getValue(" ".join(tag[1:]))
-        if order_list: 
-            j = reorder_dict(j, order_list)
-        if j.keys():
-            if not tasks:
-                out[str(j['jobnumber'])] = j
-            else:
-                out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
-    return out
-
-
-def rotate_nested_dict(d, key):
-    '''Given a dictionary of dictionarties, it builds a new one
-       with keys taken from children's values.'''
-    output = OrderedDict()#{}
-    for item in d:
-        if key in d[item]:
-            if d[item][key] not in output.keys():
-                output[d[item][key]] = [d[item]]
-            else:
-                output[d[item][key]].append(d[item])
-    return output
-
 
 #################################################################
 #               Sge Abstract (base) Model                       #   
@@ -318,7 +262,7 @@ class DBTableModel():
     This class is meant to be inherited by other models like JobsModel.'''
     _server = None
     _db     = None
-    def get_jobs_db(self, job_count=50):
+    def get_jobs_db(self, job_count=150):
         '''Append history from couchdb database'''
         # A list of a jobs currently rendered or queued -
         # (thus whose kept track by SGE):

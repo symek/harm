@@ -1,18 +1,5 @@
 import os
 
-def findIcons(path=None):
-    icons = {}
-    if not path:
-        path = "/STUDIO/scripts/harm/icons"
-    files = os.listdir(path)
-    for file in files:
-        if os.path.isfile(os.path.join(path, file)):
-            p, f  = os.path.split(file)
-            f, ext = os.path.splitext(f)
-            icons[f] = os.path.join(path, file)
-    return icons
-
-
 def expand_pattern(pattern):
     '''Expands patterns like "1,2,3-10:1,11,12" into a list of frames (of strings)'''
     frames = []
@@ -43,12 +30,14 @@ def tag2idx(model, attrib=False, attrib_num=0):
 
 
 def clamp(value, _min, _max):
+    """Clamps value between min and max values."""
     if value > _max: return _max
     if value < _min: return _min
     return value
         
         
 def fit(x, a, b, c, d):
+    """Fits x between 'a' and 'b' based on 'c' and 'd' distance."""
     return c+((x-a)/(b-a))*(d-c)
 
 
@@ -173,3 +162,62 @@ def padding(file, format=None, _frame=None):
     if _frame:
         return "".join(l[:-2]) + str(_frame).zfill(length) + ext, frame, length, ext
     return "".join(l[:-2]), frame, length, ext
+
+# #####################################################
+#  Input text is an output from qccet SGE utility     #
+########################################################
+
+def qaccet_to_dict(text, tasks=False, order_list=None):
+    """text is an output from qaccet -j command. When tasks=True, 
+    it splits info into per task dictionaries. Returns an OrderedDict class."""
+    def getValue(value):
+        if value.isdigit(): 
+            value = int(value)
+        else:
+            try: 
+                value = float(value)
+            except: 
+                pass
+        return value
+    def reorder_dict(d, l):
+        out = OrderedDict()
+        left = []
+        for key in l:
+            if key in d.keys():
+                out[key] = d[key]
+        for key in d:
+            if key not in out:
+                out[key] = d[key]
+        return out
+
+    f = text.split(62*"=")
+    out = OrderedDict()
+    for job in f:
+        j = OrderedDict()
+        job = job.split("\n")
+        for tag in job:
+            tag = tag.strip().split()
+            if len(tag) > 1:
+                j[tag[0]] = getValue(" ".join(tag[1:]))
+        if order_list: 
+            j = reorder_dict(j, order_list)
+        if j.keys():
+            if not tasks:
+                out[str(j['jobnumber'])] = j
+            else:
+                out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
+    return out
+
+
+def rotate_nested_dict(d, key):
+    """Given a dictionary of dictionarties, it builds a new one
+       with keys taken from children's values."""
+    output = OrderedDict()#{}
+    for item in d:
+        if key in d[item]:
+            if d[item][key] not in output.keys():
+                output[d[item][key]] = [d[item]]
+            else:
+                output[d[item][key]].append(d[item])
+    return output
+
