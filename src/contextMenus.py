@@ -112,8 +112,9 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         print result
 
     def callback_copy_to_nuke(self):
-        '''Creates a Nuke's paste string to create ReadNodes from 
-        selected render jobs.'''
+        """Creates a Nuke's paste string to create ReadNodes from 
+        selected render jobs.
+        """
         indices = self.view.selectedIndexes()
         indices = [self.view.proxy_model.mapToSource(index) for index in indices]
         job_ids = list(set([index.row() for index in indices]))
@@ -134,6 +135,93 @@ class JobsContextMenu(QMenu, ContextMenuBase):
                    nuke_paste_in += constants.NUKE_READ_NODE_STRING % (p0, rn_min, rn_max)
                    nuke_paste_in += "\n"
         clipboard.setText(nuke_paste_in)
+
+    def callback_update_from_database(self):
+        """Update per task entires in database job entry with qacct -j job_id query.
+        """
+        from couchdb import Server
+        from ordereddict import OrderedDict
+        # FIXME  these should come from Config():
+        db = 'sge_db' 
+        server = Server(os.getenv("CDB_SERVER"))
+        # Connect to database
+        if db in server: db = server[db]
+        else: db = server.create(db)
+        # Deal with models' indices:
+        indices = self.view.selectedIndexes()
+        indices = [self.view.proxy_model.mapToSource(index) for index in indices]
+        job_ids = list(set([index.row() for index in indices]))
+        job_id_index = self.model.get_key_index('JB_job_number')
+        # Work per selected job:
+        for _id in job_ids:
+            # Job id and its entry from qacct:
+            job_id= self.model._data[index.row()][job_id_index]
+            model = utilities.read_qacct(job_id, True)
+            # Database doc and relevant sub-entry:
+            job   = db[job_id]
+            tasks = job["JB_ja_tasks"]['ulong_sublist']
+            #FIXME: shouldn't it be opposite (per task in qacct create db task?)
+            for task in tasks:
+                task_id= task['JAT_task_number']
+                if not "JAT_scaled_usage_list" in task:
+                    task['JAT_scaled_usage_list'] = dict()
+                    task['JAT_scaled_usage_list']['scaled'] = []
+                # A list of tasks measurements alligned with 
+                # an original qstat format:
+                scaled = task["JAT_scaled_usage_list"]['scaled']
+                task_str = ".".join([job_id, task_id])
+                new_scaled = []
+                # Take all but first 10 fields:
+                for data in model[task_str].keys()[10:]:
+                    _d = OrderedDict()
+                    _d['UA_name'] = data
+                    _d['UA_value']= model[task_str][data]
+                    new_scaled.append(_d)
+                # Copy fields:
+                task["JAT_scaled_usage_list"]['scaled'] = new_scaled
+            job["JB_ja_tasks"]['ulong_sublist'] = tasks
+            # Save doc in database:
+            db[job_id] = job
+  
+
+
+    def callback_resubmit(self):
+        """Resubmit job to SGE by recreating job details from finished job settings.
+        """
+        indices = self.view.selectedIndexes()
+        indices = [self.view.proxy_model.mapToSource(index) for index in indices]
+        job_ids = list(set([index.row() for index in indices]))
+        job_id_index = self.model.get_key_index('JB_job_number')
+        clipboard    = self.app.clipboard()
+        read  = [];
+        model = self.context.views['job_detail_view'].model
+        for index in indices:
+            job_id  = self.model._data[index.row()][job_id_index]
+            if job_id not in read: 
+                model.update(constants.SGE_JOB_DETAILS % job_id)
+                # Job submission details:
+                script    = model.get_value('JB_script_file')
+                queue     = model.get_value('QR_name')
+                PN_path   = queue  = model.get_value('PN_path')
+                job_name  = model.get_value('JB_job_name')
+                check     = model.get_value('JB_checkpoint_name')
+                CE_name     = model.get_value('CE_name')
+                CE_level    = model.get_value('CE_level')
+                consume     = model.get_value('CE_consumable')
+                
+
+
+                print script
+                print queue
+                print PN_path
+                print job_name
+                print check
+                print CE_level
+                print CE_name
+                print consume
+
+                read.append(job_id)
+
 
 
 #####################################################################
