@@ -162,17 +162,20 @@ class JobsContextMenu(QMenu, ContextMenuBase):
             tasks = job["JB_ja_tasks"]['ulong_sublist']
             #FIXME: shouldn't it be opposite (per task in qacct create db task?)
             for task in tasks:
-                task_id= task['JAT_task_number']
+                task_id  = task['JAT_task_number']
+                task_str = ".".join([job_id, task_id])
+                # Task might not be in qacct yet:
+                if not task_str in model:
+                    continue
                 if not "JAT_scaled_usage_list" in task:
                     task['JAT_scaled_usage_list'] = dict()
                     task['JAT_scaled_usage_list']['scaled'] = []
                 # A list of tasks measurements alligned with 
                 # an original qstat format:
                 scaled = task["JAT_scaled_usage_list"]['scaled']
-                task_str = ".".join([job_id, task_id])
                 new_scaled = []
                 # Take all but first 10 fields:
-                for data in model[task_str].keys()[10:]:
+                for data in model[task_str].keys():
                     _d = OrderedDict()
                     _d['UA_name'] = data
                     _d['UA_value']= model[task_str][data]
