@@ -6,6 +6,7 @@ import os
 from ordereddict import OrderedDict
 import couchdb as cdb
 from constants import *
+from time import time
 
 ##########################################################
 # Xml****Config are work-horses in custom Qt models      #
@@ -302,8 +303,6 @@ class DBTableModel():
             else:
                 query.remove(item)
         # Merge cdb with qstat:
-        if DEBUG:
-            print "DBTableModel.get_jobs_db:  " + str(time() -t) + " (before return)"
         return query
 
     def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
@@ -369,6 +368,8 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def append_jobs_history(self):
         '''Appends history jobs from a database (using DBTableModel.get_jobs_db()) '''
         query = self.get_jobs_db()
+        from time import time
+        t = time()
         self._data += query
         # FIXME!
         # This has to be (?) hard coded here, as we don't retrieve fields' names
@@ -378,6 +379,8 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         if len(self._head) == 0:
             self._head = OrderedDict({1:"JB_owner", 2:"state", 3:"tasks", 4:"JB_priority", 5:"JB_job_name", 6:"slots", \
                           7:"queue_name", 8:"JB_job_number", 9:"JB_submission_time"})
+        if DEBUG:
+            print "JobsModel.append_jobs_history: " + str(time() - t)
 
 
     def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
@@ -385,6 +388,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         from operator import itemgetter
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
+        t = time()
         self._data = []
         self._head = OrderedDict()
         self._tree = ElementTree.parse(os.popen(sge_command))
@@ -393,7 +397,10 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             self._dict = OrderedDict()
         else:
             self._dict = OrderedDict(self._dict)
+        if DEBUG:
+            print str(self.__class__.__name__) + ": " + str(time() - t) + "(after xml parse)"
 
+        t = time()
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
         if 'job_list' in self._dict:
             d = self._dict['job_list']
@@ -409,6 +416,8 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
+        if DEBUG:
+            print str(self.__class__.__name__) + ": " + str(time()-t) + "after seld.data parse"
 
 
 #################################################################
@@ -487,6 +496,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def update(self, sge_command, token='queue_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
+        t = time()
         self._tree = None
         self._dict = OrderedDict()
         self._data = []
@@ -497,7 +507,10 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         except:
             #print self._dict
             pass
+        if DEBUG:
+            print "TaskModel.update: " + str(time() - t) + "(after xml parse)"
 
+        t = time()
         # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
         if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
             d = self._dict['job_list']
@@ -513,6 +526,8 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
+        if DEBUG:
+            print "TaskModel.update:" + str(time() - t) + "(after self.data parse)"
 
     def hook_cputime(self, index, value):
         # Shorten machine name in Tasks view:

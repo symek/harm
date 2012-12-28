@@ -181,13 +181,17 @@ class TasksView(QTableView, ViewBase):
 
     #FIXME: this probably shouldn't exists. 
     def update_model_db(self, job_id):
-        self.model.update_db(job_id)
         self.model.reset()
+        self.model.update_db(job_id)
+        from time import time
+        t = time()
         self.set_column_order(self.order_columns)
         self.set_column_hidden(self.hidden_columns)
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        if DEBUG:
+            print "TasksView.update_model_db: " + str(time() - t)
 
 
 
