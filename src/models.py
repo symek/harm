@@ -106,7 +106,7 @@ class SgeTableModelBase():
 
     def columnCount(self, parent):
         if len(self._data):
-            return len(self._data[-1])
+            return len(self._data[0])
         return 0
 
     def build_header_dict(self, item):
@@ -289,7 +289,7 @@ class DBTableModel():
         # WARNING: Newer couchdb changes 'count' for 'limit' afaik.
         query = self._db.query(map_, count=job_count, descending=True).rows
         if DEBUG:
-            print "Past jobs query:  " + str(time() -t)
+            print "DBTableModel.get_jobs_db:  " + str(time() -t)
         query = [x.value for x in query]
         # Convert a time string and remove jobs which were
         # returned by qstat:
@@ -302,6 +302,8 @@ class DBTableModel():
             else:
                 query.remove(item)
         # Merge cdb with qstat:
+        if DEBUG:
+            print "DBTableModel.get_jobs_db:  " + str(time() -t) + " (before return)"
         return query
 
     def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
@@ -317,7 +319,7 @@ class DBTableModel():
         t   = time()
         job = self._db.get(job_id, OrderedDict())
         if DEBUG:
-            print "Tasks query:  " + str(time() - t)
+            print "DBTableModel.get_job_details_db: %s " % str(time() - t)
         return job
 
 
@@ -429,6 +431,8 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         tasks      = self.get_value("JB_ja_tasks", self._dict)
         self._data = []
         self._head = OrderedDict()
+        from time import time
+        t = time()
 
         # Proceed if there are any tasks:
         if len(tasks):
@@ -465,7 +469,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                             self._head[var_idx] = var_name
                         else:
                             var_idx  = self._head.values().index(var_name)
-                            if DEBUG:
+                            if DEBUG == 2:
                                 print var_name,
                                 print self._head[var_idx]
                         # This should not ever happen:
@@ -474,6 +478,9 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                         # Index of that variable in header 
                         _data[var_idx] = scaled[item]['UA_value']
                 self._data.append(_data)
+
+        if DEBUG: 
+            print "TaskModel.update_db: %s" % str(time() - t)
 
 
 

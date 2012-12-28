@@ -1,4 +1,18 @@
 import os
+from ordereddict import OrderedDict
+
+# FIXME: TO BE REMOVED!
+def findIcons(path=None):
+    icons = {}
+    if not path:
+        path = "/STUDIO/scripts/harm/icons"
+    files = os.listdir(path)
+    for file in files:
+        if os.path.isfile(os.path.join(path, file)):
+            p, f  = os.path.split(file)
+            f, ext = os.path.splitext(f)
+            icons[f] = os.path.join(path, file)
+    return icons
 
 def expand_pattern(pattern):
     '''Expands patterns like "1,2,3-10:1,11,12" into a list of frames (of strings)'''
@@ -167,7 +181,7 @@ def padding(file, format=None, _frame=None):
 #  Input text is an output from qccet SGE utility     #
 ########################################################
 
-def qaccet_to_dict(text, tasks=False, order_list=None):
+def qacct_to_dict(text, tasks=False, order_list=None):
     """text is an output from qaccet -j command. When tasks=True, 
     it splits info into per task dictionaries. Returns an OrderedDict class."""
     def getValue(value):
@@ -207,6 +221,16 @@ def qaccet_to_dict(text, tasks=False, order_list=None):
             else:
                 out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
     return out
+
+
+def read_qacct(job_id, tasks=True):
+    """Calls SGE qacct command and returns its output in a format of dictonary,
+    in case job_id was correct (at least a single task in the job has been finished.)
+    """
+    t = os.popen("qacct -j %s" % job_id).read()
+    if not t.startswith("error:"):
+        return qacct_to_dict(t, tasks)
+    return None
 
 
 def rotate_nested_dict(d, key):
