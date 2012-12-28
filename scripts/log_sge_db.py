@@ -18,6 +18,7 @@ from couchdb import Server
 from constants import *
 import utilities
 from xml.etree import ElementTree
+from ordereddict import OrderedDict
 
 ## {{{ http://code.activestate.com/recipes/410469/ (r5)
 from xml.etree import ElementTree
@@ -106,12 +107,63 @@ def find(key, value):
 class Model:
     pass
 
+def qacct_to_dict(text, tasks=False, order_list=None):
+    """text is an output from qaccet -j command. When tasks=True, 
+    it splits info into per task dictionaries. Returns an OrderedDict class."""
+    def getValue(value):
+        if value.isdigit(): 
+            value = int(value)
+        else:
+            try: 
+                value = float(value)
+            except: 
+                pass
+        return value
+    def reorder_dict(d, l):
+        out = OrderedDict()
+        left = []
+        for key in l:
+            if key in d.keys():
+                out[key] = d[key]
+        for key in d:
+            if key not in out:
+                out[key] = d[key]
+        return out
+
+    f = text.split(62*"=")
+    out = OrderedDict()
+    for job in f:
+        j = OrderedDict()
+        job = job.split("\n")
+        for tag in job:
+            tag = tag.strip().split()
+            if len(tag) > 1:
+                j[tag[0]] = getValue(" ".join(tag[1:]))
+        if order_list: 
+            j = reorder_dict(j, order_list)
+        if j.keys():
+            if not tasks:
+                out[str(j['jobnumber'])] = j
+            else:
+                out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
+    return out
+
+def read_qacct(job_id, tasks=True):
+    """Calls SGE qacct command and returns its output in a format of dictonary,
+    in case job_id was correct (at least a single task in the job has been finished.)
+    """
+    t = os.popen("qacct -j %s" % job_id).read()
+    if not t.startswith("error:"):
+        return qacct_to_dict(t, tasks)
+    return None
+
+
 # Our variables
 db    = 'sge_db'
 jobid = sys.argv[1]
-taskid= sys.argv[-1]
 host  = socket.gethostname()
 server = Server(os.getenv("CDB_SERVER"))
+account= read_qacct(jobid)
 
 # Connect to database
 if db in server:
@@ -161,22 +213,41 @@ else:
     if isinstance(old_tasks, dict):
         old_tasks = [old_tasks]
 
-    #print old_tasks
-    #print cur_tasks
-    # For every task in old job
+    # For every task found in database,
+    # check if it was alraedy updated with qaccet, do it if not,
+    # then copy it into cur_tasks - unless it's already in.
     for task in old_tasks:
         old_task_id = task['JAT_task_number']
-        if old_task_id not in [t['JAT_task_number'] for t in cur_tasks]:
+        if old_task_id not in [ct['JAT_task_number'] for ct in cur_tasks]:
             cur_tasks.append(task)
-    for task in cur_tasks:
-        if task['JAT_task_number'] == taskid:
-            #print "JAT TASK NUMBER" + task['JAT_task_number']
-            #print "TASK ID" + taskid
-            task['host_name'] = host
-            #print "HOSTNAME: " + task['host_name']
+
+    # Update tasks info with data taken from qacct command:
+    if account:
+        for task in cur_tasks:
+            # Drop if it was already updated:
+            #if "qacct" in task.keys():
+            #    continue
+            task['qacct'] = True
+            task_id = task['JAT_task_number']
+            # The only reason we do this, is bacause it reflects data stucture
+            # as returned by qstat. This is probably wrong path (overcomplicated)
+            if not "JAT_scaled_usage_list" in task:
+                task['JAT_scaled_usage_list'] = dict()
+                task['JAT_scaled_usage_list']['scaled'] = []
+            # task_st is task string in a form of "1234.1",
+            # this is how qacct_to_dict stores per taks info:
+            task_st = ".".join((jobid, task_id))
+            if task_st in account.keys():
+                for data in account[task_st]:
+                    _d = OrderedDict()
+                    _d['UA_name']  = data
+                    _d['UA_value'] = account[task_st][data]
+                    task["JAT_scaled_usage_list"]['scaled'].append(_d)
+
+    # Finally copy all details into job structure:
     for key in model._dict:
         job[key] = model._dict[key]
-    # Copy combined tasks into job:    
+    # Also copy combined tasks into job:    
     job["JB_ja_tasks"]['ulong_sublist'] = cur_tasks
     # Save job in database:
     db[jobid] = job
