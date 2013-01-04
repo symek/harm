@@ -288,7 +288,7 @@ class DBTableModel():
         t = time()
         # FIXME: job_count should come from Config()
         # WARNING: Newer couchdb changes 'count' for 'limit' afaik.
-        query = self._db.query(map_, count=job_count, descending=True).rows
+        query = self._db.query(map_, limit=job_count, descending=True).rows
         if DEBUG:
             print "DBTableModel.get_jobs_db:  " + str(time() -t)
         query = [x.value for x in query]
