@@ -86,7 +86,7 @@ class HarmMainWindowCallbacks():
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
-        s_index = self.tasks_view.proxy_model.mapToSource(index)
+        s_index       = self.tasks_view.proxy_model.mapToSource(index)
         job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
 
@@ -95,9 +95,9 @@ class HarmMainWindowCallbacks():
         update_details_flag = True
         if 'JB_job_number' in self.job_detail_view.model._dict:
             if self.job_detail_view.model._dict['JB_job_number'] == job_id:
-                update_details_flag == False
+                update_details_flag = False
             else:
-                update_details_flag == True
+                update_details_flag = True
         if update_details_flag:
                 self.job_detail_view.update_model(job_id)
                 self.job_detail_basic_view_update(job_id)
