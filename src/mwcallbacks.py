@@ -69,6 +69,7 @@ class HarmMainWindowCallbacks():
 
         # Update job detail view in case its tab is visible:
         if self.right_tab_widget.currentIndex() == 0:
+            #pass
             self.job_detail_view.update_model(job_id)
             self.job_detail_basic_view_update(job_id)
 
@@ -81,8 +82,8 @@ class HarmMainWindowCallbacks():
             # updat_db() calls update_job_details_db() first to read database
             # then parses query to look for per frame info and updats tasksModel._dict
             # with that data.
-            self.set_tasks_view_filter(None)
             self.tasks_view.update_model_db(job_id)
+            self.set_tasks_view_filter(None)
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
