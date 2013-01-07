@@ -169,7 +169,8 @@ class TasksView(QTableView, ViewBase):
         # Order/hidden:
         self.order_columns = 'JB_job_number tasks JB_owner JAT_start_time queue_name JB_name'.split()
         self.set_column_order(self.order_columns)
-        self.hidden_columns = ("slots", )
+        self.hidden_columns = "slots owner group project qname jobname department jobnumber \
+                                account arid priority granted_pe".split()
         self.set_column_hidden(self.hidden_columns)
 
         # Clean:
