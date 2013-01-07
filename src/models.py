@@ -473,9 +473,11 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             print "Start tasks iteration."
         
         # Make self._data:
+        # FIXME: This is to be replaced all together.
+        # It should be pre-baked from database at the first place!
         for task in tasks:
             #Some fields might me missing in some frames (they usually do):
-            _data = [None for x in self._head]
+            _data = [None for x in range(4)]
             # These are mandatory:
             _data[0] = job_id
             _data[1] = task['JAT_task_number']
@@ -485,25 +487,25 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             if "JAT_scaled_usage_list" in task:
                 scaled = task["JAT_scaled_usage_list"]['scaled']
                 for item in range(len(scaled)):
-                    _data.append(None)
                     # Name of the variable:
                     var_name = scaled[item]['UA_name']
-                    # and index of it in header:
+                    # and index of it in header either as newly appended:
                     if not var_name in self._head.values():
                         var_idx = len(self._head.keys())
                         self._head[var_idx] = var_name
                     else:
+                    # ... or retrieved from self._head:
                         var_idx  = self._head.values().index(var_name)
-                        if DEBUG == 2:
-                            print var_name,
-                            print self._head[var_idx]
-                    # This should not ever happen:
+                    # var_name should already be in a headaer:
                     assert var_name in [v for v in self._head.values()], \
                         "Variabe %s should be in header %s already" % (var_name, self._head)
-                    # Index of that variable in header 
-                    _data[var_idx] = scaled[item]['UA_value']
+                    # var_idx should match number of column name:
+                    assert self._head[var_idx] == var_name, \
+                        "Index %s should point to %s header %s" % (var_idx, var_name)
+                    # Append value:
+                    _data.append(str(scaled[item]['UA_value']))
+                # Finally add a row of columns into an array of rows (self._data):
             self._data.append(_data)
-
         if DEBUG: 
             print "TaskModel.update_db: %s" % str(time() - t)
 
@@ -546,7 +548,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             print "TaskModel.update:" + str(time() - t) + "(after self.data parse)"
 
     def hook_cputime(self, index, value):
-        # Shorten machine name in Tasks view:
+        """Translate cpu time in seconds into 00:00:00 string."""
         from datetime import timedelta
         if self._head[index.column()] == 'cpu':
             if value: 
@@ -555,6 +557,9 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         return value
 
     def hook_sge_time(self, index, value):
+        """Translates time related SGE fields in ugly format  "%H:%M:%S %d-%m-%Y"
+        into something hopefully nicer.
+        """
         import time
         if self._head[index.column()] in ('submission_time', "start_time", "end_time"):
             value = utilities.epoc_to_str_time(float(value), "%H:%M:%S %d-%m-%Y")
@@ -565,6 +570,14 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         if self._head[index.column()] in ('mem',):
             value = str(float(value)/10000.0)[0:4] + " GB"
         return value
+
+    def columnCount(self, parent):
+        """This reimplements SgeTableModelBase.columnCount since self._data won't tell us 
+        (in case of tasks details) columns count, because database entires can vary per row.
+        """
+        if len(self._data):
+            return len(self._head)
+        return 0
 
             
 
