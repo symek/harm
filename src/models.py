@@ -436,57 +436,73 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def update_db(self, job_id, token=""):
         '''Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field).'''
         # FIXME: I should consider prepering data on a database side, not process it here. 
-        self._dict = self.get_job_details_db(job_id)
-        tasks      = self.get_value("JB_ja_tasks", self._dict)
-        self._data = []
-        self._head = OrderedDict()
         from time import time
+        self._dict = self.get_job_details_db(job_id)
+        #self._dict = OrderedDict()
         t = time()
+        tasks      = self.get_value("JB_ja_tasks", self._dict)
+        if DEBUG:
+            print 'TaskModel.update_db get_value(JB_ja_tasks): %s' % str(time() - t)
+        t = time()
+        self._data = []
+        #self._datax = []
+        self._head = OrderedDict()
+        if DEBUG:
+            print "After canceling data: %s" % str(time() - t)
 
-        # Proceed if there are any tasks:
-        if len(tasks):
-            tasks = tasks[0]['ulong_sublist']
-            # Make sure we have a list here:
-            if isinstance(tasks, dict):
-                tasks = [tasks]
-            # Make header first:
-            self._head[0] = "JB_job_number"
-            # WARNING: bellow is not JAT_task_number for TaskModel compatibility with qstat
-            self._head[1] = "tasks" 
-            self._head[2] = "JB_owner"
-            self._head[3] = "JAT_status"
+        t = time()
+        # Early return if there are no tasks:
+        if not len(tasks): 
+            return
 
-            # Make self._data:
-            for task in tasks:
-                #Some fields might me missing in some frames (they usually do):
-                _data = [None for x in self._head]
-                # These are mandatory:
-                _data[0] = job_id
-                _data[1] = task['JAT_task_number']
-                _data[2] = self._dict['JB_owner']
-                _data[3] = task['JAT_status']
-                # If usage data is present:
-                if "JAT_scaled_usage_list" in task:
-                    scaled = task["JAT_scaled_usage_list"]['scaled']
-                    for item in range(len(scaled)):
-                        _data.append(None)
-                        # Name of the variable:
-                        var_name = scaled[item]['UA_name']
-                        # and index of it in header:
-                        if not var_name in self._head.values():
-                            var_idx = len(self._head.keys())
-                            self._head[var_idx] = var_name
-                        else:
-                            var_idx  = self._head.values().index(var_name)
-                            if DEBUG == 2:
-                                print var_name,
-                                print self._head[var_idx]
-                        # This should not ever happen:
-                        assert var_name in [v for v in self._head.values()], \
-                            "Variabe %s should be in header %s already" % (var_name, self._head)
-                        # Index of that variable in header 
-                        _data[var_idx] = scaled[item]['UA_value']
-                self._data.append(_data)
+        tasks = tasks[0]['ulong_sublist']
+        if DEBUG:
+            print "Tasks have beed found: %s" % str(time() - t)
+            t = time()
+        # Make sure we have a list here:
+        if isinstance(tasks, dict):
+            tasks = [tasks]
+        # Make header first:
+        self._head[0] = "JB_job_number"
+        # WARNING: bellow is not JAT_task_number for TaskModel compatibility with qstat
+        self._head[1] = "tasks" 
+        self._head[2] = "JB_owner"
+        self._head[3] = "JAT_status"
+
+        if DEBUG:
+            print "Start tasks iteration."
+        
+        # Make self._data:
+        for task in tasks:
+            #Some fields might me missing in some frames (they usually do):
+            _data = [None for x in self._head]
+            # These are mandatory:
+            _data[0] = job_id
+            _data[1] = task['JAT_task_number']
+            _data[2] = self._dict['JB_owner']
+            _data[3] = task['JAT_status']
+            # If usage data is present:
+            if "JAT_scaled_usage_list" in task:
+                scaled = task["JAT_scaled_usage_list"]['scaled']
+                for item in range(len(scaled)):
+                    _data.append(None)
+                    # Name of the variable:
+                    var_name = scaled[item]['UA_name']
+                    # and index of it in header:
+                    if not var_name in self._head.values():
+                        var_idx = len(self._head.keys())
+                        self._head[var_idx] = var_name
+                    else:
+                        var_idx  = self._head.values().index(var_name)
+                        if DEBUG == 2:
+                            print var_name,
+                            print self._head[var_idx]
+                    # This should not ever happen:
+                    assert var_name in [v for v in self._head.values()], \
+                        "Variabe %s should be in header %s already" % (var_name, self._head)
+                    # Index of that variable in header 
+                    _data[var_idx] = scaled[item]['UA_value']
+            self._data.append(_data)
 
         if DEBUG: 
             print "TaskModel.update_db: %s" % str(time() - t)
