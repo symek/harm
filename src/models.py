@@ -288,7 +288,8 @@ class DBTableModel():
         t = time()
         # FIXME: job_count should come from Config()
         # WARNING: Newer couchdb changes 'count' for 'limit' afaik.
-        query = self._db.query(map_, limit=job_count, descending=True).rows
+        #query = self._db.query(map_, limit=job_count, descending=True).rows
+        query = self._db.view('harm/get_jobs_db', limit=job_count, descending=True).rows
         if DEBUG:
             print "DBTableModel.get_jobs_db:  " + str(time() -t)
         query = [x.value for x in query]
@@ -438,14 +439,12 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         # FIXME: I should consider prepering data on a database side, not process it here. 
         from time import time
         self._dict = self.get_job_details_db(job_id)
-        #self._dict = OrderedDict()
         t = time()
         tasks      = self.get_value("JB_ja_tasks", self._dict)
         if DEBUG:
             print 'TaskModel.update_db get_value(JB_ja_tasks): %s' % str(time() - t)
         t = time()
         self._data = []
-        #self._datax = []
         self._head = OrderedDict()
         if DEBUG:
             print "After canceling data: %s" % str(time() - t)
@@ -464,7 +463,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             tasks = [tasks]
         # Make header first:
         self._head[0] = "JB_job_number"
-        # WARNING: bellow is not JAT_task_number for TaskModel compatibility with qstat
+        # WARNING: bellow is not JAT_task_number for TaskModel compatibility with qstat:
         self._head[1] = "tasks" 
         self._head[2] = "JB_owner"
         self._head[3] = "JAT_status"
@@ -523,7 +522,6 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
             self._dict  = XmlDictConfig(self._tree)[token]
         except:
-            #print self._dict
             pass
         if DEBUG:
             print "TaskModel.update: " + str(time() - t) + "(after xml parse)"
