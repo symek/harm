@@ -167,10 +167,11 @@ class TasksView(QTableView, ViewBase):
         self.setModel(self.proxy_model)
 
         # Order/hidden:
-        self.order_columns = 'JB_job_number tasks JB_owner JAT_start_time queue_name JB_name'.split()
+        self.order_columns = 'JB_job_number tasks JAT_start_time queue_name JB_name'.split()
         self.set_column_order(self.order_columns)
-        self.hidden_columns = "slots owner group project qname jobname department jobnumber \
-                                account arid priority granted_pe".split()
+        self.hidden_columns = "slots JB_owner taskid status owner group project qname jobname department jobnumber \
+                                account arid priority granted_pe ru_ixrss ru_ismrss ru_idrss ru_isrss ru_majflt \
+                                ru_nswap ru_msgsnd ru_msgrcv ru_nsignals ru_nvcsw ru_nivcsw".split()
         self.set_column_hidden(self.hidden_columns)
 
         # Clean:
@@ -185,6 +186,7 @@ class TasksView(QTableView, ViewBase):
         from time import time
         t = time()
         self.model.reset()
+        self.proxy_model.reset()
         if DEBUG:
             print "TasksView.update_model_db (self.model.reset): %s" % str(time() - t)
         self.model.update_db(job_id)
