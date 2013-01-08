@@ -52,4 +52,27 @@ harm_views['get_jobs_db'] = '''function(doc) {
                     var que = doc.JB_hard_queue_list.destin_ident_list.QR_name;
                     emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc.JB_job_name, 
                              "1", que, doc.JB_job_number, doc.JB_submission_time]);}'''
+
+harm_views['get_tasks_db'] = '''function(doc) 
+{
+  if (doc.JB_ja_tasks.ulong_sublist)
+  {
+        var tasks    = new Array();
+        var sublist  = doc.JB_ja_tasks.ulong_sublist;
+        for(var task = 0; task < sublist.length; task++)
+        {
+                var scaled = sublist[task].JAT_scaled_usage_list.scaled;
+                var names  = new Array();
+                var values = new Array();
+                for (var item = 0; item < scaled.length; item++)
+                {
+                        names[item]  = scaled[item].UA_name; 
+                        values[item] = scaled[item].UA_value;
+                }
+                tasks[task] = (names, values);
+        }
+        emit(doc._id, tasks);     
+  }
+
+}'''
         
