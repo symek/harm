@@ -153,12 +153,12 @@ class SgeTableModelBase():
 
         # Read element from a elementTree sub-entry :
         value  = None
-        try:
-            value = self._data[index.row()][index.column()]
-            value = self.data_hooks(index, value)
-        except:
-            # FIXME: ?
-           pass
+        # try:
+        value = self._data[index.row()][index.column()]
+        value = self.data_hooks(index, value)
+        # except:
+           # print self
+            # pass
         if not value: return QVariant()        
         # Finally return something meaningfull:
         return QVariant(value)
@@ -185,8 +185,11 @@ class SgeTableModelBase():
 
     def parse_time_string(self, time):
         '''Parses the time string to reasonable format.'''
-        date, time = time.split("T")
-        return " ".join((time, date))
+        time = time.split("T")
+        if len(time) == 2:
+            date, time = time
+            return " ".join((time, date))
+        return time[0]
 
     def get_value(self, key, data=None):
         '''Searches data model for particular value based on provided key. 
@@ -329,7 +332,7 @@ class DBTableModel():
         return query
 
     def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
-        """Retrieves job details from database."""
+        """Retrieves the entire documenet (job) from database."""
         from structured import dict2et
         from time import time
         if not self._db:
@@ -474,11 +477,11 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         are added manually at front (jobid, owner, tasks).
         """
         # Cancel previous data:
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         self._head = OrderedDict()
         self._data = []
 
         # Get tasks info from db:
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         tasks = self.get_tasks_db(job_id)
 
         # Empty query happens for whatever reasons:
@@ -512,16 +515,19 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         """
         from operator import itemgetter
         # Cancel data:
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         self._tree = None
         self._dict = OrderedDict()
         self._data = []
         self._head = OrderedDict()
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+
+        # Get new one:
         try:
             self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
             self._dict  = XmlDictConfig(self._tree)[token]
         except:
             pass
+
         # XmlDictConfig returns string instead of dict in case *_info are empty!
         if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
             d = self._dict['job_list']
@@ -537,6 +543,8 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
+
+        # End of updating:
         self.emit(SIGNAL("layoutChanged()"))
 
     def hook_cputime(self, index, value):
@@ -552,9 +560,11 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         """Translates time related SGE fields in ugly format  "%H:%M:%S %d-%m-%Y"
         into something hopefully nicer.
         """
-        import time
-        if self._head[index.column()] in ('submission_time', "start_time", "end_time"):
-            value = utilities.epoc_to_str_time(float(value), "%H:%M:%S %d-%m-%Y")
+        if self._head[index.column()] in ('submission_time', "start_time", "end_time", "qsub_time"):
+            if isinstance(value, float):
+                value = utilities.epoc_to_str_time(float(value), "%H:%M:%S %d-%m-%Y")
+            elif len(value.split()) == 5 and ":" in value:
+                value = value.split()[3]
         return value
 
     def hook_mem_usage(self, index, value):
