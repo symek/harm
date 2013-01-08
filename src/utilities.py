@@ -234,8 +234,9 @@ def read_qacct(job_id, tasks=True):
 
 
 def rotate_nested_dict(d, key):
-    """Given a dictionary of dictionarties, it builds a new one
-       with keys taken from children's values."""
+    """Given a dictionary of dictionarties, it builds a new one with keys 
+    taken from children's values.
+    """
     output = OrderedDict()#{}
     for item in d:
         if key in d[item]:
@@ -244,4 +245,49 @@ def rotate_nested_dict(d, key):
             else:
                 output[d[item][key]].append(d[item])
     return output
+
+
+def install_harm_view(design, view, map_fun=None, db_server=None, db_name="sge_db"):
+    """Installs Harm's permanent views in couchdb server. Creates database if needed.
+    Views are stored currently on constants module in HarmView class.
+    """
+    import couchdb
+    import couchdb.design
+    from constants import harm_views # <-- These are our map functions dictionary
+    # TODO: This is another place for replecement with Config() class.
+    # The server first:
+    if not db_server or not isinstance(db_server, couchdb.Server):
+        db_server = couchdb.Server(os.getenv("CDB_SERVER"))
+    # The database next:
+    if db_name in db_server:
+        db = db_server[db_name]
+    else:
+        # Couchdb doesn't accept just any database name:
+        try:
+            db_server.create(db_name)
+            db = server[db_name]
+        except:
+            raise Exception, "Can't create a database with specified name %s" % db_name
+            return False
+    assert db_name in db_server, "No %s in %s" %(db_name, server)
+
+    # Assign provided map_fun, or find it internally (in constants.harm_views)
+    if not map_fun:
+        if not view in harm_views:
+            # Quit in case view name wasn't found:
+            print  "Can't find %s in constants.harm_views" % view
+            return
+        else:
+            map_fun = harm_views[view]
+
+    # Creata design document as save it db:
+    view = couchdb.design.ViewDefinition(design, view, map_fun)
+    view.sync(db)
+
+    # Design doc is there:
+    if view.get_doc(db):
+        return True
+    return
+
+
 

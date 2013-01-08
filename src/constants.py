@@ -37,3 +37,19 @@ NUKE_READ_NODE_STRING = '''Read {
 # Debug or nor to debug?
 import os
 DEBUG = os.getenv("DEBUG", False)
+
+
+
+# Design documents.
+# TODO: Perhaps it would be better it keep them as *.json 
+# files and feed/update database with curl/wget calls?
+# Even of not, they should belong to some sort of Datase module...
+
+harm_views = dict()
+harm_views['get_jobs_db'] = '''function(doc) {
+                    var js  = doc.JB_ja_structure.task_id_range;
+                    var jss = "".concat(js.RN_min, "-", js.RN_max, ":", js.RN_step);
+                    var que = doc.JB_hard_queue_list.destin_ident_list.QR_name;
+                    emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc.JB_job_name, 
+                             "1", que, doc.JB_job_number, doc.JB_submission_time]);}'''
+        
