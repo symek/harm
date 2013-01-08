@@ -31,8 +31,7 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         # FIXME: This is experimental notation:
         interval = self.config.get_value("HarmMainWindow/timer/setInterval")
         self.timer.setInterval(interval)
-        # FIXME: disabled temporarly
-        #self.timer.timeout.connect(self.refreshAll)
+        self.timer.timeout.connect(self.refreshAll)
         self.timer.start()
 
 
