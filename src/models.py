@@ -263,16 +263,38 @@ class DBTableModel():
     This class is meant to be inherited by other models like JobsModel.'''
     _server = None
     _db     = None
+    def connect_to_db(self, server_uri=None, db_name='sge_db'):
+        """Connects with default couchdb server taken from CDB_SERVER envvar.
+        Reads or creates sge_db database there. Thet are assign into self._server
+        and self._db local variables for later reuse.
+        """
+        if not server_uri:
+            server_uri = os.getenv("CDB_SERVER")
+        server = cdb.Server(server_uri)
+        assert server, "Can't do without couchdb server %s" % server_uri
+        self._server = server
+        if not db_name in server:
+            try:
+                server.create(db_name)
+            except:
+                print "Can't create database with a given name %s" % db_name
+                return False
+
+        # self._db will be tested by actual get-data routines.
+        db = server[db_name]
+        if db:
+            self._db = db
+            return True
+
     def get_jobs_db(self, job_count=150):
-        '''Append history from couchdb database'''
+        """Reads history from couchdb database. """
         # A list of a jobs currently rendered or queued -
-        # (thus whose kept track by SGE):
+        # (thus whose are tracked by SGE):
         current_jobs = self._dict.keys()
         # We need this!
-        if not self._server:
-            try:
-                self._server = cdb.Server(os.getenv("CDB_SERVER"))    
-                self._db     = self._server['sge_db']
+        if not self._db:
+            try: 
+                self.connect_to_db()
             except:
                 return []
         # This is our map function with hand crafted requests fields:
@@ -307,20 +329,32 @@ class DBTableModel():
         return query
 
     def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
-        '''Retrieves job details from database.'''
+        """Retrieves job details from database."""
         from structured import dict2et
         from time import time
-        if not self._server:
-            try:
-                self._server = cdb.Server(os.getenv("CDB_SERVER"))
-                self._db     = self._server['sge_db']
-            except:
-                return OrderedDict()
+        if not self._db:
+            try: self.connect_to_db()
+            except: return OrderedDict()
         t   = time()
         job = self._db.get(job_id, OrderedDict())
         if DEBUG:
             print "DBTableModel.get_job_details_db: %s " % str(time() - t)
         return job
+
+    def get_tasks_db(self, job_id):
+        """Calls get_tasks_db permenent view from couchdb. This function by default
+        returns all fields from JAT_scaled_usage_list sublist.
+        """
+        from time import time
+        if not self._db:
+            try: self.connect_to_db()
+            except: return OrderedDict()
+        t = time()
+        job = self._db.view('harm/get_tasks_db', key=job_id).rows
+        print "DBTableModel.get_tasks_db: %s" % str(time()-t)
+        return job
+
+
 
 
 #################################################################
@@ -435,85 +469,50 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         self._head = OrderedDict()
 
     def update_db(self, job_id, token=""):
-        '''Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field).'''
-        # FIXME: I should consider prepering data on a database side, not process it here. 
-        from time import time
-        self._dict = self.get_job_details_db(job_id)
-        t = time()
-        tasks      = self.get_value("JB_ja_tasks", self._dict)
-        if DEBUG:
-            print 'TaskModel.update_db get_value(JB_ja_tasks): %s' % str(time() - t)
-        t = time()
-        self._data = []
+        """Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field)
+        by quering permanent view harm/get_tasks_db. Additionally some standard fields
+        are added manually at front (jobid, owner, tasks).
+        """
+        # Cancel previous data:
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         self._head = OrderedDict()
-        if DEBUG:
-            print "After canceling data: %s" % str(time() - t)
+        self._data = []
 
-        t = time()
-        # Early return if there are no tasks:
-        if not len(tasks): 
-            return
+        # Get tasks info from db:
+        tasks = self.get_tasks_db(job_id)
 
-        tasks = tasks[0]['ulong_sublist']
-        if DEBUG:
-            print "Tasks have beed found: %s" % str(time() - t)
-            t = time()
-        # Make sure we have a list here:
-        if isinstance(tasks, dict):
-            tasks = [tasks]
-        # Make header first:
-        self._head[0] = "JB_job_number"
-        # WARNING: bellow is not JAT_task_number for TaskModel compatibility with qstat:
-        self._head[1] = "tasks" 
-        self._head[2] = "JB_owner"
-        self._head[3] = "JAT_status"
+        # Empty query happens for whatever reasons:
+        if tasks: tasks = tasks[0].value
+        else: return
 
-        if DEBUG:
-            print "Start tasks iteration."
-        
-        # Make self._data:
-        # FIXME: This is to be replaced all together.
-        # It should be pre-baked from database at the first place!
+        # Iterate over tasks
         for task in tasks:
-            #Some fields might me missing in some frames (they usually do):
-            _data = [None for x in range(4)]
-            # These are mandatory:
-            _data[0] = job_id
-            _data[1] = task['JAT_task_number']
-            _data[2] = self._dict['JB_owner']
-            _data[3] = task['JAT_status']
-            # If usage data is present:
-            if "JAT_scaled_usage_list" in task:
-                scaled = task["JAT_scaled_usage_list"]['scaled']
-                for item in range(len(scaled)):
-                    # Name of the variable:
-                    var_name = scaled[item]['UA_name']
-                    # and index of it in header either as newly appended:
-                    if not var_name in self._head.values():
-                        var_idx = len(self._head.keys())
-                        self._head[var_idx] = var_name
-                    else:
-                    # ... or retrieved from self._head:
-                        var_idx  = self._head.values().index(var_name)
-                    # var_name should already be in a headaer:
-                    assert var_name in [v for v in self._head.values()], \
-                        "Variabe %s should be in header %s already" % (var_name, self._head)
-                    # var_idx should match number of column name:
-                    assert self._head[var_idx] == var_name, \
-                        "Index %s should point to %s header %s" % (var_idx, var_name)
-                    # Append value:
-                    _data.append(str(scaled[item]['UA_value']))
-                # Finally add a row of columns into an array of rows (self._data):
+            # _data = [None]*longest
+            _data = [None for item in task]
+            for item in task:
+                name, value = item
+                if name not in self._head.values(): 
+                    field_idx = len(self._head) 
+                    self._head[field_idx] = name
+                else:
+                    field_idx = self._head.values().index(name)
+                assert field_idx < len(_data), "field_idx exeeds _data length."
+                _data[field_idx] = value
             self._data.append(_data)
-        if DEBUG: 
-            print "TaskModel.update_db: %s" % str(time() - t)
-
+        self.emit(SIGNAL("layoutChanged()"))
 
 
     def update(self, sge_command, token='queue_info', sort_by_field='JB_job_number', reverse_order=True):
-        '''Main function of derived model. Builds _data list from input.'''
+        """Updates model from qstata commandline tool. First we take an xml output, parse with ET,
+        then build a dictionary (OrderedDict) out of it, then build self._data [[jobinfo], ...] and 
+        self._head: dict(1:header, 2: header, ...).
+
+        It is a subject of change. Data handling should be done by external object,
+        DataHandler(), this class should expect native Python as input and accomodate it to its model. 
+        """
         from operator import itemgetter
-        t = time()
+        # Cancel data:
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         self._tree = None
         self._dict = OrderedDict()
         self._data = []
@@ -523,11 +522,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             self._dict  = XmlDictConfig(self._tree)[token]
         except:
             pass
-        if DEBUG:
-            print "TaskModel.update: " + str(time() - t) + "(after xml parse)"
-
-        t = time()
-        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
+        # XmlDictConfig returns string instead of dict in case *_info are empty!
         if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
             d = self._dict['job_list']
             if isinstance(d, list):
@@ -542,8 +537,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                     self._data = sorted(self._data,  key=itemgetter(key_index))
                     if reverse_order:
                         self._data.reverse()
-        if DEBUG:
-            print "TaskModel.update:" + str(time() - t) + "(after self.data parse)"
+        self.emit(SIGNAL("layoutChanged()"))
 
     def hook_cputime(self, index, value):
         """Translate cpu time in seconds into 00:00:00 string."""

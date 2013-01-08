@@ -171,7 +171,8 @@ class TasksView(QTableView, ViewBase):
         self.set_column_order(self.order_columns)
         self.hidden_columns = "slots JB_owner taskid status owner group project qname jobname department jobnumber \
                                 account arid priority granted_pe ru_ixrss ru_ismrss ru_idrss ru_isrss ru_majflt \
-                                ru_nswap ru_msgsnd ru_msgrcv ru_nsignals ru_nvcsw ru_nivcsw".split()
+                                ru_nswap ru_msgsnd ru_msgrcv ru_nsignals ru_nvcsw ru_nivcsw JAT_status ru_maxrss \
+                                ru_minflt".split()
         self.set_column_hidden(self.hidden_columns)
 
         # Clean:
@@ -187,10 +188,7 @@ class TasksView(QTableView, ViewBase):
         t = time()
         self.model.reset()
         self.proxy_model.reset()
-        if DEBUG:
-            print "TasksView.update_model_db (self.model.reset): %s" % str(time() - t)
         self.model.update_db(job_id)
-        t = time()
         self.set_column_order(self.order_columns)
         self.set_column_hidden(self.hidden_columns)
         # Clean:
