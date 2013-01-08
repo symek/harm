@@ -228,28 +228,111 @@ class TasksDelegate(QItemDelegate):
         QItemDelegate.__init__(self, parent, *args)
         self.machine_background = QColor()
         self.context = context
+        self.model = context.models['tasks_model']
+        self.proxy = context.models['tasks_proxy_model']
         self.machines_color = 0
+        self.setColors()
+
+        self.avarage_wallclock = None
+        self.avarage_maxvmem   = None
+
+    def setColors(self):
+        '''TODO: to be moved into Config() control'''
+        self.waitingC = QColor()
+        self.progresC = QColor()
+        self.finisheC = QColor()
+        self.selectedC= QColor()
+        self.selectedC.setHsvF(0.108, 0.95, 1)
+        self.waitingC.setHsvF(0.30, 0.3, 1)
+        self.progresC.setHsvF(0.0, 0.2, 1)
+        self.finisheC.setHsvF(0.69, 0.2, 1)
+        self.hqwC = QColor()
+        self.hqwC.setHsvF(.15, .2, 1)
+        self.qwC = QColor()
+        self.qwC.setHsvF(.30, .2, 1)
+        self.qwWaitingC = QColor()
+        self.qwWaitingC.setHsvF(.6, .2, 1)
 
 
     def get_machines_color(self):
         view = self.context.views['machines_view']
-       
+
+    def compute_avarages(self, data, indices):
+        """Compute avarage values in a tablemodel provided a sequence of data indices.
+        """
+        results = []
+        for index in indices:
+            avarages = 0
+            counter = 0
+            for item in data:
+                item = utilities.isNum(item[index])
+                if item:
+                    avarages += item
+                    counter += 1
+            avarages /= counter
+            results.append(avarages)
+        return results
+
     
     def paint(self, painter, option, index):
         painter.save()
+        wallclock = None
+        maxvmem   = None
 
-        if index.column() == 6:
-            machine = self.context.models['tasks_proxy_model'].data(index)
-            machine = machine.toString()
+        # Proxy to actual model:
+        s_index = self.proxy.mapToSource(index)
+        # Set selection color:
+
+        # assert self.model._data, "Can't deal with no self.model._data at %s" % self
+        if self.model._data:
+            try:
+                wallclock_idx = self.model.get_key_index("ru_wallclock")
+                maxvmem_idx   = self.model.get_key_index("maxvmem")
+                wallclock     = self.model._data[s_index.row()][wallclock_idx]
+                maxvmem       = self.model._data[s_index.row()][maxvmem_idx]
+                # Compute them only once:
+                if not self.avarage_wallclock or not self.avarage_maxvmem:
+                    self.avarage_wallclock, self.avarage_maxvmem = \
+                    self.compute_avarages(self.model._data, (wallclock_idx, maxvmem_idx))
+            except:
+                pass
+        else:
+            painter.restore()
+            return
+
+        painter.setPen(QPen(Qt.NoPen))
+        # Colorize tasks based on its relative cpu/ram cost:
+        if wallclock and maxvmem:
+            color = QColor()
+            sat = utilities.isNum(maxvmem) - self.avarage_maxvmem
+            sat = utilities.clamp(sat, -1, 1)
+            sat = utilities.fit(sat, -1.0, 1.0, 0.2, 0.6)
+            hue = wallclock - self.avarage_wallclock
+            hue = utilities.clamp(hue, -1, 1)
+            hue = utilities.fit(hue, -1.0, 1.0, 0.6, 0.1)
+            color.setHsvF(hue, sat, 1)
+
+            # Mark in red hosts with used ram above 0.9 (or other SGE_HOST_RAM_WARNING constant)
+            #if mem_used > mem_total * SGE_HOST_RAM_WARNING:
+            #    color.setHsvF(1, 1 , 1)
+            painter.setBrush(QBrush(color))
+            #painter.setBrush(QBrush(Qt.red))
+
+        # Set background for selected objects:
+        if option.state & QStyle.State_Selected:
+            painter.setBrush(QBrush(self.selectedC))
 
         painter.drawRect(option.rect)
         painter.setPen(QPen(Qt.black))
         value = index.data(Qt.DisplayRole)
+
         if value.isValid():
             text = value.toString()
             painter.drawText(option.rect, Qt.AlignLeft, text)
 
         painter.restore()
+
+
 
 class JobDelegate(QStyledItemDelegate):
     def __init__(self, context, parent=None, *args):

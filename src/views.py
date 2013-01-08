@@ -155,6 +155,8 @@ class TasksView(QTableView, ViewBase):
         self.context.views['tasks_view'] = self
         self.setEditTriggers(self.NoEditTriggers)
         self.configure()
+        self.setAlternatingRowColors(0)
+
 
         # Models:
         self.model = models.TaskModel(self)
@@ -169,11 +171,15 @@ class TasksView(QTableView, ViewBase):
         # Order/hidden:
         self.order_columns = 'JB_job_number tasks JAT_start_time queue_name JB_name'.split()
         self.set_column_order(self.order_columns)
-        self.hidden_columns = "slots JB_owner taskid status owner group project qname jobname department jobnumber \
+        self.hidden_columns = "slots taskid status JB_owner owner group qname project jobname department jobnumber \
                                 account arid priority granted_pe ru_ixrss ru_ismrss ru_idrss ru_isrss ru_majflt \
                                 ru_nswap ru_msgsnd ru_msgrcv ru_nsignals ru_nvcsw ru_nivcsw JAT_status ru_maxrss \
                                 ru_minflt".split()
         self.set_column_hidden(self.hidden_columns)
+
+        # Delegate:
+        self.delagate = delegates.TasksDelegate(self.context)
+        self.setItemDelegate(self.delagate)
 
         # Clean:
         self.resizeColumnsToContents()
