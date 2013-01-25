@@ -104,10 +104,14 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
          # Filter:
         self.jobs_filter_label = QtGui.QLabel()
         self.jobs_filter_label.setText("Jobs filter")
+        self.auto_refresh_toggle = QtGui.QCheckBox()
+        self.auto_refresh_toggle.setCheckState(Qt.Checked) 
+        self.auto_refresh_toggle.setText("Auto refresh")
         jobs_filter_hbox = QtGui.QHBoxLayout()
         jobs_filter_hbox.addWidget(self.jobs_filter_label)
         self.jobs_filter_line = QLineEdit()
         jobs_filter_hbox.addWidget(self.jobs_filter_line)
+        jobs_filter_hbox.addWidget(self.auto_refresh_toggle)
         jobs_tab_vbox.insertLayout(0, jobs_filter_hbox)
     
         # History filters:

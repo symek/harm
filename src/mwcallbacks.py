@@ -51,6 +51,10 @@ class HarmMainWindowCallbacks():
         self.tasks_view.resizeRowsToContents()
         self.machine_view.resizeRowsToContents()
 
+    def autoRefresh(self):
+        if self.auto_refresh_toggle.isChecked():
+            self.refreshAll()
+
     def set_user(self):
         user = utilities.get_username()
         self.jobs_filter_line.setText("Owner:%s" % user)
