@@ -153,11 +153,12 @@ class SgeTableModelBase():
 
         # Read element from a elementTree sub-entry :
         value  = None
-        # try:
-        value = self._data[index.row()][index.column()]
-        value = self.data_hooks(index, value)
-        # except:
-           # print self
+        try:
+            value = self._data[index.row()][index.column()]
+            value = self.data_hooks(index, value)
+        except:
+            print self._data[index.row()]
+            # print self
             # pass
         if not value: return QVariant()        
         # Finally return something meaningfull:
@@ -244,7 +245,7 @@ class SgeTableModelBase():
 
     def hook_machinename(self, index, value):
         # Shorten machine name in Tasks view:
-        if self._head[index.column()] == 'queue_name':
+        if self._head[index.column()] in ('queue_name', 'hostname'):
             if value: 
                 value = value.split("@")[-1]
                 if "." in value:
@@ -488,10 +489,13 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         if tasks: tasks = tasks[0].value
         else: return
 
+        # FIXME: This should not be necessery. 
+        longest = max([len(t) for t in tasks])
+
         # Iterate over tasks
         for task in tasks:
-            # _data = [None]*longest
-            _data = [None for item in task]
+            _data = [None]*longest
+            #_data = [None for item in task]
             for item in task:
                 name, value = item
                 if name not in self._head.values(): 
@@ -550,9 +554,12 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
     def hook_cputime(self, index, value):
         """Translate cpu time in seconds into 00:00:00 string."""
         from datetime import timedelta
-        if self._head[index.column()] == 'cpu':
+        column = self._head[index.column()]
+        if column in ('cpu', 'ru_wallclock'):
             if value: 
-                value = int(float(value)/8.0)
+                value = int(float(value))
+                # FIXME: Hard coded cores number:
+                if column == 'cpu': value /= 8.0
                 value = str(timedelta(seconds=value))
         return value
 
