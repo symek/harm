@@ -147,7 +147,8 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         # Connect to database
         if db in server: db = server[db]
         else: db = server.create(db)
-        # Deal with models' indices:
+        # Deal with models' indices,
+        # TODO: Is this the best place to get unique rows indices?
         indices = self.view.selectedIndexes()
         indices = [self.view.proxy_model.mapToSource(index) for index in indices]
         job_ids = list(set([index.row() for index in indices]))
@@ -167,9 +168,11 @@ class JobsContextMenu(QMenu, ContextMenuBase):
                 # Task might not be in qacct yet:
                 if not task_str in model:
                     continue
-                if not "JAT_scaled_usage_list" in task:
-                    task['JAT_scaled_usage_list'] = dict()
-                    task['JAT_scaled_usage_list']['scaled'] = []
+                # TODO: by ignoring bellow line, we dismiss *all* render time log data.
+                # and copy everything from qacct, which might be better or not...
+                if not "JAT_scaled_usage_list" in task: pass
+                task['JAT_scaled_usage_list'] = dict()
+                task['JAT_scaled_usage_list']['scaled'] = []
                 # A list of tasks measurements alligned with 
                 # an original qstat format:
                 scaled = task["JAT_scaled_usage_list"]['scaled']
