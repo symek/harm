@@ -14,7 +14,25 @@ header['JAT_status']         = 'Task Status'
 header['cpu']                = 'Cpu Time'
 header['mem']                = 'Memory Used'
 header['vmem']               = 'Virtual Memory'
-header['maxvmem']            = 'Max Virtual Memory'
+header['maxvmem']            = 'Max Ram'
+
+
+header['iow']  = 'Disk Wait'
+header['io']   = 'I/O'
+header['qsub_time'] = 'Submitted'
+header['start_time'] = "Started"
+header['end_time'] = 'Ended'
+header['exit_status'] = 'Exit'
+header['ru_wallclock'] = 'Elapsed'
+header['ru_inblock']   = 'Read Blocks'
+header['ru_oublock']  = "Write Blocks"
+header['ru_utime']    = 'Process Time'
+header['ru_stime']    = 'Syste Time'
+header['ru_rtime']   = 'Real Time'
+header['hostname']   = 'Hostname'
+
+
+
 
 
 header['arch_string'] = 'Archtecture'
