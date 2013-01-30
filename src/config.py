@@ -45,7 +45,7 @@ class Config(dict):
         self['HarmMainWindow']['timer']['setInterval'] = 1000*120
 
         # Image viewer:
-        self['image_viewer'] = '/opt/package/houdini_12.0.687/bin/mplay'
+        self['image_viewer'] = '/opt/package/houdini_12.1.185/bin/mplay'
 
         # self.selectedC.setHsvF(0.108, 0.95, 1)
         # self.waitingC.setHsvF(0.30, 0.3, 1)
