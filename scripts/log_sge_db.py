@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, socket
+import sys, socket, time, random
 # Softimage polutes PYTHONPATH, we need to revert sys.path to system defaults:
 # FIXME: Don't hard code it here.
 if True in ['softimage' in path for path in sys.path]:
@@ -158,98 +158,162 @@ def read_qacct(job_id, tasks=True):
     return None
 
 
-# Our variables
-db    = 'sge_db'
-jobid = sys.argv[1]
-host  = socket.gethostname()
-server = Server(os.getenv("CDB_SERVER"))
-account= read_qacct(jobid)
+def main():
+    # Our variables
+    db    = 'sge_db'
+    jobid = sys.argv[1]
+    #host  = socket.gethostname()
+    server = Server(os.getenv("CDB_SERVER"))
+    account=  None #read_qacct(jobid)
+    print "HARM: Server found."
 
-# Connect to database
-if db in server:
-    db = server[db]
-else:
-    db = server.create(db)
-
-
-# Get data or exit on fail:
-try:
-    tree = ElementTree.parse(os.popen(SGE_JOB_DETAILS % jobid))
-    _dict  = XmlDictConfig(tree.getroot())['djob_info']['element']
-except:
-    sys.exit()
-
-
-model = Model()
-model._dict = _dict
-
-# Process fields to remove unlegal character:
-for key in model._dict:
-    if key.startswith("__"):
-        nkey  = key[2:]
-    elif key.startswith("_"):
-        nkey = key[1:]
+    #WIP:  Separate db for tasks
+    dbt   = 'sge_db_tasks'
+    if dbt in server:
+        dbt = server[dbt]
     else:
-        continue
-    value = model._dict.pop(key)
-    model._dict[nkey] = value
+        dbt = server.create(dbt)
 
-# Create new db document in case it's not already there:
-if not jobid in db:
-    db[jobid] = dict(model._dict)
-    job       = db[jobid]
-# Or update existing one:
-else:
-    job       = db[jobid]
-    # The tricky part is to make sure we are not overwriting per task informations.
-    # As much as I wanted to keep this data in raw form so thay conform with qstat output,
-    # I can't do this here. Overwise I would have to store per frame information in different place.
-    old_tasks = job["JB_ja_tasks"]['ulong_sublist']
-    cur_tasks = model._dict["JB_ja_tasks"]['ulong_sublist']
+    # Connect to database
+    if db in server:
+        db = server[db]
+        print "HARM: database connected"
+    else:
+        db = server.create(db)
+        print "HARM: databased created"
 
-    # Make sure we deal with lists of dictionaries, not stright dictionaries. 
-    if isinstance(cur_tasks, dict):
-        cur_tasks = [cur_tasks]
-    if isinstance(old_tasks, dict):
-        old_tasks = [old_tasks]
+    # Get data or exit on fail:
+    try:
+        tree = ElementTree.parse(os.popen(SGE_JOB_DETAILS % jobid))
+        _dict  = XmlDictConfig(tree.getroot())['djob_info']['element']
+        print "HARM: ETree parsed and converted to dictionary."
+    except:
+        print "Can't parse Etree or convert its XML to dictonary."
+        return 0
 
-    # For every task found in database,
-    # check if it was alraedy updated with qaccet, do it if not,
-    # then copy it into cur_tasks - unless it's already in.
-    for task in old_tasks:
-        old_task_id = task['JAT_task_number']
-        if old_task_id not in [ct['JAT_task_number'] for ct in cur_tasks]:
-            cur_tasks.append(task)
 
-    # Update tasks info with data taken from qacct command:
-    if account:
-        for task in cur_tasks:
-            # Drop if it was already updated:
-            #if "qacct" in task.keys():
-            #    continue
-            task['qacct'] = True
-            task_id = task['JAT_task_number']
-            # The only reason we do this, is bacause it reflects data stucture
-            # as returned by qstat. This is probably wrong path (overcomplicated)
-            if not "JAT_scaled_usage_list" in task:
-                task['JAT_scaled_usage_list'] = dict()
-                task['JAT_scaled_usage_list']['scaled'] = []
-            # task_st is task string in a form of "1234.1",
-            # this is how qacct_to_dict stores per taks info:
-            task_st = ".".join((jobid, task_id))
-            if task_st in account.keys():
-                for data in account[task_st]:
-                    _d = OrderedDict()
-                    _d['UA_name']  = data
-                    _d['UA_value'] = account[task_st][data]
-                    task["JAT_scaled_usage_list"]['scaled'].append(_d)
+    model = Model()
+    model._dict = _dict
 
-    # Finally copy all details into job structure:
+    # Get job scripts details:
+    job_script = os.getenv("JOB_SCRIPT", None)
+    if job_script:
+        try:
+            f = open(job_script)
+            job_script_parm = f.read()
+            f.close()
+        except:
+            job_script_parm = None
+    else:
+        job_script_parm = None
+
+
+    # Process fields to remove unlegal character:
     for key in model._dict:
-        job[key] = model._dict[key]
-    # Also copy combined tasks into job:    
-    job["JB_ja_tasks"]['ulong_sublist'] = cur_tasks
-    # Save job in database:
-    db[jobid] = job
+        if key.startswith("__"):
+            nkey  = key[2:]
+        elif key.startswith("_"):
+            nkey = key[1:]
+        else:
+            continue
+        value = model._dict.pop(key)
+        model._dict[nkey] = value
+    print "HARM: Model prepared."
+
+    # Safe task specific data in dbt:
+    taskid = os.getenv("SGE_TASK_ID", None)
+
+    # if taskid:
+    #     task_st = "%s_%s" % (jobid, taskid)
+    #     cur_tasks = model._dict["JB_ja_tasks"]['ulong_sublist']
+    #     for task in cur_tasks:
+    #         if taskid == task['JAT_task_number']:
+    #             task['JOB_SCRIPT'] = job_script_parm
+    #             dbt[task_st] = dict(task)
+                #dbt.update([dict(task)])
+
+    #We need to make sure, two renders aren't finishing at the same time:
+    # FIXME: 
+    if not jobid in db:
+        time.sleep(random.random()*5)
+
+    # Create new db document in case it's not already there:
+    if not jobid in db:
+        db[jobid] = dict(model._dict)
+        #job       = db[jobid]
+        print "HARM: first task, creating document."
+    # Or update existing one:
+    else:
+        job       = db[jobid]
+        print "HARM: job retrieved from db."
+        # The tricky part is to make sure we are not overwriting per task informations.
+        # As much as I wanted to keep this data in raw form so thay conform with qstat output,
+        # I can't do this here. Overwise I would have to store per frame information in different place.
+
+        try:    
+            cur_tasks = model._dict["JB_ja_tasks"]['ulong_sublist']
+            # Make sure we deal with lists of dictionaries, not stright dictionaries. 
+            if isinstance(cur_tasks, dict):
+                cur_tasks = [cur_tasks]
+        except:
+            print "No JB_ja_tasks found? Exit."
+            return 0
+        
+        try:
+            old_tasks = job["JB_ja_tasks"]['ulong_sublist']
+            if isinstance(old_tasks, dict):
+                old_tasks = [old_tasks]
+            # For every task found in database,
+            # check if it was alraedy updated with qaccet, do it if not,
+            # then copy it into cur_tasks - unless it's already in.
+            for task in old_tasks:
+                old_task_id = task['JAT_task_number']
+                if old_task_id not in [ct['JAT_task_number'] for ct in cur_tasks]:
+                    cur_tasks.append(task)  
+        except: 
+            pass
+
+
+        # Update tasks info with data taken from qacct command:
+        if account:
+            for task in cur_tasks:
+                # Drop if it was already updated:
+                #if "qacct" in task.keys():
+                #    continue
+                task['qacct'] = True
+                task_id = task['JAT_task_number']
+                # The only reason we do this, is bacause it reflects data stucture
+                # as returned by qstat. This is probably wrong path (overcomplicated)
+                if not "JAT_scaled_usage_list" in task:
+                    task['JAT_scaled_usage_list'] = dict()
+                    task['JAT_scaled_usage_list']['scaled'] = []
+                # task_st is task string in a form of "1234.1",
+                # this is how qacct_to_dict stores per taks info:
+                task_st = ".".join((jobid, task_id))
+                if task_st in account.keys():
+                    for data in account[task_st]:
+                        _d = OrderedDict()
+                        _d['UA_name']  = data
+                        _d['UA_value'] = account[task_st][data]
+                        task["JAT_scaled_usage_list"]['scaled'].append(_d)
+
+        # Finally copy all details into job structure:
+        print "HARM: copying keys to model."
+        for key in model._dict:
+            job[key] = model._dict[key]
+        # Also copy combined tasks into job:    
+        job["JB_ja_tasks"]['ulong_sublist'] = cur_tasks
+        # Safe also a content of job_script:
+        job['JOB_SCRIPT'] = job_script_parm
+        # Save job in database:
+        print "HARM: About to save job document to db."
+        #db[jobid] = job # This freezes our process randomly (it stops and hangs in mem forever)
+        db.update([job])
+        print "HARM: Job %s logged in %s" % (str(jobid), os.getenv("CDB_SERVER"))
+
+    # Finally return 0;
+    return 0
+
+if __name__ == "__main__": main()
 
 
