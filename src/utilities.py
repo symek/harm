@@ -42,8 +42,10 @@ def tag2idx(model, attrib=False, attrib_num=0):
             index_map[name] = index
         return index_map
 
-def isNum(x):
-    """Extract digits from a string."""
+def to_number(x):
+    """Extract digits from a string. Always returns a digits, on error
+    it returns 0.0!
+    """
     import re
     x = re.sub(r'[^\d\.]', '', str(x)).strip()
     try:
@@ -52,6 +54,7 @@ def isNum(x):
         x = int(x)
     if x:
         return x
+    return 0.0
 
 def clamp(value, _min, _max):
     """Clamps value between min and max values."""
@@ -66,13 +69,13 @@ def fit(x, a, b, c, d):
 
 
 def epoc_to_str_time(t, sge_time_format = "%Y-%m-%dT%H:%M:%S"):
-    '''Epoc to sge time string convertion.'''
+    """Epoc to sge time string convertion."""
     import time
     data = time.strftime(sge_time_format, time.gmtime(float(t)))
     return data #"".join(data.split()[3:])
         
 def string_to_elapsed_time(value):
-    '''Returns time difference provided SGE specific string time.'''
+    """Returns time difference provided SGE specific string time."""
     import time, datetime
     sge_time_format = "%Y-%m-%dT%H:%M:%S"
     try:
