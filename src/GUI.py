@@ -37,6 +37,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupGUI(self,  init):
         context.app    = self.app
         context.config = self.config
+        context.GUI    = self
         # Main Tabs:
         self.statusBar()
         self.left_tab_widget  = QtGui.QTabWidget()
@@ -131,6 +132,11 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.tasks_onlySelected_toggle.setText("Show Only Selected Jobs")
         tasks_controls = QtGui.QHBoxLayout()
         tasks_controls.addWidget(self.tasks_onlySelected_toggle)
+
+        # Task Color Controls:
+        self.tasks_colorize_style =  QtGui.QComboBox()
+        self.tasks_colorize_style.addItems(['No colors', 'Color by performance'])
+        tasks_controls.addWidget(self.tasks_colorize_style)
 
         # Tasks View (Left Tabs):
         self.tasks_view = views.TasksView(context)

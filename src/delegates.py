@@ -228,13 +228,67 @@ class TasksDelegate(QItemDelegate):
         QItemDelegate.__init__(self, parent, *args)
         self.machine_background = QColor()
         self.context = context
-        self.model = context.models['tasks_model']
-        self.proxy = context.models['tasks_proxy_model']
-        self.machines_color = 0
+        self.model   = context.models['tasks_model']
+        self.proxy   = context.models['tasks_proxy_model']
+        self.colorize_style = 0
         self.setColors()
 
-        self.avarage_wallclock = None
-        self.avarage_maxvmem   = None
+        self.wallclock_idx = None
+        self.maxvmem_idx   = None
+
+        self.min_wallclock = 0
+        self.avg_wallclock = 0
+        self.max_wallclock = 0
+
+        self.min_maxvmem   = 0
+        self.avg_maxvmem   = 0
+        self.max_maxvmem   = 0
+        self.job_id        = None
+
+        # User wants to colorize taskes based on performance statistics:
+        if self.colorize_style == 1:
+            self.colorize      = self.compute_stats()
+        else:
+            self.colorize      = False
+
+    def compute_stats(self):
+        """ Computes basics statistics (min, max, avg) of a tasks model.
+        Note: we assume that 'self' displays tasks from a single job atm.
+        """
+        if not self.model._data:
+            return False
+        # Fields indices:
+        self.maxvmem_idx   = self.model.get_key_index("maxvmem")
+        self.wallclock_idx = self.model.get_key_index("ru_wallclock")
+        # Return if they are not there:
+        if not self.maxvmem_idx or not self.wallclock_idx:
+            return False
+
+        maxvmem            = self.get_array(self.model._data, self.maxvmem_idx)
+        self.min_maxvmem   = min(maxvmem)
+        self.avg_maxvmem   = sum(maxvmem)/len(maxvmem)
+        self.max_maxvmem   = max(maxvmem)
+
+        wallclock          = self.get_array(self.model._data, self.wallclock_idx)
+        self.min_wallclock = min(wallclock)
+        self.avg_wallclock = sum(wallclock)/len(wallclock)
+        self.max_wallclock = max(wallclock)
+
+        self.job_id_idx    = self.model.get_key_index("JB_job_number")
+        self.job_id        = self.model._data[0][self.job_id_idx]
+
+        if DEBUG:
+            print "maxvmem:"
+            print "min: " + str(self.min_maxvmem)
+            print "avg: " + str(self.avg_maxvmem)
+            print "max: " + str(self.max_maxvmem)
+
+            print "wallclock:"
+            print "min: " + str(self.min_wallclock)
+            print "avg: " + str(self.avg_wallclock)
+            print "max: " + str(self.max_wallclock)
+
+        return True
 
     def setColors(self):
         '''TODO: to be moved into Config() control'''
@@ -257,66 +311,69 @@ class TasksDelegate(QItemDelegate):
     def get_machines_color(self):
         view = self.context.views['machines_view']
 
-    def compute_avarages(self, data, indices):
-        """Compute avarage values in a tablemodel provided a sequence of data indices.
+    def get_array(self, data, index, convert=True):
+        """Returns agragated array of columns (i.e. transpose).
+        Optionally converts values to numbers.
         """
-        results = []
-        for index in indices:
-            avarages = 0
-            counter = 0
-            for item in data:
-                item = utilities.isNum(item[index])
-                if item:
-                    avarages += item
-                    counter += 1
-            avarages /= counter
-            results.append(avarages)
-        return results
+        result = []
+        # Early return for non indices:
+        if not index:
+            return [0]
+        for item in data:
+            item = item[index]
+            if convert:
+                item = utilities.to_number(item)
+            result.append(item)
+        return result
+
 
     
     def paint(self, painter, option, index):
         painter.save()
         wallclock = None
         maxvmem   = None
-
+        failed    = 0
         # Proxy to actual model:
         s_index = self.proxy.mapToSource(index)
-        # Set selection color:
 
-        # assert self.model._data, "Can't deal with no self.model._data at %s" % self
         if self.model._data:
-            try:
-                wallclock_idx = self.model.get_key_index("ru_wallclock")
-                maxvmem_idx   = self.model.get_key_index("maxvmem")
-                wallclock     = self.model._data[s_index.row()][wallclock_idx]
-                maxvmem       = self.model._data[s_index.row()][maxvmem_idx]
-                # Compute them only once:
-                if not self.avarage_wallclock or not self.avarage_maxvmem:
-                    self.avarage_wallclock, self.avarage_maxvmem = \
-                    self.compute_avarages(self.model._data, (wallclock_idx, maxvmem_idx))
-            except:
-                pass
+            # Find our job_id and compare it with previous one (if any):
+            job_id_idx = self.model.get_key_index("JB_job_number")
+            failed_idx = self.model.get_key_index("failed")
+            job_id     = self.model._data[s_index.row()][job_id_idx]
+            # recompute job stats only on recently updated model: 
+            if job_id != self.job_id and self.colorize_style == 1:
+                self.job_id   = job_id
+                self.colorize = self.compute_stats()
         else:
             painter.restore()
             return
 
+        # Get values for current task:
+        # TODO: This should happen for a single index per row...
+        try:
+            failed        = self.model._data[s_index.row()][failed_idx]
+            wallclock     = self.model._data[s_index.row()][self.wallclock_idx]
+            maxvmem       = self.model._data[s_index.row()][self.maxvmem_idx]
+            maxvmem       = utilities.to_number(maxvmem)
+        except:
+            pass
+            #print "No wallclock no maxvmem for current index."
+
         painter.setPen(QPen(Qt.NoPen))
         # Colorize tasks based on its relative cpu/ram cost:
-        if wallclock and maxvmem:
+        if wallclock and maxvmem and self.colorize and self.colorize_style == 1:
             color = QColor()
-            sat = utilities.isNum(maxvmem) - self.avarage_maxvmem
-            sat = utilities.clamp(sat, -1, 1)
-            sat = utilities.fit(sat, -1.0, 1.0, 0.2, 0.6)
-            hue = wallclock - self.avarage_wallclock
-            hue = utilities.clamp(hue, -1, 1)
-            hue = utilities.fit(hue, -1.0, 1.0, 0.6, 0.1)
+            sat = utilities.fit(maxvmem,   self.min_maxvmem,   self.max_maxvmem, 0.05, 0.65)
+            hue = utilities.fit(wallclock, self.min_wallclock, self.max_wallclock, 0.25, 0.9)
             color.setHsvF(hue, sat, 1)
 
-            # Mark in red hosts with used ram above 0.9 (or other SGE_HOST_RAM_WARNING constant)
-            #if mem_used > mem_total * SGE_HOST_RAM_WARNING:
-            #    color.setHsvF(1, 1 , 1)
+            # TODO:
+            # Mark in red tasks with failed status:
+            #if failed != 0:
+            #    color.setHsvF(1, .5, 1)
+
             painter.setBrush(QBrush(color))
-            #painter.setBrush(QBrush(Qt.red))
 
         # Set background for selected objects:
         if option.state & QStyle.State_Selected:

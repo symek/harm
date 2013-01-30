@@ -31,6 +31,8 @@ class HarmMainWindowCallbacks():
                      self.set_job_detail_view_filter)   
         self.connect(self.tasks_view, SIGNAL("doubleClicked(const QModelIndex&)"),  
                      self.tasks_view_doubleClicked)
+        self.connect(self.tasks_colorize_style, SIGNAL('currentIndexChanged(int)'),\
+                     self.set_tasks_colorize_style)
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
@@ -248,6 +250,13 @@ class HarmMainWindowCallbacks():
         self.job_detail_view.proxy_model.setFilterWildcard(key)
         self.job_detail_view.resizeRowsToContents()
         self.job_detail_view.resizeColumnsToContents()
+
+    def set_tasks_colorize_style(self, style):
+        """Sets color style for TasksView deletgate.
+        """
+        # For now just that:
+        self.tasks_view.delagate.colorize_style = style
+        
 
 
     #####################################################################
