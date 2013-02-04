@@ -165,6 +165,8 @@ class HarmMainWindowCallbacks():
             try:
                 stdout_file  = open(PN_path, 'r')
                 self.stdout_view.setPlainText(stdout_file.read())
+                self.stdout_view.moveCursor(QtGui.QTextCursor.End)
+                self.stdout_view.ensureCursorVisible()
                 stdout_file.close()
             except: 
                 self.stdout_view.setPlainText("Couldn't open %s" % PN_path)
@@ -176,6 +178,8 @@ class HarmMainWindowCallbacks():
             try: 
                 stderr_file  = open(PN_path, 'r')
                 self.stderr_view.setPlainText(stderr_file.read())
+                self.stderr_view.moveCursor(QtGui.QTextCursor.End)
+                self.stderr_view.ensureCursorVisible()
                 stderr_file.close()
             except: 
                 self.stderr_view.setPlainText("Couldn't open %s" % PN_path)
