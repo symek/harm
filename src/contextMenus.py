@@ -22,11 +22,11 @@ class ContextMenuBase():
                 action['name'] = "_".join(item)
                 action['capition'] = " ".join([l.title() for l in item])
                 actions.append(action)
-            # Anything other than "callback_*" means break.
+            # Anything other than "callback_*" means separator.
             else:
                 action = {}
                 action['name'] = ""
-                action['capition'] = '---------------'
+                action['capition'] = ''
                 actions.append(action)
         return actions
 
@@ -50,8 +50,10 @@ class ContextMenuBase():
             qtaction = self.addAction(action['capition'])
             if action['name'] in icons.keys():
                 icon = QIcon(icons[action['name']])
-                qtaction.setIcon(icon)            
+                qtaction.setIcon(icon)
             qtaction.setIconVisibleInMenu(1)
+            if action['name'] == "": 
+                qtaction.setSeparator(True)
             self.__setattr__(action['name'], qtaction)
 
     def execute(self, position):
@@ -73,7 +75,21 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         self.app     = context.app
         self.context = context
         items = [x for x in dir(self) if x.startswith('callback_')]
-        self.bind_actions(self.build_action_strings(items))
+        self.item_list = ['callback_copy_to_nuke', 
+                          'callback_update_from_database',
+                          'callback_clear_error',
+                          "",
+                          'callback_hold',
+                          'callback_suspend',
+                          'callback_reschedule',
+                          'callback_unhold',
+                          'callback_unsuspend',
+                          "",
+                          'callback_resubmit',
+                          "",
+                          'callback_delete']
+
+        self.bind_actions(self.build_action_strings(self.item_list))
         self.execute(position)
 
     def get_item_id(self, view=None, model=None):
@@ -255,6 +271,7 @@ class TasksContextMenu(QMenu, ContextMenuBase):
                           'callback_suspend',
                           'callback_reschedule',
                           'callback_unhold',
+                          'callback_unsuspend',
                           "",
                           'callback_delete']
         self.context = context
