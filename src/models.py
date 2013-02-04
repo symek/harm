@@ -404,9 +404,9 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         self._head = OrderedDict()
         self._dict = OrderedDict()
 
-    def append_jobs_history(self):
+    def append_jobs_history(self, history_length):
         '''Appends history jobs from a database (using DBTableModel.get_jobs_db()) '''
-        query = self.get_jobs_db()
+        query = self.get_jobs_db(history_length)
         from time import time
         t = time()
         self._data += query

@@ -102,18 +102,39 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         jobs_tab_splitter.setOrientation(Qt.Vertical)
         self.left_tab_widget.addTab(self.jobs_tab, "Jobs")
 
+        # Job controls layout
+        jobs_filter_hbox = QtGui.QHBoxLayout()
+        jobs_tab_vbox.insertLayout(0, jobs_filter_hbox)
+
          # Filter:
         self.jobs_filter_label = QtGui.QLabel()
-        self.jobs_filter_label.setText("Jobs filter")
+        self.jobs_filter_label.setText("Jobs filter:")
+
+        # Refresh toggle:
         self.auto_refresh_toggle = QtGui.QCheckBox()
         self.auto_refresh_toggle.setCheckState(Qt.Checked) 
         self.auto_refresh_toggle.setText("Auto refresh")
-        jobs_filter_hbox = QtGui.QHBoxLayout()
-        jobs_filter_hbox.addWidget(self.jobs_filter_label)
+
+        # History length to get from a database:
+        self.history_length_label = QtGui.QLabel()
+        self.history_length_label.setText("Jobs #:")
+        validator = QtGui.QIntValidator(1, 10000, None)
+        self.history_length = QLineEdit()
+        self.history_length.setMaxLength(6)
+        self.history_length.setMaximumWidth(50)
+        self.history_length.setValidator(validator)
+        # TODO: Config class:
+        self.history_length.setText("150")
+        
+        # Job filter line edit (for filtering by columns' entry):
         self.jobs_filter_line = QLineEdit()
+
+        jobs_filter_hbox.addWidget(self.jobs_filter_label)
         jobs_filter_hbox.addWidget(self.jobs_filter_line)
         jobs_filter_hbox.addWidget(self.auto_refresh_toggle)
-        jobs_tab_vbox.insertLayout(0, jobs_filter_hbox)
+        jobs_filter_hbox.addWidget(self.history_length_label)
+        jobs_filter_hbox.addWidget(self.history_length)
+        
     
         # History filters:
         self.jobs_filter_menu = QtGui.QMenu()

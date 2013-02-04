@@ -106,8 +106,9 @@ class JobsView(QTableView, ViewBase):
         # Models:
         self.model = models.JobsModel(self)
         self.model.update(SGE_JOBS_LIST_GROUPED)
-        # FIXME: history should be appended in update()...
-        self.model.append_jobs_history()
+        length = self.context.GUI.history_length.text()
+        # FIXME: history should be appended in update()..
+        self.model.append_jobs_history(int(length))
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -138,7 +139,8 @@ class JobsView(QTableView, ViewBase):
         '''Overwrites update_model() to allow append history jobs to a model.'''
         self.model.reset()
         self.model.update(*arg)
-        self.model.append_jobs_history()  
+        length = self.context.GUI.history_length.text()
+        self.model.append_jobs_history(int(length))
         self.set_column_order(self.order_columns)
         self.set_column_hidden(self.hidden_columns)
 
