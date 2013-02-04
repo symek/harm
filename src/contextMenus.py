@@ -13,13 +13,20 @@ class ContextMenuBase():
         '''Creates a list of tuples consisting name and caption of the actions built
            from callbacks class methods.'''
         actions = []
-        for item in dir(self):
-            if item.startswith('callback'):
+        # 
+        for item in callbacks:
+            if item.startswith("callback_"):
                 item = item.split("_")
                 item = item[1:]
                 action = {}
                 action['name'] = "_".join(item)
                 action['capition'] = " ".join([l.title() for l in item])
+                actions.append(action)
+            # Anything other than "callback_*" means break.
+            else:
+                action = {}
+                action['name'] = ""
+                action['capition'] = '---------------'
                 actions.append(action)
         return actions
 
@@ -65,7 +72,8 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         self.model   = context.models['jobs_model']
         self.app     = context.app
         self.context = context
-        self.bind_actions(self.build_action_strings(self))
+        items = [x for x in dir(self) if x.startswith('callback_')]
+        self.bind_actions(self.build_action_strings(items))
         self.execute(position)
 
     def get_item_id(self, view=None, model=None):
@@ -237,10 +245,20 @@ class JobsContextMenu(QMenu, ContextMenuBase):
 class TasksContextMenu(QMenu, ContextMenuBase):
     def __init__(self, context, position):
         super(self.__class__, self).__init__()
-        self.view    = context.views['tasks_view']
-        self.model   = context.models['tasks_model']
+        self.view      = context.views['tasks_view']
+        self.model     = context.models['tasks_model']
+        self.item_list = ['callback_show_sequence', 
+                          'callback_show_in_folder',
+                          'callback_clear_error',
+                          "",
+                          'callback_hold',
+                          'callback_suspend',
+                          'callback_reschedule',
+                          'callback_unhold',
+                          "",
+                          'callback_delete']
         self.context = context
-        self.bind_actions(self.build_action_strings(self))
+        self.bind_actions(self.build_action_strings(self.item_list))
         self.execute(position)
 
     def get_item_id(self, view=None, model=None):
@@ -294,3 +312,17 @@ class TasksContextMenu(QMenu, ContextMenuBase):
             picture = utilities.padding(picture[0], 'shell')[0]
             viewer  = config.convert_platform_path(config['image_viewer'])
             os.system(viewer + " " + picture)
+
+    def callback_show_in_folder(self):
+        # Get tasks:
+        ids = self.get_item_id()
+        ids = ids.split()[0]
+        config  = self.context.config
+        model   = self.context.views['job_detail_view'].model
+        picture = model.get_value('OUTPUT_PICTURE')
+        if picture:
+            folder, file  = os.path.split(picture[0])
+            #picture = utilities.padding(picture[0], 'shell')[0]
+            #viewer  = config.convert_platform_path(config['image_viewer'])
+            # FIXME: This is system specific
+            os.system("nautilus %s" % folder)
