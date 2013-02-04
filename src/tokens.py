@@ -27,7 +27,7 @@ header['ru_wallclock'] = 'Elapsed'
 header['ru_inblock']   = 'Read Blocks'
 header['ru_oublock']  = "Write Blocks"
 header['ru_utime']    = 'Process Time'
-header['ru_stime']    = 'Syste Time'
+header['ru_stime']    = 'System Time'
 header['ru_rtime']   = 'Real Time'
 header['hostname']   = 'Hostname'
 
