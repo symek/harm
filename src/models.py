@@ -559,7 +559,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             if value: 
                 value = int(float(value))
                 # FIXME: Hard coded cores number:
-                if column == 'cpu': value /= 8
+                # if column == 'cpu': value /= 8
                 value = str(timedelta(seconds=value))
         return value
 
