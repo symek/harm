@@ -33,6 +33,8 @@ class HarmMainWindowCallbacks():
                      self.tasks_view_doubleClicked)
         self.connect(self.tasks_colorize_style, SIGNAL('currentIndexChanged(int)'),\
                      self.set_tasks_colorize_style)
+        self.connect(self.job_stdout_search_line, SIGNAL('textChanged(const QString&)'),\
+                     self.set_jobs_stdout_view_search) 
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
@@ -260,6 +262,14 @@ class HarmMainWindowCallbacks():
         """
         # For now just that:
         self.tasks_view.delagate.colorize_style = style
+
+    def set_jobs_stdout_view_search(self, pattern):
+        """ Triggers search of a given pattern in stdout
+        """
+        #pattern = self.job_stdout_search_line.text()
+        if self.stdout_view.find(pattern):
+            self.stdout_view.ensureCursorVisible()
+
         
 
 

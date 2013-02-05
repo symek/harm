@@ -251,18 +251,38 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
     def setupTaskStdTab(self):
         '''Task Stdout/err reads log files given task details'''
         # Stdout view (Right Tabs):
+        self.job_stdout_search_label = QtGui.QLabel()
+        self.job_stdout_search_label.setText("Search: ")
+        job_stdout_hbox = QtGui.QHBoxLayout()
+        self.job_stdout_search_line = QLineEdit()
+        job_stdout_hbox.addWidget(self.job_stdout_search_label)
+        job_stdout_hbox.addWidget(self.job_stdout_search_line)
+
         self.stdout_tab = QtGui.QWidget()
         self.right_tab_widget.addTab(self.stdout_tab, "Stdout")
         stdout_tab_vbox  = QtGui.QVBoxLayout(self.stdout_tab)
         self.stdout_view = QtGui.QTextBrowser(self.stdout_tab)
+
+        stdout_tab_vbox.insertLayout(0,job_stdout_hbox)
+
         stdout_tab_vbox.addWidget(self.stdout_view)
         self.stdout_view.setPlainText(str("No stdout yet."))
 
         # Stderr view (Right Tabs):
+        self.job_stderr_search_label = QtGui.QLabel()
+        self.job_stderr_search_label.setText("Search: ")
+        job_stderr_hbox = QtGui.QHBoxLayout()
+        self.job_stderr_search_line = QLineEdit()
+        job_stderr_hbox.addWidget(self.job_stderr_search_label)
+        job_stderr_hbox.addWidget(self.job_stderr_search_line)
+
         self.stderr_tab = QtGui.QWidget()
         self.right_tab_widget.addTab(self.stderr_tab, "Stderr")
         stderr_tab_vbox  = QtGui.QVBoxLayout(self.stderr_tab)
         self.stderr_view = QtGui.QTextBrowser(self.stderr_tab)
+
+        stderr_tab_vbox.insertLayout(0, job_stderr_hbox)
+
         stderr_tab_vbox.addWidget(self.stderr_view)
         self.stderr_view.setPlainText(str("No stderr yet."))
 

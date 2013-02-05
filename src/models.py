@@ -318,7 +318,7 @@ class DBTableModel():
         query = self._db.view('harm/get_jobs_db', limit=job_count, descending=True).rows
         if DEBUG:
             print "DBTableModel.get_jobs_db:  " + str(time() -t)
-        query = [x.value for x in query]
+        query = [x.value for x in query] 
         # Convert a time string and remove jobs which were
         # returned by qstat:
         for item in range(len(query)):
