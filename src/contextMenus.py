@@ -173,18 +173,21 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         else: db = server.create(db)
         # Deal with models' indices,
         # TODO: Is this the best place to get unique rows indices?
-        indices = self.view.selectedIndexes()
-        indices = [self.view.proxy_model.mapToSource(index) for index in indices]
-        job_ids = list(set([index.row() for index in indices]))
+        indices  = self.view.selectedIndexes()
+        indices  = [self.view.proxy_model.mapToSource(index) for index in indices]
+        row_idxs = list(set([index.row() for index in indices]))
         job_id_index = self.model.get_key_index('JB_job_number')
         # Work per selected job:
-        for _id in job_ids:
+        for row_idx in row_idxs:
             # Job id and its entry from qacct:
-            job_id= self.model._data[index.row()][job_id_index]
+            job_id= self.model._data[row_idx][job_id_index]
             model = utilities.read_qacct(job_id, True)
             # Database doc and relevant sub-entry:
             job   = db[job_id]
             tasks = job["JB_ja_tasks"]['ulong_sublist']
+            # Note: as usual we have to gaurd here against sge inconsitancy:
+            if not isinstance(tasks, list):
+                tasks = [tasks]
             #FIXME: shouldn't it be opposite (per task in qacct create db task?)
             for task in tasks:
                 task_id  = task['JAT_task_number']
@@ -211,7 +214,7 @@ class JobsContextMenu(QMenu, ContextMenuBase):
                 task["JAT_scaled_usage_list"]['scaled'] = new_scaled
             job["JB_ja_tasks"]['ulong_sublist'] = tasks
             # Save doc in database:
-            db[job_id] = job
+            db.update([job])
   
 
 
