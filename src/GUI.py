@@ -156,7 +156,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
         # Task Color Controls:
         self.tasks_colorize_style =  QtGui.QComboBox()
-        self.tasks_colorize_style.addItems(['No colors', 'Color by performance'])
+        self.tasks_colorize_style.addItems(['No colors', 'Color by performance', 'Color by hostname'])
         tasks_controls.addWidget(self.tasks_colorize_style)
 
         # Tasks View (Left Tabs):

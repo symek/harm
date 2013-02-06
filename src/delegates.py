@@ -1,7 +1,7 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import utilities
-import math, os
+import math, os, hashlib, random
 from constants import *
 import utilities
 
@@ -244,10 +244,15 @@ class TasksDelegate(QItemDelegate):
         self.avg_maxvmem   = 0
         self.max_maxvmem   = 0
         self.job_id        = None
+        self.machines      = {}
 
         # User wants to colorize taskes based on performance statistics:
         if self.colorize_style == 1:
             self.colorize      = self.compute_stats()
+        # User wants to colorize based on hostname:
+        elif self.colorize_style == 2:
+            self.colorize = True
+        # 
         else:
             self.colorize      = False
 
@@ -258,7 +263,7 @@ class TasksDelegate(QItemDelegate):
         if not self.model._data:
             return False
         # Fields indices:
-        self.maxvmem_idx   = self.model.get_key_index("maxvmem")
+        self.maxvmem_idx   = self.model.get_key_index("mem")
         self.wallclock_idx = self.model.get_key_index("ru_wallclock")
         # Return if they are not there:
         if not self.maxvmem_idx or not self.wallclock_idx:
@@ -361,19 +366,36 @@ class TasksDelegate(QItemDelegate):
             #print "No wallclock no maxvmem for current index."
 
         painter.setPen(QPen(Qt.NoPen))
+        color = QColor()
         # Colorize tasks based on its relative cpu/ram cost:
         if wallclock and maxvmem and self.colorize and self.colorize_style == 1:
-            color = QColor()
             sat = utilities.fit(maxvmem,   self.min_maxvmem,   self.max_maxvmem, 0.05, 0.65)
             hue = utilities.fit(wallclock, self.min_wallclock, self.max_wallclock, 0.25, 0.9)
             color.setHsvF(hue, sat, 1)
 
-            # TODO:
-            # Mark in red tasks with failed status:
-            #if failed != 0:
-            #    color.setHsvF(1, .5, 1)
+        # based on hostname:
+        elif self.colorize and self.colorize_style == 2:
+            hostname_idx = self.model.get_key_index("hostname")
+            if hostname_idx:
+                hostname = self.model._data[s_index.row()][hostname_idx]
+                if not hostname in self.machines:
+                    # We take first three digits of md5 hash as a seed for random color:
+                    random_digit = int(str(int(hashlib.md5(hostname).hexdigest(),16))[:3])
+                    self.machines[hostname] = random_digit
+                # Random color per hostname:
+                random.seed(self.machines[hostname])
+                color.setHsvF(random.random(), 0.2, 1)
+        else:
+            color = QColor(Qt.white)
 
-            painter.setBrush(QBrush(color))
+        # Set backgroud color:
+        painter.setBrush(QBrush(color))
+
+        # TODO:
+        # Mark in red tasks with failed status:
+        #if failed != 0:
+        #    color.setHsvF(1, .5, 1)
+
 
         # Set background for selected objects:
         if option.state & QStyle.State_Selected:
