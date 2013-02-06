@@ -158,6 +158,48 @@ def read_qacct(job_id, tasks=True):
     return None
 
 
+def update_database(db, job_id):
+        """Update per task entires in database job entry with qacct -j job_id query.
+        """
+        # Deal with models' indices,
+        # TODO: Is this the best place to get unique rows indices?
+        print dir(utilities)
+        model = utilities.read_qacct(job_id, True)
+        # Database doc and relevant sub-entry:
+        job   = db[job_id]
+        tasks = job["JB_ja_tasks"]['ulong_sublist']
+        #FIXME: shouldn't it be opposite (per task in qacct create db task?)
+        for task in tasks:
+            task_id  = task['JAT_task_number']
+            task_str = ".".join([job_id, task_id])
+            # Task might not be in qacct yet:
+            if not task_str in model:
+                continue
+            # TODO: by ignoring bellow line, we dismiss *all* render time log data.
+            # and copy everything from qacct, which might be better or not...
+            if not "JAT_scaled_usage_list" in task: pass
+            task['JAT_scaled_usage_list'] = dict()
+            task['JAT_scaled_usage_list']['scaled'] = []
+            # A list of tasks measurements alligned with 
+            # an original qstat format:
+            scaled = task["JAT_scaled_usage_list"]['scaled']
+            new_scaled = []
+            # print model[task_str]
+            # Take all but first 10 fields:
+            for data in model[task_str].keys():
+                _d = OrderedDict()
+                _d['UA_name'] = data
+                _d['UA_value']= model[task_str][data]
+                new_scaled.append(_d)
+            # Copy fields:
+            task["JAT_scaled_usage_list"]['scaled'] = new_scaled
+        job["JB_ja_tasks"]['ulong_sublist'] = tasks
+        # Save doc in database:
+        db.update([job])
+        print "HARM: Last task triggered update: %s in %s" % (str(job_id), os.getenv("CDB_SERVER"))
+
+
+
 def main():
     # Our variables
     db    = 'sge_db'
@@ -165,14 +207,12 @@ def main():
     #host  = socket.gethostname()
     server = Server(os.getenv("CDB_SERVER"))
     account=  None #read_qacct(jobid)
+    for item in os.environ:
+        if item.startswith("SGE_"):
+            print item + ": ",
+            print os.environ[item]
     print "HARM: Server found."
 
-    #WIP:  Separate db for tasks
-    dbt   = 'sge_db_tasks'
-    if dbt in server:
-        dbt = server[dbt]
-    else:
-        dbt = server.create(dbt)
 
     # Connect to database
     if db in server:
@@ -181,6 +221,17 @@ def main():
     else:
         db = server.create(db)
         print "HARM: databased created"
+
+
+
+    # Safe task specific data in dbt:
+    taskid = os.getenv("SGE_TASK_ID", None)
+    lastid = os.getenv("SGE_TASK_LAST", None)
+
+    # This is last task from a job, update cdb:
+    if taskid == lastid:
+        update_database(db, jobid)
+        return 0
 
     # Get data or exit on fail:
     try:
@@ -220,17 +271,8 @@ def main():
         model._dict[nkey] = value
     print "HARM: Model prepared."
 
-    # Safe task specific data in dbt:
-    taskid = os.getenv("SGE_TASK_ID", None)
+   
 
-    # if taskid:
-    #     task_st = "%s_%s" % (jobid, taskid)
-    #     cur_tasks = model._dict["JB_ja_tasks"]['ulong_sublist']
-    #     for task in cur_tasks:
-    #         if taskid == task['JAT_task_number']:
-    #             task['JOB_SCRIPT'] = job_script_parm
-    #             dbt[task_st] = dict(task)
-                #dbt.update([dict(task)])
 
     #We need to make sure, two renders aren't finishing at the same time:
     # FIXME: 
@@ -273,29 +315,6 @@ def main():
         except: 
             pass
 
-
-        # Update tasks info with data taken from qacct command:
-        if account:
-            for task in cur_tasks:
-                # Drop if it was already updated:
-                #if "qacct" in task.keys():
-                #    continue
-                task['qacct'] = True
-                task_id = task['JAT_task_number']
-                # The only reason we do this, is bacause it reflects data stucture
-                # as returned by qstat. This is probably wrong path (overcomplicated)
-                if not "JAT_scaled_usage_list" in task:
-                    task['JAT_scaled_usage_list'] = dict()
-                    task['JAT_scaled_usage_list']['scaled'] = []
-                # task_st is task string in a form of "1234.1",
-                # this is how qacct_to_dict stores per taks info:
-                task_st = ".".join((jobid, task_id))
-                if task_st in account.keys():
-                    for data in account[task_st]:
-                        _d = OrderedDict()
-                        _d['UA_name']  = data
-                        _d['UA_value'] = account[task_st][data]
-                        task["JAT_scaled_usage_list"]['scaled'].append(_d)
 
         # Finally copy all details into job structure:
         print "HARM: copying keys to model."
