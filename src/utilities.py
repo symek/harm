@@ -230,20 +230,24 @@ def qacct_to_dict(text, tasks=False, order_list=None):
         if order_list: 
             j = reorder_dict(j, order_list)
         if j.keys():
-            if not tasks:
-                out[str(j['jobnumber'])] = j
-            else:
-                out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
+            # if not tasks:
+            #     out[str(j['jobnumber'])] = j
+            # else:
+            out[".".join([str(j['jobnumber']), str(j['taskid'])])] = j
     return out
 
 
-def read_qacct(job_id, tasks=True):
+def read_qacct(job_id, task=0):
     """Calls SGE qacct command and returns its output in a format of dictonary,
     in case job_id was correct (at least a single task in the job has been finished.)
     """
-    t = os.popen("qacct -j %s" % job_id).read()
+    if task != 0:
+        t = os.popen('qacct -j %s -t %s' % (job_id, task)).read()
+    else:
+        t = os.popen("qacct -j %s" % job_id).read()
+
     if not t.startswith("error:"):
-        return qacct_to_dict(t, tasks)
+        return qacct_to_dict(t, task)
     return None
 
 
