@@ -177,44 +177,39 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         indices  = [self.view.proxy_model.mapToSource(index) for index in indices]
         row_idxs = list(set([index.row() for index in indices]))
         job_id_index = self.model.get_key_index('JB_job_number')
-        # Work per selected job:
+        jobs = []
+        # Loop per selected job:
         for row_idx in row_idxs:
             # Job id and its entry from qacct:
-            job_id= self.model._data[row_idx][job_id_index]
-            model = utilities.read_qacct(job_id, True)
+            job_id = self.model._data[row_idx][job_id_index]
+            model  = utilities.read_qacct(job_id, 0)
             # Database doc and relevant sub-entry:
             job   = db[job_id]
-            tasks = job["JB_ja_tasks"]['ulong_sublist']
-            # Note: as usual we have to gaurd here against sge inconsitancy:
-            if not isinstance(tasks, list):
-                tasks = [tasks]
-            #FIXME: shouldn't it be opposite (per task in qacct create db task?)
-            for task in tasks:
-                task_id  = task['JAT_task_number']
-                task_str = ".".join([job_id, task_id])
-                # Task might not be in qacct yet:
-                if not task_str in model:
-                    continue
-                # TODO: by ignoring bellow line, we dismiss *all* render time log data.
-                # and copy everything from qacct, which might be better or not...
-                if not "JAT_scaled_usage_list" in task: pass
-                task['JAT_scaled_usage_list'] = dict()
-                task['JAT_scaled_usage_list']['scaled'] = []
-                # A list of tasks measurements alligned with 
-                # an original qstat format:
-                scaled = task["JAT_scaled_usage_list"]['scaled']
-                new_scaled = []
-                # Take all but first 10 fields:
-                for data in model[task_str].keys():
+            tasks = []
+            #  Model task's detail the same way, they are in qstat -xml:
+            for task in model:
+                job_id, task_id = task.split(".")
+                task_dir = {}
+                task_dir['JAT_status'] = '65536'
+                task_dir['JAT_scaled_usage_list'] = dict()
+                task_dir['JAT_task_number'] = task_id
+                task_dir['HARM_cdb_logged'] = True
+                task_dir['JAT_scaled_usage_list']['scaled'] = []
+                scaled = []
+                for data in model[task].keys():
                     _d = OrderedDict()
                     _d['UA_name'] = data
-                    _d['UA_value']= model[task_str][data]
-                    new_scaled.append(_d)
-                # Copy fields:
-                task["JAT_scaled_usage_list"]['scaled'] = new_scaled
+                    _d['UA_value']= model[task][data]
+                    scaled.append(_d)
+                task_dir['JAT_scaled_usage_list']['scaled'] = scaled
+                tasks.append(task_dir)
+            # new tasks list added to a job and job added to a jobs list
+            # to be updated in bulk:
             job["JB_ja_tasks"]['ulong_sublist'] = tasks
-            # Save doc in database:
-            db.update([job])
+            jobs.append(job)
+
+        # Save docs in database:
+        db.update(jobs)
   
 
 
