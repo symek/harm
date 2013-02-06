@@ -264,7 +264,7 @@ class TasksDelegate(QItemDelegate):
             return False
         # Fields indices:
         self.maxvmem_idx   = self.model.get_key_index("mem")
-        self.wallclock_idx = self.model.get_key_index("ru_wallclock")
+        self.wallclock_idx = self.model.get_key_index("ru_utime")
         # Return if they are not there:
         if not self.maxvmem_idx or not self.wallclock_idx:
             return False
@@ -384,7 +384,7 @@ class TasksDelegate(QItemDelegate):
                     self.machines[hostname] = random_digit
                 # Random color per hostname:
                 random.seed(self.machines[hostname])
-                color.setHsvF(random.random(), 0.2, 1)
+                color.setHsvF(random.random(), 0.3, 1)
         else:
             color = QColor(Qt.white)
 
