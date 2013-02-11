@@ -355,7 +355,8 @@ class DBTableModel():
             except: return OrderedDict()
         t = time()
         job = self._db.view('harm/get_tasks_db', key=job_id).rows
-        print "DBTableModel.get_tasks_db: %s" % str(time()-t)
+        if DEBUG:
+            print "DBTableModel.get_tasks_db: %s" % str(time()-t)
         return job
 
 
@@ -429,13 +430,14 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         # to keep things clean down the stream.
         t = time()
         self._data = []
+        self._dict = OrderedDict()
         self._head = OrderedDict()
-        self._tree = ElementTree.parse(os.popen(sge_command))
-        self._dict = XmlDictConfig(self._tree.getroot())[token]
-        if not isinstance(self._dict, dict):
-            self._dict = OrderedDict()
-        else:
-            self._dict = OrderedDict(self._dict)
+        # ElementTree raise an exeption on xml parse error:\
+        try:
+            self._tree = ElementTree.parse(os.popen(sge_command))
+            self._dict = OrderedDict(XmlDictConfig(self._tree.getroot())[token])
+        except:
+            pass
         if DEBUG:
             print str(self.__class__.__name__) + ": " + str(time() - t) + "(after xml parse)"
 
