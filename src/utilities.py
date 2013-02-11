@@ -91,10 +91,8 @@ def string_to_elapsed_time(value):
 #http://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
 def get_username():
     '''Cross-platform method to get to the user name.'''
-    from os import getuid
-    from  pwd import getpwuid
-    return getpwuid(getuid())[0]
-
+    import getpass
+    return getpass.getuser()
 
 def render_basic_job_info(data):
     '''Renders basic job information from job detail model.'''
