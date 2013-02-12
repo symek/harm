@@ -9,6 +9,7 @@ from contextMenus import *
 import delegates
 import models
 import config
+import structured
 
 #System:
 import os
@@ -397,3 +398,61 @@ class JobDetailView(QTableView, ViewBase):
         self.model.update(SGE_JOB_DETAILS % jobid, 'djob_info')
         self.resizeRowsToContents()
         self.resizeColumnsToContents()
+
+
+
+##################################################################
+#               Job Detail Table Model                           #
+# This one is yet customized as it consists with many rows and   #
+# two columns only (variable, value) TODO: replace with www rander#
+# page with fine tuned artists friendly look../                  #   
+# ################################################################
+
+class JobDetailTreeView(QtGui.QTreeWidget, models.DBTableModel):
+    def __init__(self, context, entry="djob_info"):
+        QtGui.QTreeWidget.__init__(self)
+        self.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.setHeaderLabels(['Variable', 'Value'])
+        self.entry = entry
+        self.context = context
+
+    
+    def update_model(self, jobid):
+        self.clear()
+        if not self.update(SGE_JOB_DETAILS % jobid, 'djob_info'):
+            print "Updating from db job: %s" % jobid
+            data = structured.dict2et(dict(self.get_job_details_db(jobid)), 'djob_info')
+            self.populate(data)
+
+    def update(self, sge_command, entry='djob_info'):
+        try:
+            self._tree = ElementTree()
+            self._tree.parse(os.popen(sge_command))
+            self.root  = self._tree.find(self.entry)
+            self.populate(self.root)        
+            return True
+        except:
+            return False
+
+
+    def columnCount(self, parent):
+        return 2
+
+    def populate(self, data, parent=None):
+        if not parent:
+            parent = self
+        # populate the tree with QTreeWidgetItem items
+        for row in data:
+            rowItem = QtGui.QTreeWidgetItem(parent)
+            rowItem.setText(0, str(row.tag))
+            rowItem.setExpanded(True)
+            # is attached to the root (parent) widget
+            for child in row.getchildren():
+                # is attached to the current row (rowItem) widget
+                childItem = QtGui.QTreeWidgetItem(rowItem)
+                childItem.setText(0, str(child.tag))
+                childItem.setExpanded(True)
+                if not child.getchildren():
+                    childItem.setText(1, str(child.text))             
+                else:
+                    self.populate(child, childItem)
