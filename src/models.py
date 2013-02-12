@@ -318,7 +318,9 @@ class DBTableModel():
         query = self._db.view('harm/get_jobs_db', limit=job_count, descending=True).rows
         if DEBUG:
             print "DBTableModel.get_jobs_db:  " + str(time() -t)
-        query = [x.value for x in query] 
+        # We need this because of unicode return in Windows:
+        query = [[str(y) for y in x.value] for x in query]
+
         # Convert a time string and remove jobs which were
         # returned by qstat:
         for item in range(len(query)):
@@ -417,8 +419,8 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         # It's not properly tested though...
         # If not headers yet:
         if len(self._head) == 0:
-            self._head = OrderedDict({1:"JB_owner", 2:"state", 3:"tasks", 4:"JB_priority", 5:"JB_job_name", 6:"slots", \
-                          7:"queue_name", 8:"JB_job_number", 9:"JB_submission_time"})
+            self._head = OrderedDict({0:"JB_owner", 1:"state", 2:"tasks", 3:"JAT_prio", 4:"JB_name", 5:"slots", \
+                          6:"queue_name", 7:"JB_job_number", 8:"JB_submission_time"})
         if DEBUG:
             print "JobsModel.append_jobs_history: " + str(time() - t)
 
@@ -436,7 +438,7 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         try:
             self._tree = ElementTree.parse(os.popen(sge_command))
             self._dict = OrderedDict(XmlDictConfig(self._tree.getroot())[token])
-        except:
+        except: 
             pass
         if DEBUG:
             print str(self.__class__.__name__) + ": " + str(time() - t) + "(after xml parse)"
@@ -506,7 +508,9 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
                 else:
                     field_idx = self._head.values().index(name)
                 assert field_idx < len(_data), "field_idx exeeds _data length."
-                _data[field_idx] = value
+                # FIXME: on Windows value is unicode, not str, we have to force it here
+                # so PyQt4 displays it properly. This probably should be fixed differently
+                _data[field_idx] = str(value)
             self._data.append(_data)
         self.emit(SIGNAL("layoutChanged()"))
 
@@ -632,9 +636,13 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
     def update(self, sge_command, token='job_info', sort_by_field='hostname', reverse_order=False):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
+        self._tree = None
         self._data = []
-        self._tree = ElementTree.parse(os.popen(sge_command))
         self._dict = OrderedDict()
+        try:
+            self._tree = ElementTree.parse(os.popen(sge_command))
+        except:
+            return
         # Build a dictionary of dictionaries:
         # This differs again, because qhost -xml saves field's 
         # name as the attributes ('name') with values as values...
@@ -716,7 +724,6 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         if len(self._data):
             return len(self._data[0])
         return 0
-
 
 
 
