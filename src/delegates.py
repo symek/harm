@@ -22,7 +22,8 @@ class JobsDelegate(QItemDelegate):
         self.model = context.models['jobs_model']
         self.proxy = context.models['jobs_proxy_model']
         self.setColors()
-        self.app_icons = utilities.findIcons()
+        # TODO: We should not happend in utilities but config more likely:
+        self.app_icons = utilities.findIcons(context.config['HARM_ICON'])
 
     def setColors(self):
         '''TODO: to be moved into Config() control'''
@@ -369,8 +370,8 @@ class TasksDelegate(QItemDelegate):
         color = QColor()
         # Colorize tasks based on its relative cpu/ram cost:
         if wallclock and maxvmem and self.colorize and self.colorize_style == 1:
-            sat = utilities.fit(maxvmem,   self.min_maxvmem,   self.max_maxvmem, 0.05, 0.65)
-            hue = utilities.fit(wallclock, self.min_wallclock, self.max_wallclock, 0.25, 0.9)
+            sat = utilities.fit(float(maxvmem),   self.min_maxvmem,   self.max_maxvmem, 0.05, 0.65)
+            hue = utilities.fit(float(wallclock), self.min_wallclock, self.max_wallclock, 0.25, 0.9)
             color.setHsvF(hue, sat, 1)
 
         # based on hostname:
