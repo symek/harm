@@ -35,11 +35,11 @@ class HarmMainWindowCallbacks():
                      self.set_tasks_colorize_style)
         self.connect(self.job_stdout_search_line, SIGNAL('textChanged(const QString&)'),\
                      self.set_jobs_stdout_view_search) 
+        self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
+                     self.change_job_view)
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
-        #self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
-        #             self.change_job_view)
         #self.connect(self.machine_view_combo, SIGNAL('currentIndexChanged(int)'), 
         #             self.change_machine_view)
         #             self.finished_view_clicked)
@@ -77,9 +77,11 @@ class HarmMainWindowCallbacks():
 
         # Update job detail view in case its tab is visible:
         if self.right_tab_widget.currentIndex() == 0:
-            #pass
             self.job_detail_view.update_model(job_id)
             self.job_detail_basic_view_update(job_id)
+            # Tree view active:
+            if self.job_view_combo.currentIndex() == 2:
+                self.job_detail_tree_view.update_model(job_id)
 
         # We set task view filter to currently selected AND runnig jobs,
         # or update tasks view with past jobs using database:
@@ -270,6 +272,14 @@ class HarmMainWindowCallbacks():
         if self.stdout_view.find(pattern):
             self.stdout_view.ensureCursorVisible()
 
+    def change_job_view(self, view):
+        '''Switch job view between table and tree views.'''
+        if view == 0:
+            self.job_detail_tree_view.hide()
+            self.job_detail_view.show()     
+        else:
+            self.job_detail_view.hide()
+            self.job_detail_tree_view.show()
         
 
 
@@ -277,14 +287,6 @@ class HarmMainWindowCallbacks():
     ### Old stuff
 
 
-    def change_job_view(self, view):
-        '''Switch job view between table and tree views.'''
-        if view == 0:
-            self.job_tree_view.hide()
-            self.job_view.show()     
-        else:
-            self.job_view.hide()
-            self.job_tree_view.show()
 
     def change_machine_view(self, view):
         '''Switch machines view between table and tree views.'''
