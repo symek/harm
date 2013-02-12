@@ -17,7 +17,7 @@ import structured, utilities, views
 from constants import *
 
 #Google charts:
-from pygooglechart import *
+#from pygooglechart import *
 
 # FIXME Is it the right place?
 class Context(object):
@@ -209,9 +209,9 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         job_detail_tab_vbox  = QtGui.QVBoxLayout(self.job_detail_tab)
 
         # Combo box for job views:
-        #self.job_view_combo   = QtGui.QComboBox()
-        #self.job_view_combo.addItems(['Basic View','Detailed View', "Tree View"])
-        #job_detail_tab_vbox.addWidget(self.job_view_combo)
+        self.job_view_combo   = QtGui.QComboBox()
+        self.job_view_combo.addItems(['Basic View','Detailed View', "Tree View"])
+        job_detail_tab_vbox.addWidget(self.job_view_combo)
 
         # Filter:
         self.job_detail_filter_label = QtGui.QLabel()
@@ -220,7 +220,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         job_details_hbox.addWidget(self.job_detail_filter_label)
         self.job_detail_filter_line = QLineEdit()
         job_details_hbox.addWidget(self.job_detail_filter_line)
-        #job_details_hbox.addWidget(self.job_view_combo)
+        job_details_hbox.addWidget(self.job_view_combo)
         job_detail_tab_vbox.insertLayout(0, job_details_hbox)
 
         details_tab_splitter  = QtGui.QSplitter(self.job_detail_tab)
@@ -236,16 +236,11 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         details_tab_splitter.addWidget(self.job_detail_basic_view)
         details_tab_splitter.addWidget(self.job_detail_view)
 
-
         # Tree job view setup:
-        #if job_id:
-        #    self.job_tree_view = SGETreeView(os.popen(SGE_JOB_DETAILS % job_id))
-        #else:
-        #    self.job_tree_view = SGETreeView(os.popen(EMPTY_SGE_JOB_DETAILS))
-
-        #job_tab_vbox.addWidget(self.job_tree_view)
-        #self.job_tree_view.setAlternatingRowColors(1)
-        #self.job_tree_view.hide()
+        self.job_detail_tree_view = views.JobDetailTreeView(context)
+        job_detail_tab_vbox.addWidget(self.job_detail_tree_view)
+        self.job_detail_tree_view.setAlternatingRowColors(1)
+        self.job_detail_tree_view.hide()
 
 
     def setupTaskStdTab(self):
