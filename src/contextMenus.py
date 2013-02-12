@@ -337,7 +337,7 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         picture = model.get_value('OUTPUT_PICTURE')
         if picture:
             folder, file  = os.path.split(picture[0])
-            #picture = utilities.padding(picture[0], 'shell')[0]
-            #viewer  = config.convert_platform_path(config['image_viewer'])
+            folder        = self.context.config.convert_platform_path(folder)
+            file_manger   = config['file_manager']
             # FIXME: This is system specific
-            os.system("nautilus %s" % folder)
+            os.system("%s %s" % (file_manger, folder))
