@@ -33,6 +33,7 @@ class Config(dict):
             self['HARM_CONFIG'] = os.path.join(self['HARM_HOME'], "harm.config")
             # TODO:
             # Parse and apply confing file HERE:
+
         # or make it clear there is no config file:
         if not os.path.isfile(self['HARM_CONFIG']):
             self['HARM_CONFIG'] = None
@@ -44,8 +45,16 @@ class Config(dict):
         self['HarmMainWindow'] = {'timer':{}}
         self['HarmMainWindow']['timer']['setInterval'] = 1000*120
 
-        # Image viewer:
-        self['image_viewer'] = '/opt/package/houdini_12.1.185/bin/mplay'
+        # Platform image viewer and file manager:
+        if sys.platform in ('linux2', 'linux'):
+            self['image_viewer'] = '/opt/package/houdini_12.1.185/bin/mplay'
+            self['file_manager'] = 'nautilus'
+        elif sys.platform in ('win32', 'win64'):
+            self['image_viewer'] = "C:\\Program Files (x86)\\djv 0.8.3\\bin\\dvj_view.exe"
+            self['file_manager'] = 'explorer'
+        else:
+            self['image_viewer'] = None
+            self['file_manager'] = None
 
         # self.selectedC.setHsvF(0.108, 0.95, 1)
         # self.waitingC.setHsvF(0.30, 0.3, 1)
