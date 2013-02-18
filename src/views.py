@@ -122,7 +122,7 @@ class JobsView(QTableView, ViewBase):
         self.setItemDelegate(self.delagate)
 
         # Hiding/ordering:
-        self.order_columns = 'JB_job_number JB_owner state tasks JB_name JAT_prio JB_submission_time queue_name'.split()
+        self.order_columns = 'JB_job_number JB_owner JB_name state tasks JAT_prio JB_submission_time queue_name'.split()
         self.set_column_order(self.order_columns)
         self.hidden_columns = ("slots", "queue_name")
         self.set_column_hidden(self.hidden_columns)
