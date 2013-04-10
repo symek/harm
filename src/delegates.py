@@ -25,6 +25,15 @@ class JobsDelegate(QItemDelegate):
         # TODO: We should not happend in utilities but config more likely:
         self.app_icons = utilities.findIcons(context.config['HARM_ICON'])
 
+        self.header = {}
+        # self.header['pending'] = 'progress'
+        self.header['r']       = 'rendering'
+        self.header['cdb']     = 'archive'
+        self.header['Rr']      = 're-render'
+        self.header['qw']      = 'waiting'
+        self.header['hqw']     = 'on hold'
+
+
     def setColors(self):
         '''TODO: to be moved into Config() control'''
         self.waitingC = QColor()
@@ -91,15 +100,14 @@ class JobsDelegate(QItemDelegate):
             return
 
         # Set job state colors:
-        if state in('hqw', 'hRq'):
+        if state in ('hqw', 'hRq'):
             painter.setBrush(QBrush(self.hqwC))
-        elif state == 'cdb':
+        elif state in ("qw",):
+            painter.setBrush(QBrush(self.qwWaitingC))
+        elif jobid.strip() in running_ids:
+            painter.setBrush(QBrush(self.qwC))
+        else:
             painter.setBrush(QBrush(QColor(Qt.white)))
-        elif state in ('qw', 'Rq'):
-            if jobid.strip() in running_ids:
-                painter.setBrush(QBrush(self.qwC))
-            else:
-                painter.setBrush(QBrush(self.qwWaitingC))
 
         # Set background for selected objects:
         if option.state & QStyle.State_Selected:
@@ -112,6 +120,8 @@ class JobsDelegate(QItemDelegate):
 
         if value.isValid():
             text = value.toString()
+            if text in self.header.keys():
+                text = self.header[str(text)]
             painter.drawText(option.rect, Qt.AlignLeft, text)
 
         painter.restore()
@@ -233,6 +243,18 @@ class TasksDelegate(QItemDelegate):
         self.proxy   = context.models['tasks_proxy_model']
         self.colorize_style = 0
         self.setColors()
+
+        self.header = {}
+        self.header['pending'] = 'progress'
+        self.header['r']       = 'rendering'
+        self.header['cdb']     = 'archive'
+        self.header['Rr']      = 're-render'
+        self.header['qw']      = 'waiting'
+        self.header['hqw']     = 'on hold'
+        self.header['ds']      = 'deleted'
+        self.header['dS']      = 'suspended'
+        self.header['hr']      = 'holded'
+
 
         self.wallclock_idx = None
         self.maxvmem_idx   = None
@@ -408,6 +430,8 @@ class TasksDelegate(QItemDelegate):
 
         if value.isValid():
             text = value.toString()
+            if text in self.header.keys():
+                text = self.header[str(text)]
             painter.drawText(option.rect, Qt.AlignLeft, text)
 
         painter.restore()

@@ -32,9 +32,6 @@ header['ru_rtime']   = 'Real Time'
 header['hostname']   = 'Hostname'
 
 
-
-
-
 header['arch_string'] = 'Archtecture'
 header['num_proc']    = 'Cores'
 header['load_avg']    = 'Load'
