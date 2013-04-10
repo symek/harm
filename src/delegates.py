@@ -92,6 +92,8 @@ class JobsDelegate(QItemDelegate):
 
                 tasks_model =  self.context.models['tasks_model']
                 tasks_idx   = tasks_model.get_key_index("JB_job_number")
+                # FIXME: Presence of state columns indicates tasks are running (not taken from DB)
+                is_running  = tasks_model.get_key_index("state")
                 running_ids = [x[tasks_idx] for x in tasks_model._data]
             except:
                 pass
@@ -104,7 +106,7 @@ class JobsDelegate(QItemDelegate):
             painter.setBrush(QBrush(self.hqwC))
         elif state in ("qw",):
             painter.setBrush(QBrush(self.qwWaitingC))
-        elif jobid.strip() in running_ids:
+        elif jobid.strip() in running_ids and is_running:
             painter.setBrush(QBrush(self.qwC))
         else:
             painter.setBrush(QBrush(QColor(Qt.white)))
