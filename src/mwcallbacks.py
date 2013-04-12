@@ -37,6 +37,8 @@ class HarmMainWindowCallbacks():
                      self.set_jobs_stdout_view_search) 
         self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
                      self.change_job_view)
+        self.connect(self.archive_view, SIGNAL("clicked(const QModelIndex&)"),  
+                     self.archive_view_clicked)
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
@@ -94,6 +96,35 @@ class HarmMainWindowCallbacks():
             # with that data.
             self.tasks_view.update_model_db(job_id)
             self.set_tasks_view_filter(None)
+
+    def archive_view_clicked(self, index):
+        '''Calls for selecting job on Archive Jobs View.'''
+        # First we map selected proxy index to the real one.
+        s_index      = self.archive_view.proxy_model.mapToSource(index)
+        # then we look for our indices of fields in model header.
+        job_id_index = self.archive_view.model.get_key_index("JB_job_number")
+        state_index  = self.archive_view.model.get_key_index("state")
+        # with that, we retrieve informations:
+        job_id       = self.archive_view.model._data[s_index.row()][job_id_index]
+        state        = self.archive_view.model._data[s_index.row()][state_index]
+
+        # Update job detail view in case its tab is visible:
+        if self.right_tab_widget.currentIndex() == 0:
+            self.job_detail_view.update_model(job_id)
+            self.job_detail_basic_view_update(job_id)
+            # Tree view active:
+            if self.job_view_combo.currentIndex() == 2:
+                self.job_detail_tree_view.update_model(job_id)
+
+       
+        # Update tasks view with past jobs using database:
+        if state == 'cdb': 
+            # updat_db() calls update_job_details_db() first to read database
+            # then parses query to look for per frame info and updats tasksModel._dict
+            # with that data.
+            self.archive_tasks_view.update_model_db(job_id)
+            self.set_tasks_view_filter(None)
+    
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''

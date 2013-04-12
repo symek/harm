@@ -107,9 +107,9 @@ class JobsView(QTableView, ViewBase):
         # Models:
         self.model = models.JobsModel(self)
         self.model.update(SGE_JOBS_LIST_GROUPED)
-        length = self.context.GUI.history_length.text()
+        #length = self.context.GUI.history_length.text()
         # FIXME: history should be appended in update()..
-        self.model.append_jobs_history(int(length))
+        #self.model.append_jobs_history(int(length))
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -140,11 +140,68 @@ class JobsView(QTableView, ViewBase):
         '''Overwrites update_model() to allow append history jobs to a model.'''
         self.model.reset()
         self.model.update(*arg)
+        #length = self.context.GUI.history_length.text()
+        #self.model.append_jobs_history(int(length))
+        self.set_column_order(self.order_columns)
+        self.set_column_hidden(self.hidden_columns)
+
+
+
+###############################################################
+#           Archive Table View                                # 
+###############################################################
+
+class ArchiveView(QTableView, ViewBase):
+    '''Keeps list of archive jobs.'''
+    def __init__(self, context):
+        '''We're: adding self to a global context class, binding context menues, 
+           creating models (main and proxy), seting deletegs,  initializing config(),
+           resizing columns/rows.'''
+        super(self.__class__, self).__init__()
+        # those are mandatory.
+        self.context = context
+        self.context.views['archive_view'] = self
+        self.configure()
+        # Models:
+        self.model = models.JobsModel(self)
+        #self.model.update(SGE_JOBS_LIST_GROUPED)
+        length = self.context.GUI.history_length.text()
+        # FIXME: history should be appended in update()..
+        self.model.append_jobs_history(int(length))
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['archive_model'] = self.model
+        self.context.models['archive_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+        
+        # Delegate:
+        #self.delagate = delegates.JobsDelegate(self.context)
+        #self.setItemDelegate(self.delagate)
+
+        # Hiding/ordering:
+        self.order_columns = 'JB_job_number JB_owner JB_name state tasks JAT_prio JB_submission_time queue_name'.split()
+        self.set_column_order(self.order_columns)
+        self.hidden_columns = ("slots", "queue_name")
+        self.set_column_hidden(self.hidden_columns)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+    def openContextMenu(self, position):
+        '''Context menu entry.'''
+        pass #self.context_menu = JobsContextMenu(self.context, self.mapToGlobal(position))
+
+    # TODO: This is temporary to allow append_history to jobs view after refresh:
+    def update_model(self, *arg):
+        '''Overwrites update_model() to allow append history jobs to a model.'''
+        self.model.reset()
+        #self.model.update(*arg)
         length = self.context.GUI.history_length.text()
         self.model.append_jobs_history(int(length))
         self.set_column_order(self.order_columns)
         self.set_column_hidden(self.hidden_columns)
-
 
 
 ###############################################################
@@ -190,6 +247,68 @@ class TasksView(QTableView, ViewBase):
 
     def openContextMenu(self, position):
         self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+    #FIXME: this probably shouldn't exists. 
+    def update_model_db(self, job_id):
+        from time import time
+        t = time()
+        self.model.reset()
+        self.proxy_model.reset()
+        self.model.update_db(job_id)
+        self.set_column_order(self.order_columns)
+        self.set_column_hidden(self.hidden_columns)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+        if DEBUG:
+            print "TasksView.update_model_db: " + str(time() - t)
+
+
+
+###############################################################
+#    Archive Task Table View                                  #
+###############################################################
+
+class ArchiveTasksView(QTableView, ViewBase):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.context.views['archive_tasks_view'] = self
+        self.setEditTriggers(self.NoEditTriggers)
+        self.configure()
+        self.setAlternatingRowColors(0)
+
+
+        # Models:
+        self.model = models.TaskModel(self)
+        #self.model.update(SGE_JOBS_LIST, 'queue_info', reverse_order=False)
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['archive_tasks_model'] = self.model
+        self.context.models['archive_tasks_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+
+        # Order/hidden:
+        self.order_columns = 'JB_job_number tasks JAT_start_time qsub_time start_time end_time ru_wallclock queue_name JB_name'.split()
+        self.set_column_order(self.order_columns)
+        self.hidden_columns = "slots taskid status JB_owner owner group qname project jobname department jobnumber \
+                                account arid priority granted_pe ru_ixrss ru_ismrss ru_idrss ru_isrss ru_majflt \
+                                ru_nswap ru_msgsnd ru_msgrcv ru_nsignals ru_nvcsw ru_nivcsw JAT_status ru_maxrss \
+                                ru_minflt".split()
+        self.set_column_hidden(self.hidden_columns)
+
+        # Delegate:
+        self.delagate = delegates.TasksDelegate(self.context)
+        self.setItemDelegate(self.delagate)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+    def openContextMenu(self, position):
+        pass
+        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
     #FIXME: this probably shouldn't exists. 
     def update_model_db(self, job_id):

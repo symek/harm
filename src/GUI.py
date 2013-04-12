@@ -46,8 +46,8 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         context.splashMessage = self.splashMessage
         self.splashMessage("Setup Jobs Tabs...")
         self.setupJobsTab()
-        #self.splashMessage("Setup History Tab...")
-        #self.setupHistoryTab() 
+        self.splashMessage("Setup Archive Tab...")
+        self.setupArchiveTab() 
         self.splashMessage("Setup Machines Tab...")
         self.setupMachinesTab()
         self.splashMessage("Setup Task Detail Tab...")
@@ -145,7 +145,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
         # Jobs View:
         self.jobs_view = views.JobsView(context)
-        #jobs_tab_vbox.addWidget(self.jobs_view)
+        jobs_tab_vbox.addWidget(self.jobs_view)
         jobs_tab_splitter.addWidget(self.jobs_view)
 
         # Tasks view Controls:
@@ -165,16 +165,81 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         jobs_tab_vbox.addWidget(self.tasks_view)
         jobs_tab_splitter.addWidget(self.tasks_view)
 
-    def setupHistoryTab(self):
-        '''Historical jobs aquaured from qacct SGE utility. Heavy post-process
-           has to be undertaken here. '''
-        # History View:
-        self.history_view = views.HistoryView(context)
-        #self.history_view = views.JobsTreeHistoryView(context)
-        self.history_tab   = QtGui.QWidget()
-        self.left_tab_widget.addTab(self.history_tab, "History")
-        history_tab_vbox = QtGui.QVBoxLayout(self.history_tab)
-        history_tab_vbox.addWidget(self.history_view)
+    def setupArchiveTab(self):
+        '''Archived jobs aquaured by epilg script from SGE tasks. '''
+         # Tab Setup:
+        self.archive_tab  = QtGui.QWidget()
+        archive_tab_vbox = QtGui.QVBoxLayout(self.archive_tab) 
+
+        #
+        archive_tab_splitter  = QtGui.QSplitter(self.archive_tab)
+        archive_tab_vbox.addWidget(archive_tab_splitter)
+        archive_tab_splitter.setOrientation(Qt.Vertical)
+        self.left_tab_widget.addTab(self.archive_tab, "Archive")
+
+        # Job controls layout
+        # archive_filter_hbox = QtGui.QHBoxLayout()
+        # archive_tab_vbox.insertLayout(0, archive_filter_hbox)
+
+         # Filter:
+        # self.archive_filter_label = QtGui.QLabel()
+        # self.archive_filter_label.setText("Jobs filter:")
+
+        # Refresh toggle:
+        # self.auto_refresh_toggle = QtGui.QCheckBox()
+        # self.auto_refresh_toggle.setCheckState(Qt.Checked) 
+        # self.auto_refresh_toggle.setText("Auto refresh")
+
+        # History length to get from a database:
+        # self.history_length_label = QtGui.QLabel()
+        # self.history_length_label.setText("Jobs #:")
+        # validator = QtGui.QIntValidator(1, 10000, None)
+        # self.history_length = QLineEdit()
+        # self.history_length.setMaxLength(6)
+        # self.history_length.setMaximumWidth(50)
+        # self.history_length.setValidator(validator)
+        # # TODO: Config class:
+        # self.history_length.setText("150")
+        
+        # Job filter line edit (for filtering by columns' entry):
+        # self.archive_filter_line = QLineEdit()
+
+        # archive_filter_hbox.addWidget(self.archive_filter_label)
+        # archive_filter_hbox.addWidget(self.archive_filter_line)
+        # archive_filter_hbox.addWidget(self.auto_refresh_toggle)
+        # archive_filter_hbox.addWidget(self.history_length_label)
+        # archive_filter_hbox.addWidget(self.history_length)
+        
+    
+        # History filters:
+        # self.jobs_filter_menu = QtGui.QMenu()
+        # self.jobs_filter_presets = QtGui.QMenu('Presets')
+        # self.jobs_filter_presets.addAction(QString("owner"))
+        # self.jobs_filter_menu.addMenu(self.jobs_filter_presets)
+        # jobs_filter_hbox.addWidget(self.jobs_filter_menu)
+
+        # Jobs View:
+        self.archive_view = views.ArchiveView(context)
+        archive_tab_vbox.addWidget(self.archive_view)
+        archive_tab_splitter.addWidget(self.archive_view)
+
+        # Tasks view Controls:
+        # self.tasks_onlySelected_toggle = QtGui.QCheckBox()
+        # self.tasks_onlySelected_toggle.setText("Show Only Selected Jobs")
+        # tasks_controls = QtGui.QHBoxLayout()
+        # tasks_controls.addWidget(self.tasks_onlySelected_toggle)
+
+        # Task Color Controls:
+        # self.tasks_colorize_style =  QtGui.QComboBox()
+        # self.tasks_colorize_style.addItems(['No colors', 'Color by performance', 'Color by hostname'])
+        # tasks_controls.addWidget(self.tasks_colorize_style)
+
+        # Tasks View (Left Tabs):
+        self.archive_tasks_view = views.ArchiveTasksView(context)
+        #archive_tab_vbox.insertLayout(2, archive_controls)
+        archive_tab_vbox.addWidget(self.archive_tasks_view)
+        archive_tab_splitter.addWidget(self.archive_tasks_view)
+        
         
     def setupMachinesTab(self):
         '''Current status of a renderfarm as presented by qhost.'''
