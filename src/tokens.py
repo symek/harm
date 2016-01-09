@@ -15,6 +15,8 @@ header['cpu']                = 'Cpu Time'
 header['mem']                = 'Memory Used'
 header['vmem']               = 'Virtual Memory'
 header['maxvmem']            = 'Max Ram'
+header['ARRAY_TASK_ID']      = 'TASKID'
+header['EXEC_HOST']          = "Machine"
 
 
 header['iow']  = 'Disk Wait'

@@ -330,6 +330,7 @@ class TasksDelegate(QItemDelegate):
         self.waitingC.setHsvF(0.30, 0.3, 1)
         self.progresC.setHsvF(0.0, 0.2, 1)
         self.finisheC.setHsvF(0.69, 0.2, 1)
+
         self.hqwC = QColor()
         self.hqwC.setHsvF(.15, .2, 1)
         self.qwC = QColor()
@@ -368,58 +369,64 @@ class TasksDelegate(QItemDelegate):
 
         if self.model._data:
             # Find our job_id and compare it with previous one (if any):
-            job_id_idx = self.model.get_key_index("JB_job_number")
-            failed_idx = self.model.get_key_index("failed")
+            job_id_idx = self.model.get_key_index("JOBID")
+            status_idx = self.model.get_key_index("STATUS")
             job_id     = self.model._data[s_index.row()][job_id_idx]
+            status     = self.model._data[s_index.row()][status_idx]
+            if status == "PENDING":
+                painter.setBrush(QBrush(self.waitingC))
+                painter.restore()
+                return
+
             # recompute job stats only on recently updated model: 
-            if job_id != self.job_id and self.colorize_style == 1:
-                self.job_id   = job_id
-                self.colorize = self.compute_stats()
+            # if job_id != self.job_id and self.colorize_style == 1:
+            #     self.job_id   = job_id
+            #     self.colorize = self.compute_stats()
         else:
             painter.restore()
             return
 
-        # Get values for current task:
-        # TODO: This should happen for a single index per row...
-        try:
-            failed        = self.model._data[s_index.row()][failed_idx]
-            wallclock     = self.model._data[s_index.row()][self.wallclock_idx]
-            maxvmem       = self.model._data[s_index.row()][self.maxvmem_idx]
-            maxvmem       = utilities.to_number(maxvmem)
-        except:
-            pass
-            #print "No wallclock no maxvmem for current index."
+        # # Get values for current task:
+        # # TODO: This should happen for a single index per row...
+        # try:
+        #     failed        = self.model._data[s_index.row()][failed_idx]
+        #     wallclock     = self.model._data[s_index.row()][self.wallclock_idx]
+        #     maxvmem       = self.model._data[s_index.row()][self.maxvmem_idx]
+        #     maxvmem       = utilities.to_number(maxvmem)
+        # except:
+        #     pass
+        #     #print "No wallclock no maxvmem for current index."
 
         painter.setPen(QPen(Qt.NoPen))
         color = QColor()
-        # Colorize tasks based on its relative cpu/ram cost:
-        if wallclock and maxvmem and self.colorize and self.colorize_style == 1:
-            sat = utilities.fit(float(maxvmem),   self.min_maxvmem,   self.max_maxvmem, 0.05, 0.65)
-            hue = utilities.fit(float(wallclock), self.min_wallclock, self.max_wallclock, 0.25, 0.9)
-            color.setHsvF(hue, sat, 1)
+        # # Colorize tasks based on its relative cpu/ram cost:
+        # if wallclock and maxvmem and self.colorize and self.colorize_style == 1:
+        #     sat = utilities.fit(float(maxvmem),   self.min_maxvmem,   self.max_maxvmem, 0.05, 0.65)
+        #     hue = utilities.fit(float(wallclock), self.min_wallclock, self.max_wallclock, 0.25, 0.9)
+        #     color.setHsvF(hue, sat, 1)
 
-        # based on hostname:
-        elif self.colorize and self.colorize_style == 2:
-            hostname_idx = self.model.get_key_index("hostname")
-            if hostname_idx:
-                hostname = self.model._data[s_index.row()][hostname_idx]
-                if not hostname in self.machines:
-                    # We take first three digits of md5 hash as a seed for random color:
-                    random_digit = int(str(int(hashlib.md5(hostname).hexdigest(),16))[:3])
-                    self.machines[hostname] = random_digit
-                # Random color per hostname:
-                random.seed(self.machines[hostname])
-                color.setHsvF(random.random(), 0.3, 1)
-        else:
-            color = QColor(Qt.white)
+        # # based on hostname:
+        # elif self.colorize and self.colorize_style == 2:
+        #     hostname_idx = self.model.get_key_index("hostname")
+        #     if hostname_idx:
+        #         hostname = self.model._data[s_index.row()][hostname_idx]
+        #         if not hostname in self.machines:
+        #             # We take first three digits of md5 hash as a seed for random color:
+        #             random_digit = int(str(int(hashlib.md5(hostname).hexdigest(),16))[:3])
+        #             self.machines[hostname] = random_digit
+        #         # Random color per hostname:
+        #         random.seed(self.machines[hostname])
+        #         color.setHsvF(random.random(), 0.3, 1)
+        # else:
+        #     color = QColor(Qt.white)
 
-        # Set backgroud color:
+        # # Set backgroud color:
         painter.setBrush(QBrush(color))
 
-        # TODO:
-        # Mark in red tasks with failed status:
-        #if failed != 0:
-        #    color.setHsvF(1, .5, 1)
+        # # TODO:
+        # # Mark in red tasks with failed status:
+        # #if failed != 0:
+        # #    color.setHsvF(1, .5, 1)
 
 
         # Set background for selected objects:

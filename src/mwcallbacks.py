@@ -27,16 +27,16 @@ class HarmMainWindowCallbacks():
                      self.set_user)
         self.connect(self.jobs_filter_line, SIGNAL('textChanged(const QString&)'),\
                      self.set_jobs_view_filter) 
-        self.connect(self.job_detail_filter_line, SIGNAL('textChanged(const QString&)'),\
-                     self.set_job_detail_view_filter)   
-        self.connect(self.tasks_view, SIGNAL("doubleClicked(const QModelIndex&)"),  
-                     self.tasks_view_doubleClicked)
-        self.connect(self.tasks_colorize_style, SIGNAL('currentIndexChanged(int)'),\
-                     self.set_tasks_colorize_style)
-        self.connect(self.job_stdout_search_line, SIGNAL('textChanged(const QString&)'),\
-                     self.set_jobs_stdout_view_search) 
-        self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
-                     self.change_job_view)
+        # self.connect(self.job_detail_filter_line, SIGNAL('textChanged(const QString&)'),\
+        #              self.set_job_detail_view_filter)   
+        # self.connect(self.tasks_view, SIGNAL("doubleClicked(const QModelIndex&)"),  
+        #              self.tasks_view_doubleClicked)
+        # self.connect(self.tasks_colorize_style, SIGNAL('currentIndexChanged(int)'),\
+                     # self.set_tasks_colorize_style)
+        # self.connect(self.job_stdout_search_line, SIGNAL('textChanged(const QString&)'),\
+        #              self.set_jobs_stdout_view_search) 
+        # self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
+        #              self.change_job_view)
         #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
         #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
         #             self.update_std_views)
@@ -48,12 +48,12 @@ class HarmMainWindowCallbacks():
 
     def refreshAll(self):
         '''Refreshes jobs/tasks/machine views. Automatically called by self.timer too. '''
-        self.jobs_view.update_model(SGE_JOBS_LIST_GROUPED)
-        self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
-        self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
+        self.jobs_view.update_model(SLURM_JOBS_LIST_GROUPED)
+        self.tasks_view.update_model(SLURM_JOBS_LIST, 'queue_info')
+        # self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
-        self.machine_view.resizeRowsToContents()
+        # self.machine_view.resizeRowsToContents()
 
     def autoRefresh(self):
         if self.auto_refresh_toggle.isChecked():
@@ -69,24 +69,24 @@ class HarmMainWindowCallbacks():
         # First we map selected proxy index to the real one.
         s_index      = self.jobs_view.proxy_model.mapToSource(index)
         # then we look for our indices of fields in model header.
-        job_id_index = self.jobs_view.model.get_key_index("JB_job_number")
-        state_index  = self.jobs_view.model.get_key_index("state")
+        job_id_index = self.jobs_view.model.get_key_index("JOBID")
+        state_index  = self.jobs_view.model.get_key_index("STATE")
         # with that, we retrieve informations:
         job_id       = self.jobs_view.model._data[s_index.row()][job_id_index]
         state        = self.jobs_view.model._data[s_index.row()][state_index]
 
         # Update job detail view in case its tab is visible:
-        if self.right_tab_widget.currentIndex() == 0:
-            self.job_detail_view.update_model(job_id)
-            self.job_detail_basic_view_update(job_id)
-            # Tree view active:
-            if self.job_view_combo.currentIndex() == 2:
-                self.job_detail_tree_view.update_model(job_id)
+        # if self.right_tab_widget.currentIndex() == 0:
+        #     self.job_detail_view.update_model(job_id)
+        #     self.job_detail_basic_view_update(job_id)
+        #     # Tree view active:
+        #     if self.job_view_combo.currentIndex() == 2:
+        #         self.job_detail_tree_view.update_model(job_id)
 
         # We set task view filter to currently selected AND runnig jobs,
         # or update tasks view with past jobs using database:
         if state != 'cdb': 
-            self.tasks_view.update_model(SGE_JOBS_LIST, 'queue_info')
+            self.tasks_view.update_model(SLURM_JOBS_LIST.replace("<JOBID/>",job_id), 'queue_info')
             self.set_tasks_view_filter(job_id)
         else:
             # updat_db() calls update_job_details_db() first to read database
@@ -98,26 +98,26 @@ class HarmMainWindowCallbacks():
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
         s_index       = self.tasks_view.proxy_model.mapToSource(index)
-        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+        job_id_index  = self.tasks_view.model.get_key_index("JOBID")
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
+        task_id_index = self.tasks_view.model.get_key_index('ARRAY_TASK_ID')
+        task_id       = self.tasks_view.model._data[s_index.row()][task_id_index]
 
         # That needs to be done for others widgets relaying on job_detail_view
         # Update job detail only if it's not already up to date already:
         update_details_flag = True
-        if 'JB_job_number' in self.job_detail_view.model._dict:
-            if self.job_detail_view.model._dict['JB_job_number'] == job_id:
-                update_details_flag = False
-            else:
-                update_details_flag = True
+        # if 'JOBID' in self.job_detail_view.model._dict:
+        #     if self.job_detail_view.model._dict['JOBID'] == job_id:
+        #         update_details_flag = False
+        #     else:
+        #         update_details_flag = True
         if update_details_flag:
-                self.job_detail_view.update_model(job_id)
-                self.job_detail_basic_view_update(job_id)
+                self.job_detail_view.update_model(job_id, task_id)
+                # self.job_detail_basic_view_update(job_id, task_id)
         
         # Update both std out/err widgets:
         tab_index = self.right_tab_widget.currentIndex() 
         if tab_index in (1,2):
-            task_id_index = self.tasks_view.model.get_key_index('tasks')
-            task_id       = self.tasks_view.model._data[s_index.row()][task_id_index]
             self.update_std_views(job_id, task_id, tab_index)
 
         #self.update_job_model_from_tasks(indices)
@@ -154,39 +154,39 @@ class HarmMainWindowCallbacks():
 
 
     def update_std_views(self, job_id, task_id, tab_index):
-        '''Read from disk files logs specified by selected tasks..'''         
+        '''Read from disk files logs specified by selected tasks..
+        '''         
         data     = self.job_detail_view.model
-        PN_path  = data.get_value('PN_path')[0]
-        job_name = data.get_value('JB_job_name')[0]
-        # Abord if no details has been found:
-        if not PN_path or not job_name: 
-            return
+        if not 'StdOut' in data._dict.keys() or \
+        not 'StdErr' in data._dict.keys():
+            return 
 
+        stdout_file = data._dict['StdOut']
+        stderr_file = data._dict['StdErr']
+        
         # Stdout Tab:
-        if PN_path and job_name and tab_index == 1:
-            PN_path = "%s%s.o%s.%s" % (PN_path, job_name, job_id, task_id)
-            PN_path = self.config.convert_platform_path(PN_path)
+        if tab_index == 1:
+            stdout_file = self.config.convert_platform_path(stdout_file) 
             try:
-                stdout_file  = open(PN_path, 'r')
+                stdout_file  = open(stdout_file, 'r')
                 self.stdout_view.setPlainText(stdout_file.read())
                 self.stdout_view.moveCursor(QtGui.QTextCursor.End)
                 self.stdout_view.ensureCursorVisible()
                 stdout_file.close()
             except: 
-                self.stdout_view.setPlainText("Couldn't open %s" % PN_path)
+                self.stdout_view.setPlainText("Couldn't open %s" % stdout_file)
 
         # Stderr Tab:
-        elif PN_path and job_name and tab_index == 2:
-            PN_path = "%s%s.e%s.%s" % (PN_path, job_name, job_id, task_id)
-            PN_path = self.config.convert_platform_path(PN_path)
+        elif tab_index == 2:
+            stderr_file = self.config.convert_platform_path(stderr_file)
             try: 
-                stderr_file  = open(PN_path, 'r')
+                stderr_file  = open(stderr_file, 'r')
                 self.stderr_view.setPlainText(stderr_file.read())
                 self.stderr_view.moveCursor(QtGui.QTextCursor.End)
                 self.stderr_view.ensureCursorVisible()
                 stderr_file.close()
             except: 
-                self.stderr_view.setPlainText("Couldn't open %s" % PN_path)
+                self.stderr_view.setPlainText("Couldn't open %s" % stderr_file)
 
 
     def set_jobs_view_filter(self, wildcard):

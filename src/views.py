@@ -106,10 +106,10 @@ class JobsView(QTableView, ViewBase):
         self.configure()
         # Models:
         self.model = models.JobsModel(self)
-        self.model.update(SGE_JOBS_LIST_GROUPED)
+        self.model.update(SLURM_JOBS_LIST_GROUPED)
         length = self.context.GUI.history_length.text()
         # FIXME: history should be appended in update()..
-        self.model.append_jobs_history(int(length))
+        # self.model.append_jobs_history(int(length))
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -118,14 +118,14 @@ class JobsView(QTableView, ViewBase):
         self.setModel(self.proxy_model)
         
         # Delegate:
-        self.delagate = delegates.JobsDelegate(self.context)
-        self.setItemDelegate(self.delagate)
+        # self.delagate = delegates.JobsDelegate(self.context)
+        # self.setItemDelegate(self.delagate)
 
         # Hiding/ordering:
-        self.order_columns = 'JB_job_number JB_owner JB_name state tasks JAT_prio JB_submission_time queue_name'.split()
-        self.set_column_order(self.order_columns)
-        self.hidden_columns = ("slots", "queue_name")
-        self.set_column_hidden(self.hidden_columns)
+        # self.order_columns = 'JB_job_number JB_owner JB_name state tasks JAT_prio JB_submission_time queue_name'.split()
+        # self.set_column_order(self.order_columns)
+        # self.hidden_columns = ("slots", "queue_name")
+        # self.set_column_hidden(self.hidden_columns)
 
         # Clean:
         self.resizeColumnsToContents()
@@ -163,7 +163,7 @@ class TasksView(QTableView, ViewBase):
 
         # Models:
         self.model = models.TaskModel(self)
-        self.model.update(SGE_JOBS_LIST, 'queue_info', reverse_order=False)
+        self.model.update(SLURM_JOBS_LIST, 'queue_info', reverse_order=False)
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -172,17 +172,17 @@ class TasksView(QTableView, ViewBase):
         self.setModel(self.proxy_model)
 
         # Order/hidden:
-        self.order_columns = 'JB_job_number tasks JAT_start_time qsub_time start_time end_time ru_wallclock queue_name JB_name'.split()
-        self.set_column_order(self.order_columns)
-        self.hidden_columns = "slots taskid status JB_owner owner group qname project jobname department jobnumber \
-                                account arid priority granted_pe ru_ixrss ru_ismrss ru_idrss ru_isrss ru_majflt \
-                                ru_nswap ru_msgsnd ru_msgrcv ru_nsignals ru_nvcsw ru_nivcsw JAT_status ru_maxrss \
-                                ru_minflt".split()
-        self.set_column_hidden(self.hidden_columns)
+        # self.order_columns = 'JB_job_number tasks JAT_start_time qsub_time start_time end_time ru_wallclock queue_name JB_name'.split()
+        # self.set_column_order(self.order_columns)
+        # self.hidden_columns = "slots taskid status JB_owner owner group qname project jobname department jobnumber \
+        #                         account arid priority granted_pe ru_ixrss ru_ismrss ru_idrss ru_isrss ru_majflt \
+        #                         ru_nswap ru_msgsnd ru_msgrcv ru_nsignals ru_nvcsw ru_nivcsw JAT_status ru_maxrss \
+        #                         ru_minflt".split()
+        # self.set_column_hidden(self.hidden_columns)
 
         # Delegate:
-        self.delagate = delegates.TasksDelegate(self.context)
-        self.setItemDelegate(self.delagate)
+        # self.delagate = delegates.TasksDelegate(self.context)
+        # self.setItemDelegate(self.delagate)
 
         # Clean:
         self.resizeColumnsToContents()
@@ -207,22 +207,21 @@ class TasksView(QTableView, ViewBase):
             print "TasksView.update_model_db: " + str(time() - t)
 
 
-
 ####################################################################
-#  History Table view. There is a lot of tweaking of data here,    #
+#  Running Table view. There is a lot of tweaking of data here,    #
 #  To make this really usable. First of all, these items should be #
 #  displayed along with current Job, but SGE doesn't work this way #
 ####################################################################
 
-class HistoryView(QTableView, ViewBase):
+class RunningView(QTableView, ViewBase):
     def __init__(self, context):
         super(self.__class__, self).__init__()
         self.context = context
         self.configure()
 
         # Models:
-        self.model = models.JobsHistoryModel(self)
-        self.model.update(SGE_HISTORY_LIST)
+        self.model = models.RunningJobsModel(self)
+        self.model.update(SLURM_RUNNING_JOBS_LIST)
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -232,19 +231,63 @@ class HistoryView(QTableView, ViewBase):
 
         # Reorder columns in bellow order:        
         # FIXME: Move both bellow constants into Config class...
-        self.order_columns = 'jobnumber taskid owner qsub_time start_time end_time \
-                        jobname cpu maxvmem exit_status failed'.split()
-        self.set_column_order(self.order_columns)
+        # self.order_columns = 'jobnumber taskid owner qsub_time start_time end_time \
+        #                 jobname cpu maxvmem exit_status failed'.split()
+        # self.set_column_order(self.order_columns)
 
         # Hide columns:
-        self.hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
-        ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
-        ru_oublock iow slots'.split()
-        self.set_column_hidden(self.hidden_columns)
+        # self.hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
+        # ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
+        # ru_oublock iow slots'.split()
+        # self.set_column_hidden(self.hidden_columns)
 
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        
+    def openContextMenu(self, position):
+        self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+
+
+
+####################################################################
+#  History Table view. There is a lot of tweaking of data here,    #
+#  To make this really usable. First of all, these items should be #
+#  displayed along with current Job, but SGE doesn't work this way #
+####################################################################
+
+# class HistoryView(QTableView, ViewBase):
+#     def __init__(self, context):
+#         super(self.__class__, self).__init__()
+#         self.context = context
+#         self.configure()
+
+#         # Models:
+#         self.model = models.JobsHistoryModel(self)
+#         self.model.update(SGE_HISTORY_LIST)
+#         self.proxy_model = QSortFilterProxyModel()
+#         self.proxy_model.setSourceModel(self.model)
+#         self.proxy_model.setDynamicSortFilter(True)
+#         self.context.models['history_model'] = self.model
+#         self.context.models['history_proxy_model'] = self.proxy_model
+#         self.setModel(self.proxy_model)
+
+#         # Reorder columns in bellow order:        
+#         # FIXME: Move both bellow constants into Config class...
+#         self.order_columns = 'jobnumber taskid owner qsub_time start_time end_time \
+#                         jobname cpu maxvmem exit_status failed'.split()
+#         self.set_column_order(self.order_columns)
+
+#         # Hide columns:
+#         self.hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
+#         ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
+#         ru_oublock iow slots'.split()
+#         self.set_column_hidden(self.hidden_columns)
+
+#         # Clean:
+#         self.resizeColumnsToContents()
+#         self.resizeRowsToContents()
 
 
 
@@ -254,74 +297,74 @@ class HistoryView(QTableView, ViewBase):
 #  rotating, which allows it to build tree by arbitrary key.             #
 ##########################################################################
 
-class JobsTreeHistoryView(QTreeWidget, ViewBase):
-    def __init__(self, context):
-        super(self.__class__, self).__init__()
-        self.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.order_columns = 'jobnumber taskid owner qsub_time start_time \
-        end_time jobname cpu maxvmem exit_status failed'.split()
-        self.context = context
-        self.configure()
-        self._dict={}
-        self.update(SGE_HISTORY_LIST, "owner")
+# class JobsTreeHistoryView(QTreeWidget, ViewBase):
+#     def __init__(self, context):
+#         super(self.__class__, self).__init__()
+#         self.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+#         self.order_columns = 'jobnumber taskid owner qsub_time start_time \
+#         end_time jobname cpu maxvmem exit_status failed'.split()
+#         self.context = context
+#         self.configure()
+#         self._dict={}
+#         self.update(SGE_HISTORY_LIST, "owner")
         
         
-    def update(self, sge_command, rotate_by_field=None):
-        self._dict = models.qccet_to_dict(os.popen(sge_command).read(), True, self.order_columns)
+#     def update(self, sge_command, rotate_by_field=None):
+#         self._dict = models.qccet_to_dict(os.popen(sge_command).read(), True, self.order_columns)
         
-        # FIXME: _dict once holds a list of dictonaries (when rotate_* is performed),
-        # and sometimes a list of dictionaries, when no rotating is applied. 
-        # This brings a mess into a table...
-        if rotate_by_field:
-            self._dict = models.rotate_nested_dict(self._dict, rotate_by_field)
-            tmp =  models.SgeTableModelBase()
-            self._head = models.SgeTableModelBase._tag2idx(tmp, self._dict[self._dict.keys()[0]][0])
-        else:
-            self._head = models.SgeTableModelBase._tag2idx(tmp, self._dict[[0]])
+#         # FIXME: _dict once holds a list of dictonaries (when rotate_* is performed),
+#         # and sometimes a list of dictionaries, when no rotating is applied. 
+#         # This brings a mess into a table...
+#         if rotate_by_field:
+#             self._dict = models.rotate_nested_dict(self._dict, rotate_by_field)
+#             tmp =  models.SgeTableModelBase()
+#             self._head = models.SgeTableModelBase._tag2idx(tmp, self._dict[self._dict.keys()[0]][0])
+#         else:
+#             self._head = models.SgeTableModelBase._tag2idx(tmp, self._dict[[0]])
 
-        self.clear()
-        self.context.splashMessage("After clear")
-        self.populate(self._dict)
-        self.context.splashMessage("After populate")
-        self.setHeaderLabels(self._head.values())
-        self.context.splashMessage("After setHeaderLabels")
+#         self.clear()
+#         self.context.splashMessage("After clear")
+#         self.populate(self._dict)
+#         self.context.splashMessage("After populate")
+#         self.setHeaderLabels(self._head.values())
+#         self.context.splashMessage("After setHeaderLabels")
 
-         # Hide columns:
-        hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
-        ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
-        ru_oublock iow slots'.split()
-        for column in hidden_columns:
-            if column in self._head.values():                
-                key_index = [k for k, v in self._head.iteritems() if v == column][0]
-                self.setColumnHidden(key_index, True)
-        self.context.splashMessage("After setColumnHidden")
+#          # Hide columns:
+#         hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
+#         ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
+#         ru_oublock iow slots'.split()
+#         for column in hidden_columns:
+#             if column in self._head.values():                
+#                 key_index = [k for k, v in self._head.iteritems() if v == column][0]
+#                 self.setColumnHidden(key_index, True)
+#         self.context.splashMessage("After setColumnHidden")
 
-        # TODO: Reorder columns! (probably by reordering dictionaries).
-        self.context.splashMessage("After update")
+#         # TODO: Reorder columns! (probably by reordering dictionaries).
+#         self.context.splashMessage("After update")
 
-    def columnCount(self, parent):
-       return len(self._head)
+#     def columnCount(self, parent):
+#        return len(self._head)
 
 
-    def populate(self, data, parent=None):
-        if not parent:
-            parent = self
-        for row in data:
-            self.context.splashMessage("Populating %s" % str(row))
-            rowItem = QtGui.QTreeWidgetItem(parent)
-            rowItem.setText(0, str(row))
-            rowItem.setExpanded(True)
-            if isinstance(data[row], dict):
-                leafs = [data[row]]
-            elif isinstance(data[row], list):
-                leafs = data[row]  
-            for child in leafs:
-                childItem = QtGui.QTreeWidgetItem(rowItem)
-                for key in range(len(child.keys())):
-                #    if child.keys()[key] in self.order_columns:
-                #        key = self.order_columns.index(child.keys()[key])                   
-                    childItem.setText(key, str(child[child.keys()[key]]))
-                    childItem.setExpanded(True)
+#     def populate(self, data, parent=None):
+#         if not parent:
+#             parent = self
+#         for row in data:
+#             self.context.splashMessage("Populating %s" % str(row))
+#             rowItem = QtGui.QTreeWidgetItem(parent)
+#             rowItem.setText(0, str(row))
+#             rowItem.setExpanded(True)
+#             if isinstance(data[row], dict):
+#                 leafs = [data[row]]
+#             elif isinstance(data[row], list):
+#                 leafs = data[row]  
+#             for child in leafs:
+#                 childItem = QtGui.QTreeWidgetItem(rowItem)
+#                 for key in range(len(child.keys())):
+#                 #    if child.keys()[key] in self.order_columns:
+#                 #        key = self.order_columns.index(child.keys()[key])                   
+#                     childItem.setText(key, str(child[child.keys()[key]]))
+#                     childItem.setExpanded(True)
 
 
 
@@ -340,7 +383,7 @@ class MachineView(QTableView, ViewBase):
 
         # Models:
         self.model = models.MachineModel()
-        self.model.update(SGE_CLUSTER_LIST, 'qhost')
+        self.model.update(SLURM_CLUSTER_LIST, 'qhost')
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -353,8 +396,8 @@ class MachineView(QTableView, ViewBase):
         self.resizeRowsToContents()
 
          # Delegate:
-        self.delagate = delegates.MachinesDelegate(self.context)
-        self.setItemDelegate(self.delagate)
+        # self.delagate = delegates.MachinesDelegate(self.context)
+        # self.setItemDelegate(self.delagate)
 
     def openContextMenu(self, position): pass
         #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
@@ -393,9 +436,9 @@ class JobDetailView(QTableView, ViewBase):
         #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
-    def update_model(self, jobid):
+    def update_model(self, jobid, taskid):
         self.model.reset()
-        self.model.update(SGE_JOB_DETAILS % jobid, 'djob_info')
+        self.model.update(jobid, taskid, 'djob_info')
         self.resizeRowsToContents()
         self.resizeColumnsToContents()
 
@@ -408,51 +451,51 @@ class JobDetailView(QTableView, ViewBase):
 # page with fine tuned artists friendly look../                  #   
 # ################################################################
 
-class JobDetailTreeView(QtGui.QTreeWidget, models.DBTableModel):
-    def __init__(self, context, entry="djob_info"):
-        QtGui.QTreeWidget.__init__(self)
-        self.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.setHeaderLabels(['Variable', 'Value'])
-        self.entry = entry
-        self.context = context
+# class JobDetailTreeView(QtGui.QTreeWidget, models.DBTableModel):
+#     def __init__(self, context, entry="djob_info"):
+#         QtGui.QTreeWidget.__init__(self)
+#         self.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+#         self.setHeaderLabels(['Variable', 'Value'])
+#         self.entry = entry
+#         self.context = context
 
     
-    def update_model(self, jobid):
-        self.clear()
-        if not self.update(SGE_JOB_DETAILS % jobid, 'djob_info'):
-            print "Updating from db job: %s" % jobid
-            data = structured.dict2et(dict(self.get_job_details_db(jobid)), 'djob_info')
-            self.populate(data)
+#     def update_model(self, jobid):
+#         self.clear()
+#         if not self.update(SGE_JOB_DETAILS % jobid, 'djob_info'):
+#             print "Updating from db job: %s" % jobid
+#             data = structured.dict2et(dict(self.get_job_details_db(jobid)), 'djob_info')
+#             self.populate(data)
 
-    def update(self, sge_command, entry='djob_info'):
-        try:
-            self._tree = ElementTree()
-            self._tree.parse(os.popen(sge_command))
-            self.root  = self._tree.find(self.entry)
-            self.populate(self.root)        
-            return True
-        except:
-            return False
+#     def update(self, sge_command, entry='djob_info'):
+#         try:
+#             self._tree = ElementTree()
+#             self._tree.parse(os.popen(sge_command))
+#             self.root  = self._tree.find(self.entry)
+#             self.populate(self.root)        
+#             return True
+#         except:
+#             return False
 
 
-    def columnCount(self, parent):
-        return 2
+#     def columnCount(self, parent):
+#         return 2
 
-    def populate(self, data, parent=None):
-        if not parent:
-            parent = self
-        # populate the tree with QTreeWidgetItem items
-        for row in data:
-            rowItem = QtGui.QTreeWidgetItem(parent)
-            rowItem.setText(0, str(row.tag))
-            rowItem.setExpanded(True)
-            # is attached to the root (parent) widget
-            for child in row.getchildren():
-                # is attached to the current row (rowItem) widget
-                childItem = QtGui.QTreeWidgetItem(rowItem)
-                childItem.setText(0, str(child.tag))
-                childItem.setExpanded(True)
-                if not child.getchildren():
-                    childItem.setText(1, str(child.text))             
-                else:
-                    self.populate(child, childItem)
+#     def populate(self, data, parent=None):
+#         if not parent:
+#             parent = self
+#         # populate the tree with QTreeWidgetItem items
+#         for row in data:
+#             rowItem = QtGui.QTreeWidgetItem(parent)
+#             rowItem.setText(0, str(row.tag))
+#             rowItem.setExpanded(True)
+#             # is attached to the root (parent) widget
+#             for child in row.getchildren():
+#                 # is attached to the current row (rowItem) widget
+#                 childItem = QtGui.QTreeWidgetItem(rowItem)
+#                 childItem.setText(0, str(child.tag))
+#                 childItem.setExpanded(True)
+#                 if not child.getchildren():
+#                     childItem.setText(1, str(child.text))             
+#                 else:
+#                     self.populate(child, childItem)

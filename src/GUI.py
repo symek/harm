@@ -46,6 +46,8 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         context.splashMessage = self.splashMessage
         self.splashMessage("Setup Jobs Tabs...")
         self.setupJobsTab()
+        self.splashMessage("Setup Running Tab...")
+        self.setupRunningTab()
         #self.splashMessage("Setup History Tab...")
         #self.setupHistoryTab() 
         self.splashMessage("Setup Machines Tab...")
@@ -145,7 +147,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
 
         # Jobs View:
         self.jobs_view = views.JobsView(context)
-        #jobs_tab_vbox.addWidget(self.jobs_view)
+        jobs_tab_vbox.addWidget(self.jobs_view)
         jobs_tab_splitter.addWidget(self.jobs_view)
 
         # Tasks view Controls:
@@ -164,6 +166,16 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         jobs_tab_vbox.insertLayout(2, tasks_controls)
         jobs_tab_vbox.addWidget(self.tasks_view)
         jobs_tab_splitter.addWidget(self.tasks_view)
+
+    def setupRunningTab(self):
+        '''Currently running jobs '''
+        # Running View:
+        self.running_view = views.RunningView(context)
+        #self.history_view = views.JobsTreeHistoryView(context)
+        self.running_tab   = QtGui.QWidget()
+        self.left_tab_widget.addTab(self.running_tab, "Running tasks")
+        running_tab_vbox = QtGui.QVBoxLayout(self.running_tab)
+        running_tab_vbox.addWidget(self.running_view)
 
     def setupHistoryTab(self):
         '''Historical jobs aquaured from qacct SGE utility. Heavy post-process
@@ -237,10 +249,10 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         details_tab_splitter.addWidget(self.job_detail_view)
 
         # Tree job view setup:
-        self.job_detail_tree_view = views.JobDetailTreeView(context)
-        job_detail_tab_vbox.addWidget(self.job_detail_tree_view)
-        self.job_detail_tree_view.setAlternatingRowColors(1)
-        self.job_detail_tree_view.hide()
+        # self.job_detail_tree_view = views.JobDetailTreeView(context)
+        # job_detail_tab_vbox.addWidget(self.job_detail_tree_view)
+        # self.job_detail_tree_view.setAlternatingRowColors(1)
+        # self.job_detail_tree_view.hide()
 
 
     def setupTaskStdTab(self):

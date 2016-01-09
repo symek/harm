@@ -4,7 +4,7 @@ import utilities
 import views
 import os
 from ordereddict import OrderedDict
-import couchdb as cdb
+# import couchdb as cdb
 from constants import *
 from time import time
 
@@ -157,9 +157,9 @@ class SgeTableModelBase():
             value = self._data[index.row()][index.column()]
             value = self.data_hooks(index, value)
         except:
-            print self._data[index.row()]
+            # print self._data[index.row()]
             # print self
-            # pass
+            pass
         if not value: return QVariant()        
         # Finally return something meaningfull:
         return QVariant(value)
@@ -261,105 +261,105 @@ class SgeTableModelBase():
 # ###############################################################
 
 
-class DBTableModel():
-    '''Query jobs information from couchdb database. There is a single method
-    append_jobs_history which queries db using standard python couchdb module.
-    This class is meant to be inherited by other models like JobsModel.'''
-    _server = None
-    _db     = None
-    def connect_to_db(self, server_uri=None, db_name='sge_db'):
-        """Connects with default couchdb server taken from CDB_SERVER envvar.
-        Reads or creates sge_db database there. Thet are assign into self._server
-        and self._db local variables for later reuse.
-        """
-        if not server_uri:
-            server_uri = os.getenv("CDB_SERVER")
-        server = cdb.Server(server_uri)
-        assert server, "Can't do without couchdb server %s" % server_uri
-        self._server = server
-        if not db_name in server:
-            try:
-                server.create(db_name)
-            except:
-                print "Can't create database with a given name %s" % db_name
-                return False
+# class DBTableModel():
+#     '''Query jobs information from couchdb database. There is a single method
+#     append_jobs_history which queries db using standard python couchdb module.
+#     This class is meant to be inherited by other models like JobsModel.'''
+#     _server = None
+#     _db     = None
+#     def connect_to_db(self, server_uri=None, db_name='sge_db'):
+#         """Connects with default couchdb server taken from CDB_SERVER envvar.
+#         Reads or creates sge_db database there. Thet are assign into self._server
+#         and self._db local variables for later reuse.
+#         """
+#         if not server_uri:
+#             server_uri = os.getenv("CDB_SERVER")
+#         server = cdb.Server(server_uri)
+#         assert server, "Can't do without couchdb server %s" % server_uri
+#         self._server = server
+#         if not db_name in server:
+#             try:
+#                 server.create(db_name)
+#             except:
+#                 print "Can't create database with a given name %s" % db_name
+#                 return False
 
-        # self._db will be tested by actual get-data routines.
-        db = server[db_name]
-        if db:
-            self._db = db
-            return True
+#         # self._db will be tested by actual get-data routines.
+#         db = server[db_name]
+#         if db:
+#             self._db = db
+#             return True
 
-    def get_jobs_db(self, job_count=150):
-        """Reads history from couchdb database. """
-        # A list of a jobs currently rendered or queued -
-        # (thus whose are tracked by SGE):
-        current_jobs = self._dict.keys()
-        # We need this!
-        if not self._db:
-            try: 
-                self.connect_to_db()
-            except:
-                return []
-        # This is our map function with hand crafted requests fields:
-        # It mimics qstat data, with a state replaced by 'cdb', which will allow us 
-        # to treat it differently down the stream.
-        map_   = '''function(doc) {
-            var js  = doc.JB_ja_structure.task_id_range;
-            var jss = "".concat(js.RN_min, "-", js.RN_max, ":", js.RN_step);
-            var que = doc.JB_hard_queue_list.destin_ident_list.QR_name;
-            emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc.JB_job_name, 
-                     "1", que, doc.JB_job_number, doc.JB_submission_time]);}'''
-        from time import time
-        t = time()
-        # FIXME: job_count should come from Config()
-        # WARNING: Newer couchdb changes 'count' for 'limit' afaik.
-        #query = self._db.query(map_, limit=job_count, descending=True).rows
-        query = self._db.view('harm/get_jobs_db', limit=job_count, descending=True).rows
-        if DEBUG:
-            print "DBTableModel.get_jobs_db:  " + str(time() -t)
-        # We need this because of unicode return in Windows:
-        query = [[str(y) for y in x.value] for x in query]
+#     def get_jobs_db(self, job_count=150):
+#         """Reads history from couchdb database. """
+#         # A list of a jobs currently rendered or queued -
+#         # (thus whose are tracked by SGE):
+#         current_jobs = self._dict.keys()
+#         # We need this!
+#         if not self._db:
+#             try: 
+#                 self.connect_to_db()
+#             except:
+#                 return []
+#         # This is our map function with hand crafted requests fields:
+#         # It mimics qstat data, with a state replaced by 'cdb', which will allow us 
+#         # to treat it differently down the stream.
+#         map_   = '''function(doc) {
+#             var js  = doc.JB_ja_structure.task_id_range;
+#             var jss = "".concat(js.RN_min, "-", js.RN_max, ":", js.RN_step);
+#             var que = doc.JB_hard_queue_list.destin_ident_list.QR_name;
+#             emit(doc._id, [doc.JB_owner, "cdb", jss, doc.JB_priority, doc.JB_job_name, 
+#                      "1", que, doc.JB_job_number, doc.JB_submission_time]);}'''
+#         from time import time
+#         t = time()
+#         # FIXME: job_count should come from Config()
+#         # WARNING: Newer couchdb changes 'count' for 'limit' afaik.
+#         #query = self._db.query(map_, limit=job_count, descending=True).rows
+#         query = self._db.view('harm/get_jobs_db', limit=job_count, descending=True).rows
+#         if DEBUG:
+#             print "DBTableModel.get_jobs_db:  " + str(time() -t)
+#         # We need this because of unicode return in Windows:
+#         query = [[str(y) for y in x.value] for x in query]
 
-        # Convert a time string and remove jobs which were
-        # returned by qstat:
-        for item in range(len(query)):
-            if query[item][-2] not in current_jobs:
-                # FIXME: Instead of converting it to sge-ugly-string, we
-                # should convert qstat query to epoc float, and convert it
-                # in delegates!
-                query[item][-1] = utilities.epoc_to_str_time(query[item][-1])
-            else:
-                query.remove(item)
-        # Merge cdb with qstat:
-        return query
+#         # Convert a time string and remove jobs which were
+#         # returned by qstat:
+#         for item in range(len(query)):
+#             if query[item][-2] not in current_jobs:
+#                 # FIXME: Instead of converting it to sge-ugly-string, we
+#                 # should convert qstat query to epoc float, and convert it
+#                 # in delegates!
+#                 query[item][-1] = utilities.epoc_to_str_time(query[item][-1])
+#             else:
+#                 query.remove(item)
+#         # Merge cdb with qstat:
+#         return query
 
-    def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
-        """Retrieves the entire documenet (job) from database."""
-        from structured import dict2et
-        from time import time
-        if not self._db:
-            try: self.connect_to_db()
-            except: return OrderedDict()
-        t   = time()
-        job = self._db.get(job_id, OrderedDict())
-        if DEBUG:
-            print "DBTableModel.get_job_details_db: %s " % str(time() - t)
-        return job
+#     def get_job_details_db(self, job_id, sort_by_field="",  reverse_order=False):
+#         """Retrieves the entire documenet (job) from database."""
+#         from structured import dict2et
+#         from time import time
+#         if not self._db:
+#             try: self.connect_to_db()
+#             except: return OrderedDict()
+#         t   = time()
+#         job = self._db.get(job_id, OrderedDict())
+#         if DEBUG:
+#             print "DBTableModel.get_job_details_db: %s " % str(time() - t)
+#         return job
 
-    def get_tasks_db(self, job_id):
-        """Calls get_tasks_db permenent view from couchdb. This function by default
-        returns all fields from JAT_scaled_usage_list sublist.
-        """
-        from time import time
-        if not self._db:
-            try: self.connect_to_db()
-            except: return OrderedDict()
-        t = time()
-        job = self._db.view('harm/get_tasks_db', key=job_id).rows
-        if DEBUG:
-            print "DBTableModel.get_tasks_db: %s" % str(time()-t)
-        return job
+#     def get_tasks_db(self, job_id):
+#         """Calls get_tasks_db permenent view from couchdb. This function by default
+#         returns all fields from JAT_scaled_usage_list sublist.
+#         """
+#         from time import time
+#         if not self._db:
+#             try: self.connect_to_db()
+#             except: return OrderedDict()
+#         t = time()
+#         job = self._db.view('harm/get_tasks_db', key=job_id).rows
+#         if DEBUG:
+#             print "DBTableModel.get_tasks_db: %s" % str(time()-t)
+#         return job
 
 
 
@@ -374,23 +374,24 @@ class MachineModelBase(SgeTableModelBase):
         super(self.__class__, self).__init__(parent)
 
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        '''Headers builder. Note crude tokens replacement.'''
-        # Replaces columns/rows names view custom tokens;
-        def header_replace(name):
-            if name in tokens.header.keys():
-                name = tokens.header[name]
-            return name
-        # Nothing to do here:
-        if role != Qt.DisplayRole:
-            return QVariant()
-        # Horizontal headers:
-        if orientation == Qt.Horizontal and len(self._data):
-            return QVariant(header_replace(self._head[section]))
-        # Vertical headers:
-        elif orientation == Qt.Vertical and len(self._data):
-            return QVariant(header_replace(self._dict.keys()[section]))
-        return QVariant()
+    # def headerData(self, section, orientation, role=Qt.DisplayRole):
+    #     '''Headers builder. Note crude tokens replacement.'''
+    #     # Replaces columns/rows names view custom tokens;
+    #     def header_replace(name):
+    #         if name in tokens.header.keys():
+    #             name = tokens.header[name]
+    #         return name
+    #     # Nothing to do here:
+    #     if role != Qt.DisplayRole:
+    #         return QVariant()
+    #     # Horizontal headers:
+    #     if orientation == Qt.Horizontal and len(self._data):
+    #         return QVariant(header_replace(self._head[section]))
+    #     # Vertical headers:
+    #     elif orientation == Qt.Vertical and len(self._data):
+    #         return QVariant(section)
+    #         # return QVariant(header_replace(self._dict.keys()[section]))
+    #     return QVariant()
 
 
 
@@ -398,7 +399,7 @@ class MachineModelBase(SgeTableModelBase):
 #               Job Table Model                                 #   
 # ###############################################################
 
-class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
+class JobsModel(QAbstractTableModel, SgeTableModelBase): #DBTableModel):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self.sge_view = parent
@@ -409,65 +410,65 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
 
     def append_jobs_history(self, history_length):
         '''Appends history jobs from a database (using DBTableModel.get_jobs_db()) '''
-        query = self.get_jobs_db(history_length)
-        from time import time
-        t = time()
-        self._data += query
-        # FIXME!
-        # This has to be (?) hard coded here, as we don't retrieve fields' names
-        # from a database atm. This is unfortunate, since general rule here is creating everything on the fly, 
-        # It's not properly tested though...
-        # If not headers yet:
-        if len(self._head) == 0:
-            self._head = OrderedDict({0:"JB_owner", 1:"state", 2:"tasks", 3:"JAT_prio", 4:"JB_name", 5:"slots", \
-                          6:"queue_name", 7:"JB_job_number", 8:"JB_submission_time"})
-        if DEBUG:
-            print "JobsModel.append_jobs_history: " + str(time() - t)
+        pass
+        # query = self.get_jobs_db(history_length)
+        # from time import time
+        # t = time()
+        # self._data += query
+        # # FIXME!
+        # # This has to be (?) hard coded here, as we don't retrieve fields' names
+        # # from a database atm. This is unfortunate, since general rule here is creating everything on the fly, 
+        # # It's not properly tested though...
+        # # If not headers yet:
+        # if len(self._head) == 0:
+        #     self._head = OrderedDict({0:"JB_owner", 1:"state", 2:"tasks", 3:"JAT_prio", 4:"JB_name", 5:"slots", \
+        #                   6:"queue_name", 7:"JB_job_number", 8:"JB_submission_time"})
+        # if DEBUG:
+        #     print "JobsModel.append_jobs_history: " + str(time() - t)
+
+    def parse_slurm_output(self, output):
+
+        lines = output.split("\n")
+        if len(lines) == 1: lines  += [""]
+        head, lines = lines[0], lines[1:]
+        head = [word.strip() for word in head.split()]
+        lines = [line.split() for line in lines if line]
+        return lines, head
 
 
     def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
         from operator import itemgetter
+        import subprocess
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
+        err = None
         t = time()
         self._data = []
         self._dict = OrderedDict()
         self._head = OrderedDict()
         # ElementTree raise an exeption on xml parse error:\
         try:
-            self._tree = ElementTree.parse(os.popen(sge_command))
-            self._dict = OrderedDict(XmlDictConfig(self._tree.getroot())[token])
+            command = sge_command
+            out, err =subprocess.Popen(command, shell=True, \
+            stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+            if out:
+                data, header = self.parse_slurm_output(out)
+                self._data = data
+                for item in header:
+                    self._head[header.index(item)] = item
         except: 
-            pass
-        if DEBUG:
-            print str(self.__class__.__name__) + ": " + str(time() - t) + "(after xml parse)"
+            print "Counld't get scheduler info."
+            print err
 
-        t = time()
-        # XmlDictConfig returns string instead of dict in case *_info are empty! Grrr...!
-        if 'job_list' in self._dict:
-            d = self._dict['job_list']
-            if isinstance(d, list):
-                self._head = self.build_header_dict(d[-1])
-                self._data += [[x[key] for key in x.keys()] for x in d]
-            elif isinstance(d, dict):
-                self._head = self.build_header_dict(d)
-                self._data = [d.values()]
-                # Sort list by specified header (given it's name, not index):
-                if sort_by_field in self._head.values() and len(self._data) > 0:
-                    key_index = self.get_key_index(sort_by_field)
-                    self._data = sorted(self._data,  key=itemgetter(key_index))
-                    if reverse_order:
-                        self._data.reverse()
-        if DEBUG:
-            print str(self.__class__.__name__) + ": " + str(time()-t) + "after seld.data parse"
+
 
 
 #################################################################
 #               Tasks Table Model                               #   
 # ###############################################################
 
-class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
+class TaskModel(QAbstractTableModel, SgeTableModelBase):#, DBTableModel):
     '''Holds per task details of a job as retrieved from qstat -g d or database.'''
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)
@@ -476,86 +477,123 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         self._data = []
         self._head = OrderedDict()
 
-    def update_db(self, job_id, token=""):
-        """Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field)
-        by quering permanent view harm/get_tasks_db. Additionally some standard fields
-        are added manually at front (jobid, owner, tasks).
-        """
-        # Cancel previous data:
-        self._head = OrderedDict()
-        self._data = []
+    # def update_db(self, job_id, token=""):
+    #     """Reads tasks info from a database record (JB_ja_tasks.ulong_sublist field)
+    #     by quering permanent view harm/get_tasks_db. Additionally some standard fields
+    #     are added manually at front (jobid, owner, tasks).
+    #     """
+    #     # Cancel previous data:
+    #     self._head = OrderedDict()
+    #     self._data = []
 
-        # Get tasks info from db:
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        tasks = self.get_tasks_db(job_id)
+    #     # Get tasks info from db:
+    #     self.emit(SIGNAL("layoutAboutToBeChanged()"))
+    #     tasks = self.get_tasks_db(job_id)
 
-        # Empty query happens for whatever reasons:
-        if tasks: tasks = tasks[0].value
-        else: return
+    #     # Empty query happens for whatever reasons:
+    #     if tasks: tasks = tasks[0].value
+    #     else: return
 
-        # FIXME: This should not be necessery. 
-        longest = max([len(t) for t in tasks])
+    #     # FIXME: This should not be necessery. 
+    #     longest = max([len(t) for t in tasks])
 
-        # Iterate over tasks
-        for task in tasks:
-            _data = [None]*longest
-            #_data = [None for item in task]
-            for item in task:
-                name, value = item
-                if name not in self._head.values(): 
-                    field_idx = len(self._head) 
-                    self._head[field_idx] = name
-                else:
-                    field_idx = self._head.values().index(name)
-                assert field_idx < len(_data), "field_idx exeeds _data length."
-                # FIXME: on Windows value is unicode, not str, we have to force it here
-                # so PyQt4 displays it properly. This probably should be fixed differently
-                _data[field_idx] = str(value)
-            self._data.append(_data)
-        self.emit(SIGNAL("layoutChanged()"))
+    #     # Iterate over tasks
+    #     for task in tasks:
+    #         _data = [None]*longest
+    #         #_data = [None for item in task]
+    #         for item in task:
+    #             name, value = item
+    #             if name not in self._head.values(): 
+    #                 field_idx = len(self._head) 
+    #                 self._head[field_idx] = name
+    #             else:
+    #                 field_idx = self._head.values().index(name)
+    #             assert field_idx < len(_data), "field_idx exeeds _data length."
+    #             # FIXME: on Windows value is unicode, not str, we have to force it here
+    #             # so PyQt4 displays it properly. This probably should be fixed differently
+    #             _data[field_idx] = str(value)
+    #         self._data.append(_data)
+    #     self.emit(SIGNAL("layoutChanged()"))
 
 
-    def update(self, sge_command, token='queue_info', sort_by_field='JB_job_number', reverse_order=True):
-        """Updates model from qstata commandline tool. First we take an xml output, parse with ET,
-        then build a dictionary (OrderedDict) out of it, then build self._data [[jobinfo], ...] and 
-        self._head: dict(1:header, 2: header, ...).
 
-        It is a subject of change. Data handling should be done by external object,
-        DataHandler(), this class should expect native Python as input and accomodate it to its model. 
-        """
+
+    def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
+        '''Main function of derived model. Builds _data list from input.'''
+        def parse_slurm_output(output):
+            lines = output.split("\n")
+            if len(lines) == 1: lines  += [""]
+            head, lines = lines[0], lines[1:]
+            head = [word.strip() for word in head.split()]
+            lines = [line.split() for line in lines if line]
+            return lines, head
+
         from operator import itemgetter
-        # Cancel data:
-        self._tree = None
-        self._dict = OrderedDict()
+        import subprocess
+        # All dirty data. We need to duplicate it here,
+        # to keep things clean down the stream.
+        err = None
+        t = time()
         self._data = []
+        self._dict = OrderedDict()
         self._head = OrderedDict()
         self.emit(SIGNAL("layoutAboutToBeChanged()"))
-
-        # Get new one:
+        # ElementTree raise an exeption on xml parse error:\
         try:
-            self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
-            self._dict  = XmlDictConfig(self._tree)[token]
-        except:
-            pass
-
-        # XmlDictConfig returns string instead of dict in case *_info are empty!
-        if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
-            d = self._dict['job_list']
-            if isinstance(d, list):
-                self._head = self.build_header_dict(d[-1])
-                self._data += [[x[key] for key in x.keys()] for x in d]
-            elif isinstance(d, dict):
-                self._head = self.build_header_dict(d)
-                self._data = [d.values()]
-                # Sort list by specified header (given it's name, not index):
-                if sort_by_field in self._head.values()  and len(self._data) > 0:
-                    key_index = self.get_key_index(sort_by_field)
-                    self._data = sorted(self._data,  key=itemgetter(key_index))
-                    if reverse_order:
-                        self._data.reverse()
-
-        # End of updating:
+            command = sge_command
+            out, err =subprocess.Popen(command, shell=True, \
+            stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+            if out:
+                data, header = parse_slurm_output(out)
+                self._data = data
+                for item in header:
+                    self._head[header.index(item)] = item
+        except: 
+            print "Counld't get scheduler info."
+            print err
         self.emit(SIGNAL("layoutChanged()"))
+
+    # def update(self, sge_command, token='queue_info', sort_by_field='JB_job_number', reverse_order=True):
+    #     """Updates model from qstata commandline tool. First we take an xml output, parse with ET,
+    #     then build a dictionary (OrderedDict) out of it, then build self._data [[jobinfo], ...] and 
+    #     self._head: dict(1:header, 2: header, ...).
+
+    #     It is a subject of change. Data handling should be done by external object,
+    #     DataHandler(), this class should expect native Python as input and accomodate it to its model. 
+    #     """
+    #     from operator import itemgetter
+    #     # Cancel data:
+    #     self._tree = None
+    #     self._dict = OrderedDict()
+    #     self._data = []
+    #     self._head = OrderedDict()
+    #     self.emit(SIGNAL("layoutAboutToBeChanged()"))
+
+    #     # Get new one:
+    #     try:
+    #         self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
+    #         self._dict  = XmlDictConfig(self._tree)[token]
+    #     except:
+    #         pass
+
+    #     # XmlDictConfig returns string instead of dict in case *_info are empty!
+    #     if isinstance(self._dict, dict) and 'job_list' in self._dict.keys():
+    #         d = self._dict['job_list']
+    #         if isinstance(d, list):
+    #             self._head = self.build_header_dict(d[-1])
+    #             self._data += [[x[key] for key in x.keys()] for x in d]
+    #         elif isinstance(d, dict):
+    #             self._head = self.build_header_dict(d)
+    #             self._data = [d.values()]
+    #             # Sort list by specified header (given it's name, not index):
+    #             if sort_by_field in self._head.values()  and len(self._data) > 0:
+    #                 key_index = self.get_key_index(sort_by_field)
+    #                 self._data = sorted(self._data,  key=itemgetter(key_index))
+    #                 if reverse_order:
+    #                     self._data.reverse()
+
+    #     # End of updating:
+    #     self.emit(SIGNAL("layoutChanged()"))
 
     def hook_cputime(self, index, value):
         """Translate cpu time in seconds into 00:00:00 string."""
@@ -573,7 +611,7 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         """Translates time related SGE fields in ugly format  "%H:%M:%S %d-%m-%Y"
         into something hopefully nicer.
         """
-        if self._head[index.column()] in ('submission_time', "start_time", "end_time", "qsub_time"):
+        if self._head[index.column()] in ('submission_time', "start_time", "end_time", "qsub_time", "SUBMIT_TIME"):
             if isinstance(value, float):
                 value = utilities.epoc_to_str_time(float(value), "%H:%M:%S %d-%m-%Y")
             elif len(value.split()) == 5 and ":" in value:
@@ -594,7 +632,56 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
             return len(self._head)
         return 0
 
-            
+          
+# RUNNIG JOBS MODEL
+
+class RunningJobsModel(QAbstractTableModel, SgeTableModelBase):#, DBTableModel):
+    '''Holds per task details of a job as retrieved from qstat -g d or database.'''
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__(parent)
+        self.sge_view = parent
+        self._tree = None
+        self._data = []
+        self._head = OrderedDict()
+
+
+
+    def update(self, command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
+        '''Main function of derived model. Builds _data list from input.'''
+        def parse_slurm_output(output):
+            lines = output.split("\n")
+            if len(lines) == 1: lines  += [""]
+            head, lines = lines[0], lines[1:]
+            head = [word.strip() for word in head.split()]
+            lines = [line.split() for line in lines if line]
+            return lines, head
+
+        from operator import itemgetter
+        import subprocess
+        # All dirty data. We need to duplicate it here,
+        # to keep things clean down the stream.
+        err = None
+        t = time()
+        self._data = []
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        # ElementTree raise an exeption on xml parse error:\
+        try:
+            # command = sge_command
+            out, err =subprocess.Popen(command, shell=True, \
+            stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+            if out:
+                data, header = parse_slurm_output(out)
+                self._data = data
+                for item in header:
+                    self._head[header.index(item)] = item
+        except: 
+            print "Counld't get scheduler info."
+            print err
+        self.emit(SIGNAL("layoutChanged()"))
+
+
 
 
 #################################################################
@@ -603,22 +690,22 @@ class TaskModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
 # the qacct output                                              #   
 # ##############################################################
 
-class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
-    def __init__(self,  parent=None, *args):
-        super(self.__class__, self).__init__(parent)
+# class JobsHistoryModel(QAbstractTableModel, SgeTableModelBase):
+#     def __init__(self,  parent=None, *args):
+#         super(self.__class__, self).__init__(parent)
       
-    def update(self, sge_command, sort_by_field='jobnumber', reverse_order=True, rotate_by_field=None):
-        '''Main function of derived model. Builds _data list from input.'''
-        from operator import itemgetter
-        self._dict = qccet_to_dict(os.popen(sge_command).read(), True)
-        self._head = self.build_header_dict(self._dict[self._dict.keys()[-1]])
-        self._data = [self._dict[item].values() for item in self._dict]
-        # Sort list by specified header (given it's name, not index):
-        if sort_by_field in self._head.values():
-            key_index = self.get_key_index(sort_by_field)
-            self._data = sorted(self._data,  key=itemgetter(key_index))
-            if reverse_order:
-                self._data.reverse()
+#     def update(self, sge_command, sort_by_field='jobnumber', reverse_order=True, rotate_by_field=None):
+#         '''Main function of derived model. Builds _data list from input.'''
+#         from operator import itemgetter
+#         self._dict = qccet_to_dict(os.popen(sge_command).read(), True)
+#         self._head = self.build_header_dict(self._dict[self._dict.keys()[-1]])
+#         self._data = [self._dict[item].values() for item in self._dict]
+#         # Sort list by specified header (given it's name, not index):
+#         if sort_by_field in self._head.values():
+#             key_index = self.get_key_index(sort_by_field)
+#             self._data = sorted(self._data,  key=itemgetter(key_index))
+#             if reverse_order:
+#                 self._data.reverse()
 
 
 
@@ -633,36 +720,54 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
         self._head = OrderedDict()
         self._data = []
       
-    def update(self, sge_command, token='job_info', sort_by_field='hostname', reverse_order=False):
-        '''Main function of derived model. Builds _data list from input.'''
+    def update(self, command, token='job_info', sort_by_field='hostname', reverse_order=False):
+        '''Main function of derived model. Builds _data list from input.
+        '''
+        def parse_slurm_output(output):
+            nodes = output.split("\n\n")
+            data   = []
+            header = []
+            dict_  = OrderedDict()
+            hostname= ""
+            build_header = True
+
+            for node in nodes:
+                items = node.split()[:-1]
+                line = []
+                d_   = OrderedDict()
+                for item in items:
+                    var = item.split("=")
+                    name, var = var[0], ",".join(var[1:])
+                    if name == 'NodeName':
+                        hostname = var
+                    line += [var]
+                    if build_header:
+                        header += [name.strip()]
+                    d_[name] = var
+                data.append(line)
+                dict_[hostname] = d_
+                build_header = False
+
+            return data, header, dict_
+
         from operator import itemgetter
+        import subprocess
         self._tree = None
         self._data = []
         self._dict = OrderedDict()
-        try:
-            self._tree = ElementTree.parse(os.popen(sge_command))
-        except:
-            return
-        # Build a dictionary of dictionaries:
-        # This differs again, because qhost -xml saves field's 
-        # name as the attributes ('name') with values as values...
-        for item in self._tree.findall('host'):
-            name = item.attrib['name']
-            if name == "global": continue
-            self._dict[name] = OrderedDict()
-            for x in item.getchildren():
-                # hosts can have jobs attached to it.
-                # Get rid of it for now.
-                if not x.tag == 'job':
-                    self._dict[name][x.attrib['name']] = x.text
-                
-        # Make a list of lists from that:
-        self._head = self.build_header_dict(self._dict[self._dict.keys()[-1]])
-        self._data = [self._dict[item].values() for item in self._dict]
-        # Sort list by specified header (given it's name, not index):
-        if sort_by_field in self._head.values():
-            key_index = self.get_key_index(sort_by_field)
-            self._data = sorted(self._data,  key=itemgetter(key_index))
+      
+        # ElementTree raise an exeption on xml parse error:\
+        # try:
+            # command = sge_command
+        out, err =subprocess.Popen(command, shell=True, \
+        stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+        if out:
+            data, header, dict_ = parse_slurm_output(out)
+            self._data = data
+            self._dict = dict_
+            for item in header:
+                self._head[header.index(item)] = item
+       
             if reverse_order:
                 self._data.reverse()
 
@@ -675,7 +780,7 @@ class MachineModel(QAbstractTableModel, MachineModelBase):
 # ################################################################
 
 
-class JobDetailModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
+class JobDetailModel(QAbstractTableModel, SgeTableModelBase):# DBTableModel):
     def __init__(self, parent=None, *args):
         super(self.__class__, self).__init__(parent)
         self._dict = OrderedDict()
@@ -683,20 +788,56 @@ class JobDetailModel(QAbstractTableModel, SgeTableModelBase, DBTableModel):
         self._data = []
         self._tree = None
        
-    def update(self, sge_command, sort_by_field="", reverse_order=False):
-        from operator import itemgetter
-        try:
-            self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
-            self._dict  = XmlDictConfig(self._tree)['djob_info']['element']
-        except:
-            job_id = sge_command.split()[-1]
-            self._dict = self.get_job_details_db(job_id)
-            #print "JB_submission_time: " + str("JB_submission_time" in self._dict)
+    def update(self, jobid, taskid, sort_by_field="", reverse_order=False):
+        def parse_slurm_output(output):
+            out = output.split()
+            data   = []
+            header = []
+            dict_  = OrderedDict()
+            for item in out:
+                var = item.split("=")
+                name, var = var[0], ",".join(var[1:])
+                data   += [(name,var)]
+                header += [name.strip()]
+                dict_[name] = var
+            return data, header, dict_
 
-        self._data  = []
-        self._tasks = []
-        self._data  = zip(self._dict.keys(), self._dict.values())
-        self._head = self.build_header_dict(self._dict)
+        from operator import itemgetter
+        import subprocess
+        command = SLURM_JOB_DETAILS.replace("<JOBID/>", jobid)
+        command = command.replace("<TASKID/>", taskid)
+        # All dirty data. We need to duplicate it here,
+        # to keep things clean down the stream.
+        err = None
+        t = time()
+        self._data = []
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+        # ElementTree raise an exeption on xml parse error:\
+        # try:
+            # command = sge_command
+        out, err =subprocess.Popen(command, shell=True, \
+        stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+        if out:
+            data, header, dict_ = parse_slurm_output(out)
+            self._data = data
+            self._dict = dict_
+            for item in header:
+                self._head[header.index(item)] = item
+        # except: 
+            # print "Counld't get scheduler info."
+            # print err
+        #     self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
+        #     self._dict  = XmlDictConfig(self._tree)['djob_info']['element']
+        # except:
+        #     job_id = sge_command.split()[-1]
+        #     self._dict = self.get_job_details_db(job_id)
+        #     #print "JB_submission_time: " + str("JB_submission_time" in self._dict)
+
+        # self._data  = []
+        # self._tasks = []
+        # self._data  = zip(self._dict.keys(), self._dict.values())
+        # self._head = self.build_header_dict(self._dict)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.'''
