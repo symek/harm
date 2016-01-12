@@ -9,12 +9,12 @@ SGE_HISTORY_JOB         = 'qacct -d 3 -j %s'
 SGE_HISTORY_JOB_LAST    = 'qacct -d 1'
 
 #SGE_COMMANDS:
-SLURM_JOBS_LIST_GROUPED  = 'squeue -o "%A %P %u %T %j %V %M %K %D"'
-SLURM_JOBS_LIST          = 'squeue -j <JOBID/> -r -o "%A %K %P %u %T %j %V %M %r %B"'
+SLURM_JOBS_LIST_GROUPED  = 'squeue -t PD,C,PR -o "%F %P %u %T %j %V %e %M %K %A"'
+SLURM_JOBS_LIST          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%A %K %P %u %T %j %S %e %M %B %r"'
 SLURM_JOB_DETAILS        = 'scontrol show job <JOBID/>_<TASKID/>'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
 SLURM_RUNNING_JOBS_LIST  = 'squeue -t R -r -o "%A %K %P %B %u %T %j %V %M %w %W %X %z %o"'
-
+ 
 EMPTY_SGE_JOB_DETAILS   = 'cat empty_job_details.xml'
 
 # Work in idle (no SGE around)

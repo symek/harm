@@ -104,10 +104,11 @@ class JobsView(QTableView, ViewBase):
         self.context = context
         self.context.views['jobs_view'] = self
         self.configure()
+        self.setAlternatingRowColors(0)
         # Models:
         self.model = models.JobsModel(self)
-        self.model.update(SLURM_JOBS_LIST_GROUPED)
         length = self.context.GUI.history_length.text()
+        self.model.update(SLURM_JOBS_LIST_GROUPED, length)
         # FIXME: history should be appended in update()..
         # self.model.append_jobs_history(int(length))
         self.proxy_model = QSortFilterProxyModel()
@@ -218,6 +219,7 @@ class RunningView(QTableView, ViewBase):
         super(self.__class__, self).__init__()
         self.context = context
         self.configure()
+        self.setAlternatingRowColors(0)
 
         # Models:
         self.model = models.RunningJobsModel(self)
@@ -244,6 +246,21 @@ class RunningView(QTableView, ViewBase):
         # Clean:
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+
+            # TODO: This is temporary to allow append_history to jobs view after refresh:
+    def update_model(self, *arg):
+        '''Overwrites update_model() to allow append history jobs to a model.'''
+        self.model.reset()
+        self.model.update(*arg)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+        # length = self.context.GUI.history_length.text()
+        # self.model.append_jobs_history(int(length))
+        # self.set_column_order(self.order_columns)
+        # self.set_column_hidden(self.hidden_columns)
+
         
     def openContextMenu(self, position):
         self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
@@ -380,6 +397,7 @@ class MachineView(QTableView, ViewBase):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
         self.configure()
+        self.setAlternatingRowColors(0)
 
         # Models:
         self.model = models.MachineModel()
@@ -416,6 +434,7 @@ class JobDetailView(QTableView, ViewBase):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
         self.configure()
+        self.setAlternatingRowColors(0)
 
         # Models:
         self.model = models.JobDetailModel()

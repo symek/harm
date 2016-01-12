@@ -188,9 +188,9 @@ class SgeTableModelBase():
         '''Parses the time string to reasonable format.'''
         time = time.split("T")
         if len(time) == 2:
-            date, time = time
-            return " ".join((time, date))
-        return time[0]
+        #     date, time = time
+        #     return " ".join((time, date))
+            return time[1]
 
     def get_value(self, key, data=None):
         '''Searches data model for particular value based on provided key. 
@@ -426,22 +426,28 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase): #DBTableModel):
         # if DEBUG:
         #     print "JobsModel.append_jobs_history: " + str(time() - t)
 
-    def parse_slurm_output(self, output):
-
-        lines = output.split("\n")
-        if len(lines) == 1: lines  += [""]
-        head, lines = lines[0], lines[1:]
-        head = [word.strip() for word in head.split()]
-        lines = [line.split() for line in lines if line]
-        return lines, head
 
 
-    def update(self, sge_command, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
+
+    def update(self, sge_command, length, token='job_info', sort_by_field='JB_job_number', reverse_order=True):
         '''Main function of derived model. Builds _data list from input.'''
+        def parse_slurm_output(output, length, reverse_order):
+            lines = output.split("\n")
+            if len(lines) == 1: 
+                lines  += [""]
+            head, lines = lines[0], lines[1:]
+            if reverse_order:
+                lines.reverse()
+            lines = lines[:max(length,1)]
+            head        = [word.strip() for word in head.split()]
+            lines       = [line.split() for line in lines if line]
+            return lines, head
+
         from operator import itemgetter
         import subprocess
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         err = None
         t = time()
         self._data = []
@@ -453,13 +459,15 @@ class JobsModel(QAbstractTableModel, SgeTableModelBase): #DBTableModel):
             out, err =subprocess.Popen(command, shell=True, \
             stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
             if out:
-                data, header = self.parse_slurm_output(out)
+                data, header = parse_slurm_output(out, length, reverse_order)
                 self._data = data
                 for item in header:
                     self._head[header.index(item)] = item
         except: 
             print "Counld't get scheduler info."
             print err
+
+        self.emit(SIGNAL("layoutChanged()"))
 
 
 

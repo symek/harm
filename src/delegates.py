@@ -60,7 +60,7 @@ class JobsDelegate(QItemDelegate):
         # Icon drawing:
         host_app     = None
         waiting      = index.data(Qt.DecorationRole).toBool()
-        job_name_idx = self.model.get_key_index("JB_name")
+        job_name_idx = self.model.get_key_index("NAME")
         s_index      = self.proxy.mapToSource(index)
         running_ids  = []
 
@@ -85,15 +85,15 @@ class JobsDelegate(QItemDelegate):
         # FIXME: This should not be nesecery?
         if self.model._data:
             try:
-                state_idx = self.model.get_key_index("state")
-                jobid_idx = self.model.get_key_index("JB_job_number")
+                state_idx = self.model.get_key_index("STATE")
+                jobid_idx = self.model.get_key_index("ARRAY_JOB_ID")
                 state = self.model._data[s_index.row()][state_idx]
                 jobid = self.model._data[s_index.row()][jobid_idx]
 
                 tasks_model =  self.context.models['tasks_model']
-                tasks_idx   = tasks_model.get_key_index("JB_job_number")
+                tasks_idx   = tasks_model.get_key_index("ARRAY_JOB_ID")
                 # FIXME: Presence of state columns indicates tasks are running (not taken from DB)
-                is_running  = tasks_model.get_key_index("state")
+                is_running  = tasks_model.get_key_index("ARRAY_JOB_ID")
                 running_ids = [x[tasks_idx] for x in tasks_model._data]
             except:
                 pass
@@ -102,14 +102,15 @@ class JobsDelegate(QItemDelegate):
             return
 
         # Set job state colors:
-        if state in ('hqw', 'hRq'):
+        if state in ('PENDING', 'CANCELED'):
             painter.setBrush(QBrush(self.hqwC))
-        elif state in ("qw",):
+        elif state in ("PENDING",):
             painter.setBrush(QBrush(self.qwWaitingC))
         elif jobid.strip() in running_ids and is_running:
             painter.setBrush(QBrush(self.qwC))
         else:
-            painter.setBrush(QBrush(QColor(Qt.white)))
+            pass
+            # painter.setBrush(QBrush(QColor(Qt.white)))
 
         # Set background for selected objects:
         if option.state & QStyle.State_Selected:

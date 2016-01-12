@@ -48,8 +48,10 @@ class HarmMainWindowCallbacks():
 
     def refreshAll(self):
         '''Refreshes jobs/tasks/machine views. Automatically called by self.timer too. '''
-        self.jobs_view.update_model(SLURM_JOBS_LIST_GROUPED)
+        self.jobs_view.update_model(SLURM_JOBS_LIST_GROUPED, 50)
         self.tasks_view.update_model(SLURM_JOBS_LIST, 'queue_info')
+        self.running_view.update_model(SLURM_RUNNING_JOBS_LIST, 'queue_info')
+        
         # self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
@@ -61,7 +63,7 @@ class HarmMainWindowCallbacks():
 
     def set_user(self):
         user = utilities.get_username()
-        self.jobs_filter_line.setText("Owner:%s" % user)
+        self.jobs_filter_line.setText("USER:%s" % user)
         #self.set_jobs_view_filter()
 
     def jobs_view_clicked(self, index):

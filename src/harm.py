@@ -43,6 +43,7 @@ def main():
 
     # App setup:
     app     = QApplication(sys.argv)
+    # app.setStyle(QtGui.QStyleFactory.create("Oxygen"))
     _config = config.Config()
     
     # Splash setup:
@@ -51,15 +52,16 @@ def main():
     splash.show()
     splash.showMessage("Reading SGE details...")
     app.processEvents()
-    w = HarmMainWindow(_config, app, splash)
-    splash.finish(w)
+
+    window = HarmMainWindow(_config, app, splash)
+    style_path = _config.get_harm_path('darkorange.stylesheet', "HARM_ICON")
+    with open(style_path) as file:
+        window.setStyleSheet(file.read())
+    splash.finish(window)
+
     # Show main window:
-    w.show()
+    window.show()
     sys.exit(app.exec_())
 
 if __name__ == "__main__": main()
-    #app.setStyle(QtGui.QStyleFactory.create("Oxygen"))
     # Apply stype sheets:
-    #f = open("/home/symek/Downloads/darkorange.stylesheet")
-    #w.setStyleSheet(f.read())
-    #f.close()

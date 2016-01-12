@@ -15,8 +15,14 @@ header['cpu']                = 'Cpu Time'
 header['mem']                = 'Memory Used'
 header['vmem']               = 'Virtual Memory'
 header['maxvmem']            = 'Max Ram'
-header['ARRAY_TASK_ID']      = 'TASKID'
+header['ARRAY_TASK_ID']      = 'TASK'
+header['ARRAY_JOB_ID']       = 'ID'
 header['EXEC_HOST']          = "Machine"
+header['SUBMIT_TIME']        = 'Submitted'
+header['END_TIME']           = 'Ended'
+header['START_TIME']           = 'Started'
+header['TIME']               = 'Elapsed'
+header['PARTITION']          = 'Queue'
 
 
 header['iow']  = 'Disk Wait'
@@ -84,5 +90,5 @@ header['grafika32.humanark.com'] = 'grafika32'
 
 #header = {}
 
-time_strings = ("JB_submission_time", "JAT_start_time", "JAT_end_time")
+time_strings = ("JB_submission_time", "JAT_start_time", "JAT_end_time", "SUBMIT_TIME", "END_TIME", "START_TIME")
 
