@@ -20,7 +20,7 @@ header['ARRAY_JOB_ID']       = 'ID'
 header['EXEC_HOST']          = "Machine"
 header['SUBMIT_TIME']        = 'Submitted'
 header['END_TIME']           = 'Ended'
-header['START_TIME']           = 'Started'
+header['START_TIME']         = 'Started'
 header['TIME']               = 'Elapsed'
 header['PARTITION']          = 'Queue'
 

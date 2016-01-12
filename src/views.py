@@ -105,10 +105,11 @@ class JobsView(QTableView, ViewBase):
         self.context.views['jobs_view'] = self
         self.configure()
         self.setAlternatingRowColors(0)
+
         # Models:
         self.model = models.JobsModel(self)
         length = self.context.GUI.history_length.text()
-        self.model.update(SLURM_JOBS_LIST_GROUPED, length)
+        self.model.update(int(length))
         # FIXME: history should be appended in update()..
         # self.model.append_jobs_history(int(length))
         self.proxy_model = QSortFilterProxyModel()
@@ -142,9 +143,8 @@ class JobsView(QTableView, ViewBase):
         self.model.reset()
         self.model.update(*arg)
         length = self.context.GUI.history_length.text()
-        self.model.append_jobs_history(int(length))
-        self.set_column_order(self.order_columns)
-        self.set_column_hidden(self.hidden_columns)
+        # self.set_column_order(self.order_columns)
+        # self.set_column_hidden(self.hidden_columns)
 
 
 
@@ -164,7 +164,7 @@ class TasksView(QTableView, ViewBase):
 
         # Models:
         self.model = models.TaskModel(self)
-        self.model.update(SLURM_JOBS_LIST, 'queue_info', reverse_order=False)
+        self.model.update(None, reverse_order=False)
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)

@@ -48,7 +48,7 @@ class HarmMainWindowCallbacks():
 
     def refreshAll(self):
         '''Refreshes jobs/tasks/machine views. Automatically called by self.timer too. '''
-        self.jobs_view.update_model(SLURM_JOBS_LIST_GROUPED, 50)
+        self.jobs_view.update_model(50)
         self.tasks_view.update_model(SLURM_JOBS_LIST, 'queue_info')
         self.running_view.update_model(SLURM_RUNNING_JOBS_LIST, 'queue_info')
         
@@ -76,6 +76,9 @@ class HarmMainWindowCallbacks():
         # with that, we retrieve informations:
         job_id       = self.jobs_view.model._data[s_index.row()][job_id_index]
         state        = self.jobs_view.model._data[s_index.row()][state_index]
+        #
+        self.tasks_view.update_model(job_id)
+        self.set_tasks_view_filter(job_id)
 
         # Update job detail view in case its tab is visible:
         # if self.right_tab_widget.currentIndex() == 0:
@@ -87,15 +90,13 @@ class HarmMainWindowCallbacks():
 
         # We set task view filter to currently selected AND runnig jobs,
         # or update tasks view with past jobs using database:
-        if state != 'cdb': 
-            self.tasks_view.update_model(SLURM_JOBS_LIST.replace("<JOBID/>",job_id), 'queue_info')
-            self.set_tasks_view_filter(job_id)
-        else:
+        # if state != 'cdb': 
+        # else:
             # updat_db() calls update_job_details_db() first to read database
             # then parses query to look for per frame info and updats tasksModel._dict
             # with that data.
-            self.tasks_view.update_model_db(job_id)
-            self.set_tasks_view_filter(None)
+            # self.tasks_view.update_model_db(job_id)
+            # self.set_tasks_view_filter(None)
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.'''
