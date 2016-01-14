@@ -2,6 +2,7 @@ from PyQt4.QtCore import *
 import tokens
 import utilities
 import views
+import slurm
 import os
 from constants import *
 from time import time
@@ -167,21 +168,6 @@ class JobsModel(QAbstractTableModel, HarmTableModel):
     def update(self, length, reverse_order=True):
         '''Main function of derived model. Builds _data list from input.
         '''
-        from operator import itemgetter
-        import subprocess
-        def parse_slurm_output(output, length, reverse_order):
-            lines = output.split("\n")
-            if len(lines) == 1: 
-                lines  += [""]
-
-            head, lines = lines[0], lines[1:]
-            if reverse_order:
-                lines.reverse()
-
-            lines = lines[:max(length, 1)]
-            head = [word.strip() for word in head.split()]
-            lines = [line.split() for line in lines if line]
-            return lines, head
 
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
@@ -197,20 +183,20 @@ class JobsModel(QAbstractTableModel, HarmTableModel):
         self._data = []
         self._dict = OrderedDict()
         self._head = OrderedDict()
-        command    = SLURM_JOBS_LIST_GROUPED
 
-        try:
-            out, err = subprocess.Popen(command, shell=True, \
-            stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
-            if out:
-                data, header = parse_slurm_output(out, length, reverse_order)
-                self._data = data
-                for item in header:
-                    self._head[header.index(item)] = item
-        except: 
-            print "Counld't get scheduler info."
-            print err
+        others, tmp     = slurm.get_notpending_jobs(None, True)
+        pending, header = slurm.get_pending_jobs(length, reverse_order=True)
+        # Two ways df dealing with it, because Slurm collapses only pending jobs, 
+        # all others leaving expanded to tasks. 
 
+        if pending:
+            self._data = pending
+            self._head = header
+        if others:
+            # print others
+            self._data += others
+            self._head = header
+        
         self.emit(SIGNAL("layoutChanged()"))
 
 
