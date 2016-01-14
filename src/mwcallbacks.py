@@ -199,15 +199,17 @@ class HarmMainWindowCallbacks():
         or something.'''
         from fnmatch import fnmatch
         # By default we filter users: 
-        column_name   = 'JB_owner'
+        column_name   =  None
         wildcard      = str(wildcard)
         # basic syntax for specifying headers:
+
         wildcard    = wildcard.split(":")
         if len(wildcard) > 1:
             column_name = wildcard[0]
             wildcard  = wildcard[1]
         else:
             wildcard = wildcard[0]
+            
         # Find real variable name from header name:
         if column_name in tokens.header.values():
             real_name = tokens.header.keys()[tokens.header.values().index(column_name)]
@@ -215,8 +217,12 @@ class HarmMainWindowCallbacks():
             if fnmatch(column_name, real_name) or fnmatch(column_name, tokens.header[real_name]):
                 column_name = real_name
 
+        elif not column_name:
+            column_index =-1
+        else:
+            column_index = self.jobs_view.model.get_key_index(column_name)
+            
         # Finally our job:
-        column_index = self.jobs_view.model.get_key_index(column_name)
         self.jobs_view.proxy_model.setFilterKeyColumn(column_index)
         self.jobs_view.proxy_model.setFilterWildcard(wildcard)
         self.jobs_view.resizeRowsToContents()
