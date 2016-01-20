@@ -2,6 +2,7 @@ import os, time
 import utilities
 from constants import *
 import tokens
+import slurm
 #PyQt4:
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import * 
@@ -79,6 +80,8 @@ class HarmMainWindowCallbacks():
         #
         self.tasks_view.update_model(job_id)
         self.set_tasks_view_filter(job_id)
+
+        self.job_detail_basic_view_update(job_id)
 
         # Update job detail view in case its tab is visible:
         # if self.right_tab_widget.currentIndex() == 0:
@@ -209,7 +212,7 @@ class HarmMainWindowCallbacks():
             wildcard  = wildcard[1]
         else:
             wildcard = wildcard[0]
-            
+
         # Find real variable name from header name:
         if column_name in tokens.header.values():
             real_name = tokens.header.keys()[tokens.header.values().index(column_name)]
@@ -255,10 +258,11 @@ class HarmMainWindowCallbacks():
         It's a text viewer sutable for very simple
         presentation of data'''
         #TODO: This is workaround for a lack of html widget.
-        text = utilities.render_basic_job_info(self.job_detail_view.model._dict)
+        # text = utilities.render_basic_job_info(self.job_detail_view.model._dict)
         # text += utilities.render_basic_task_info(self.job_detail_view.model._tasks)
         # FIXME: read_rtime() is very slow:
         #text += utilities.read_rtime(job_id)
+        text   = slurm.render_job_stats_to_text(job_id)
         self.job_detail_basic_view.setPlainText(str(text))
 
     def set_job_detail_view_filter(self, text):

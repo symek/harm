@@ -53,10 +53,10 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         
         #self.splashMessage("Setup History Tab...")
         #self.setupHistoryTab() 
-        # self.splashMessage("Setup Task Detail Tab...")
-        # self.setupJobDetailTab()
-        # self.splashMessage("Setup Stdout and stderr Tabs...")
-        # self.setupTaskStdTab()
+        self.splashMessage("Setup Task Detail Tab...")
+        self.setupJobDetailTab()
+        self.splashMessage("Setup Stdout and stderr Tabs...")
+        self.setupTaskStdTab()
         #self.splashMessage("Setup Statistics Tab...")
         #self.setupStatisticsTab()
 

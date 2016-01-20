@@ -10,7 +10,7 @@ SGE_HISTORY_JOB_LAST    = 'qacct -d 1'
 
 #SGE_COMMANDS:
 SLURM_JOBS_LIST_GROUPED  = 'squeue -t PD -o "%F %P %u %T %j %V %e %M %K %A"'
-SLURM_JOBS_LIST          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%A %K %P %u %T %j %S %e %M %B %r"'
+SLURM_JOBS_LIST          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
 SLURM_JOB_DETAILS        = 'scontrol show job <JOBID/>_<TASKID/>'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
 SLURM_RUNNING_JOBS_LIST  = 'squeue -t R -r -o "%A %K %P %B %u %T %j %V %M %w %W %X %z %o"'
