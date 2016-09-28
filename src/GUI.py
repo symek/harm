@@ -51,8 +51,8 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.splashMessage("Setup Machines Tab...")
         self.setupMachinesTab()
         
-        #self.splashMessage("Setup History Tab...")
-        #self.setupHistoryTab() 
+        self.splashMessage("Setup History Tab...")
+        self.setupHistoryTab() 
         self.splashMessage("Setup Task Detail Tab...")
         self.setupJobDetailTab()
         self.splashMessage("Setup Stdout and stderr Tabs...")
@@ -103,7 +103,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         jobs_tab_splitter  = QtGui.QSplitter(self.jobs_tab)
         jobs_tab_vbox.addWidget(jobs_tab_splitter)
         jobs_tab_splitter.setOrientation(Qt.Vertical)
-        self.left_tab_widget.addTab(self.jobs_tab, "Jobs")
+        self.left_tab_widget.addTab(self.jobs_tab, "Queued Jobs")
 
         # Job controls layout
         jobs_filter_hbox = QtGui.QHBoxLayout()
@@ -179,14 +179,27 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         running_tab_vbox.addWidget(self.running_view)
 
     def setupHistoryTab(self):
-        '''Historical jobs aquaured from qacct SGE utility. Heavy post-process
-           has to be undertaken here. '''
+        '''Historical jobs. Heavy post-process
+           has to be undertaken here. 
+        '''
         # History View:
         self.history_view = views.HistoryView(context)
         #self.history_view = views.JobsTreeHistoryView(context)
         self.history_tab   = QtGui.QWidget()
         self.left_tab_widget.addTab(self.history_tab, "History")
         history_tab_vbox = QtGui.QVBoxLayout(self.history_tab)
+        history_filter_hbox = QtGui.QHBoxLayout()
+        history_tab_vbox.insertLayout(0, history_filter_hbox)
+
+         # Filter:
+        self.history_filter_label = QtGui.QLabel()
+        self.history_filter_label.setText("User filter:")
+
+        # Job filter line edit (for filtering by columns' entry):
+        self.history_user = QLineEdit()
+
+        history_filter_hbox.addWidget(self.history_filter_label)
+        history_filter_hbox.addWidget(self.history_user)
         history_tab_vbox.addWidget(self.history_view)
         
     def setupMachinesTab(self):

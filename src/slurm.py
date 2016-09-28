@@ -9,6 +9,7 @@ except ImportError:
 # Slurm commands:
 SLURM_JOBS_GROUPED_CMD = 'squeue -t <STATES/> -o "%F %P %u %T %j %V %e %M %K %A"'
 SLURM_JOB_DETAILS      = 'scontrol show job <JOBID/>_<TASKID/>'
+SLURM_JOBS_HISTORY_ALL = 'sacct -u <USER/> -o "JobId,Partition,User,State,JobName,Submit,Start,End,ExitCode" -P'
 
 # TODO: Remove and import hafarm utils upon merge.
 def collapse_digits_to_sequence(frames):
@@ -66,7 +67,7 @@ def parse_slurm_output_to_dict(output):
 
         
 
-def parse_slurm_output_to_list(output, length=None, reverse_order=True):
+def parse_slurm_output_to_list(output, length=None, reverse_order=True, split_char=None):
     """ Post process stdout from an application spliting it into lines
         and lines lines into words. Assummies first line is a header.
     """
@@ -81,8 +82,8 @@ def parse_slurm_output_to_list(output, length=None, reverse_order=True):
     if length:
         assert isinstance(length, int)
         lines = lines[:max(length, 1)]
-    head = [word.strip() for word in head.split()]
-    lines = [line.split() for line in lines if line]
+    head = [word.strip() for word in head.split(split_char)]
+    lines = [line.split(split_char) for line in lines if line]
     return lines, head
 
 
@@ -134,7 +135,7 @@ def get_std_output(command):
 
 
 
-def get_pending_jobs(max_jobs=150, reverse_order=True):
+def get_pending_jobs(max_jobs=300, reverse_order=True):
     """ Get a list of pending jobs from slurm.
     """
     command   = SLURM_JOBS_GROUPED_CMD.replace("<STATES/>", "PD")
@@ -161,6 +162,37 @@ def get_notpending_jobs(max_jobs=None, reverse_order=True):
         data, _dict  = collapse_list_by_field(data, header)
         return data, header
     return  
+
+def get_current_jobs(max_jobs=300, reverse_order=True):
+    """ Only pending and rendering
+    """
+    command   = SLURM_JOBS_GROUPED_CMD.replace("<STATES/>", "PD,R")
+    data, err = get_std_output(command)
+    if data:
+        data, head = parse_slurm_output_to_list(data, max_jobs, reverse_order)
+        header     = OrderedDict()
+        for item in head:
+            header[head.index(item)] = item
+        data, _dict  = collapse_list_by_field(data, header)
+        return data, header
+    return 
+
+def get_accounted_jobs(user, reverse_order=True):
+    """ Only pending and rendering
+    """
+    from os import getlogin
+    if user == "":
+        user = getlogin()
+
+    command   = SLURM_JOBS_HISTORY_ALL.replace("<USER/>", "%s" % user)
+    data, err = get_std_output(command)
+    if data:
+        data, head = parse_slurm_output_to_list(data, 500, reverse_order, "|")
+        header     = OrderedDict()
+        for item in head:
+            header[head.index(item)] = item
+        return data, header
+    return 
 
 def get_job_stats(jobid, taskid=""):
     """ As names implies.
@@ -222,7 +254,10 @@ def render_job_stats_to_text(jobid):
             inprogress += [task['ArrayTaskId']]
 
 
-    render_avg = sum([convert_strtime_to_seconds(x) for x in runtime]) / len(runtime) * 1.0
+    render_avg = sum([convert_strtime_to_seconds(x) for x in runtime]) / max(len(runtime),1) * 1.0
+
+    if not runtime: 
+        runtime.append(0.0)
 
     
     text  = ""

@@ -58,16 +58,16 @@ class HarmTableModel():
         # Process data types: 
         if value == None: 
             return None
-        elif value.__class__ in (int, float):
-            return value 
-        elif not isinstance(value, str):
-            return None
-        if value.isdigit(): 
-            value = int(value)
-        try: 
-            value = float(value)
-        except: 
-            pass
+        # elif value.__class__ in (int, float):
+        #     return value 
+        # elif not isinstance(value, str):
+        #     return None
+        # if value.isdigit(): 
+        #     value = int(value)
+        # try: 
+        #     value = float(value)
+        # except: 
+        #     pass
         return value
 
     def get_key_index(self, key):
@@ -94,7 +94,7 @@ class HarmTableModel():
             return QVariant()    
 
         # Finally return something meaningfull:
-        return QVariant(value)
+        return QVariant(str(value))
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.
@@ -185,31 +185,33 @@ class JobsModel(QAbstractTableModel, HarmTableModel):
         self._head = OrderedDict()
 
         others, tmp     = slurm.get_notpending_jobs(None, True)
-        pending, header = slurm.get_pending_jobs(length, reverse_order=True)
+        # pending, header = slurm.get_pending_jobs(length, reverse_order=True)
+        pending, header = slurm.get_current_jobs(length, reverse_order=True)
+        # print pending
         # Two ways df dealing with it, because Slurm collapses only pending jobs, 
         # all others leaving expanded to tasks. 
 
         if pending:
             self._data = pending
             self._head = header
-        if others:
-            # print others
-            self._data += others
-            self._head = header
+        # if others:
+        #     # print others
+        #     self._data += others
+        #     self._head = header
         
         self.emit(SIGNAL("layoutChanged()"))
 
 
-    def hook_inprogres(self, index, value):
-        """Changes panding to inprogress state for jobs which are already rendering.
-        """
-        column   = self._head[index.column()]
-        time_idx = self.get_key_index('END_TIME')
-        time     = self._data[index.column()][time_idx]
-        if str(column.strip()) == 'STATE':
-            if time != 'N/A':
-                value = "rendering"
-        return value
+    # def hook_inprogres(self, index, value):
+    #     """Changes panding to inprogress state for jobs which are already rendering.
+    #     """
+    #     column   = self._head[index.column()]
+    #     time_idx = self.get_key_index('END_TIME')
+    #     time     = self._data[index.column()][time_idx]
+    #     if str(column.strip()) == 'STATE':
+    #         if time != 'N/A':
+    #             value = "rendering"
+    #     return value
 
 
 
@@ -352,6 +354,47 @@ class RunningJobsModel(QAbstractTableModel, HarmTableModel):#, DBTableModel):
             print "Counld't get scheduler info."
             print err
         self.emit(SIGNAL("layoutChanged()"))
+
+
+
+
+#################################################################
+#               Job Table Model                                 #   
+# ###############################################################
+
+class HistoryModel(QAbstractTableModel, HarmTableModel):
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__(parent)
+        self.sge_view = parent
+        self._tree = None
+        self._data = []
+        self._head = OrderedDict()
+        self._dict = OrderedDict()
+
+    def update(self, user, reverse_order=True):
+        '''Main function of derived model. Builds _data list from input.
+        '''
+
+        # All dirty data. We need to duplicate it here,
+        # to keep things clean down the stream.
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        err = None
+
+        self.last_update = time()
+        self._data = []
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+
+        history, header = slurm.get_accounted_jobs(user, reverse_order=True)
+       
+        if history:
+            self._data = history
+            self._head = header
+        
+        self.emit(SIGNAL("layoutChanged()"))
+
+
+
 
 
 

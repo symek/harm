@@ -90,5 +90,5 @@ header['grafika32.humanark.com'] = 'grafika32'
 
 #header = {}
 
-time_strings = ("JB_submission_time", "JAT_start_time", "JAT_end_time", "SUBMIT_TIME", "END_TIME", "START_TIME")
+time_strings = ("JB_submission_time", "JAT_start_time", "JAT_end_time", "SUBMIT_TIME", "END_TIME", "START_TIME", "Submit", "Start", "End")
 

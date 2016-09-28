@@ -227,21 +227,10 @@ class RunningView(QTableView, ViewBase):
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
-        self.context.models['history_model'] = self.model
-        self.context.models['history_proxy_model'] = self.proxy_model
+        self.context.models['running_model'] = self.model
+        self.context.models['running_proxy_model'] = self.proxy_model
         self.setModel(self.proxy_model)
 
-        # Reorder columns in bellow order:        
-        # FIXME: Move both bellow constants into Config class...
-        # self.order_columns = 'jobnumber taskid owner qsub_time start_time end_time \
-        #                 jobname cpu maxvmem exit_status failed'.split()
-        # self.set_column_order(self.order_columns)
-
-        # Hide columns:
-        # self.hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
-        # ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
-        # ru_oublock iow slots'.split()
-        # self.set_column_hidden(self.hidden_columns)
 
         # Clean:
         self.resizeColumnsToContents()
@@ -256,11 +245,6 @@ class RunningView(QTableView, ViewBase):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
-        # length = self.context.GUI.history_length.text()
-        # self.model.append_jobs_history(int(length))
-        # self.set_column_order(self.order_columns)
-        # self.set_column_hidden(self.hidden_columns)
-
         
     def openContextMenu(self, position):
         self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
@@ -274,38 +258,39 @@ class RunningView(QTableView, ViewBase):
 #  displayed along with current Job, but SGE doesn't work this way #
 ####################################################################
 
-# class HistoryView(QTableView, ViewBase):
-#     def __init__(self, context):
-#         super(self.__class__, self).__init__()
-#         self.context = context
-#         self.configure()
 
-#         # Models:
-#         self.model = models.JobsHistoryModel(self)
-#         self.model.update(SGE_HISTORY_LIST)
-#         self.proxy_model = QSortFilterProxyModel()
-#         self.proxy_model.setSourceModel(self.model)
-#         self.proxy_model.setDynamicSortFilter(True)
-#         self.context.models['history_model'] = self.model
-#         self.context.models['history_proxy_model'] = self.proxy_model
-#         self.setModel(self.proxy_model)
+class HistoryView(QTableView, ViewBase):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.configure()
+        self.setAlternatingRowColors(0)
 
-#         # Reorder columns in bellow order:        
-#         # FIXME: Move both bellow constants into Config class...
-#         self.order_columns = 'jobnumber taskid owner qsub_time start_time end_time \
-#                         jobname cpu maxvmem exit_status failed'.split()
-#         self.set_column_order(self.order_columns)
+        # Models:
+        self.model = models.HistoryModel(self)
+        self.model.update("")
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['history_model'] = self.model
+        self.context.models['history_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
 
-#         # Hide columns:
-#         self.hidden_columns = 'ru_nvcsw group ru_isrss ru_nsignals arid priority ru_maxrss ru_nswap ru_majflt\
-#         ru_nivcsw granted_pe ru_msgsnd account ru_ixrss ru_ismrss ru_idrss ru_msgrcv ru_inblock ru_minflt\
-#         ru_oublock iow slots'.split()
-#         self.set_column_hidden(self.hidden_columns)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
 
-#         # Clean:
-#         self.resizeColumnsToContents()
-#         self.resizeRowsToContents()
+    def update_model(self, *arg):
+        '''Overwrites update_model() to allow append history jobs to a model.'''
+        self.model.reset()
+        self.model.update(*arg)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
 
+        
+    def openContextMenu(self, position):
+        self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
 
