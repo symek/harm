@@ -394,10 +394,6 @@ class HistoryModel(QAbstractTableModel, HarmTableModel):
         self.emit(SIGNAL("layoutChanged()"))
 
 
-
-
-
-
 class MachineModel(QAbstractTableModel, HarmTableModel):
     def __init__(self,  parent=None, *args):
         super(self.__class__, self).__init__(parent)

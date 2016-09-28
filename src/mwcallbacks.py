@@ -26,8 +26,12 @@ class HarmMainWindowCallbacks():
                     self.set_tasks_view_filter)   
         self.connect(self.set_user_action, SIGNAL('triggered()'), 
                      self.set_user)
-        self.connect(self.jobs_filter_line, SIGNAL('textChanged(const QString&)'),\
+        self.connect(self.jobs_filter_line, SIGNAL('returnPressed(const QString&)'),\
                      self.set_jobs_view_filter) 
+        self.connect(self.history_user, SIGNAL('editingFinished()'),\
+                     self.set_history_user)
+
+
         # self.connect(self.job_detail_filter_line, SIGNAL('textChanged(const QString&)'),\
         #              self.set_job_detail_view_filter)   
         # self.connect(self.tasks_view, SIGNAL("doubleClicked(const QModelIndex&)"),  
@@ -252,6 +256,10 @@ class HarmMainWindowCallbacks():
         # Usual clean up:
         self.tasks_view.resizeRowsToContents()
         self.tasks_view.resizeColumnsToContents()
+
+    def set_history_user(self):
+        user = self.history_user.text()
+        self.history_view.update_model(user)
 
     def job_detail_basic_view_update(self, job_id):
         '''Updates texted in detail basic view.
