@@ -385,7 +385,7 @@ class HistoryModel(QAbstractTableModel, HarmTableModel):
 
         data, header = slurm.get_accounted_jobs(user, reverse_order=True)
        
-        if history:
+        if data:
             self._data = data
             self._head = header
         
