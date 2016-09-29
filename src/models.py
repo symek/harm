@@ -375,6 +375,38 @@ class HistoryModel(QAbstractTableModel, HarmTableModel):
         '''Main function of derived model. Builds _data list from input.
         '''
 
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        err = None
+
+        self.last_update = time()
+        self._data = []
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+
+        data, header = slurm.get_accounted_jobs(user, reverse_order=True)
+       
+        if history:
+            self._data = data
+            self._head = header
+        
+        self.emit(SIGNAL("layoutChanged()"))
+
+
+#################################################################
+#               Machine Table Model                             #   
+# ###############################################################
+
+class MachineModel(QAbstractTableModel, HarmTableModel):
+    def __init__(self,  parent=None, *args):
+        super(self.__class__, self).__init__(parent)
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+        self._data = []
+      
+    def update(self, reverse_order=False):
+        '''Main function of derived model. Builds _data list from input.
+        '''
+
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
         self.emit(SIGNAL("layoutAboutToBeChanged()"))
@@ -385,69 +417,13 @@ class HistoryModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
         self._head = OrderedDict()
 
-        history, header = slurm.get_accounted_jobs(user, reverse_order=True)
+        history, header = slurm.get_nodes_info(None)
        
         if history:
             self._data = history
             self._head = header
         
         self.emit(SIGNAL("layoutChanged()"))
-
-
-class MachineModel(QAbstractTableModel, HarmTableModel):
-    def __init__(self,  parent=None, *args):
-        super(self.__class__, self).__init__(parent)
-        self._dict = OrderedDict()
-        self._head = OrderedDict()
-        self._data = []
-      
-    def update(self, command, token='job_info', sort_by_field='hostname', reverse_order=False):
-        '''Main function of derived model. Builds _data list from input.
-        '''
-        def parse_slurm_output(output):
-            nodes = output.split("\n\n")
-            data   = []
-            header = []
-            dict_  = OrderedDict()
-            hostname= ""
-            build_header = True
-
-            for node in nodes:
-                items = node.split()[:-1]
-                line = []
-                d_   = OrderedDict()
-                for item in items:
-                    var = item.split("=")
-                    name, var = var[0], ",".join(var[1:])
-                    if name == 'NodeName':
-                        hostname = var
-                    line += [var]
-                    if build_header:
-                        header += [name.strip()]
-                    d_[name] = var
-                data.append(line)
-                dict_[hostname] = d_
-                build_header = False
-
-            return data, header, dict_
-
-        from operator import itemgetter
-        import subprocess
-        self._tree = None
-        self._data = []
-        self._dict = OrderedDict()
-      
-        out, err =subprocess.Popen(command, shell=True, \
-        stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
-        if out:
-            data, header, dict_ = parse_slurm_output(out)
-            self._data = data
-            self._dict = dict_
-            for item in header:
-                self._head[header.index(item)] = item
-       
-            if reverse_order:
-                self._data.reverse()
 
 
 
