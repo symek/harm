@@ -293,6 +293,106 @@ class HistoryView(QTableView, ViewBase):
         self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
+###############################################################
+#     Machine Table View                                      #
+###############################################################
+
+class MachineView(QTableView, ViewBase):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.context.views['machine_view'] = self
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
+        self.configure()
+        self.setAlternatingRowColors(0)
+
+        # Models:
+        self.model = models.MachineModel()
+        self.model.update()
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.context.models['machine_model'] = self.model
+        self.context.models['machine_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+    def update_model(self, *arg):
+        '''Overwrites update_model() to allow append history jobs to a model.'''
+        self.model.reset()
+        self.model.update(*arg)
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+         # Delegate:
+        # self.delagate = delegates.MachinesDelegate(self.context)
+        # self.setItemDelegate(self.delagate)
+
+    def openContextMenu(self, position): pass
+        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+
+
+###############################################################
+#     Job Detail Table View                                      #
+###############################################################
+
+class JobDetailView(QTableView, ViewBase):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.context.views['job_detail_view'] = self
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
+        self.configure()
+        self.setAlternatingRowColors(0)
+
+        # Models:
+        self.model = models.JobDetailModel()
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.proxy_model.setFilterCaseSensitivity(0)
+        self.context.models['job_detail_model'] = self.model
+        self.context.models['job_detail_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+        self.horizontalHeader().setResizeMode(3)
+
+    def openContextMenu(self, position): pass
+        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+
+    def update_model(self, jobid, taskid):
+        self.model.reset()
+        self.model.update(jobid, taskid, 'djob_info')
+        self.resizeRowsToContents()
+        self.resizeColumnsToContents()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ##########################################################################
 #  Alternative Tree view for history. This class makes use of dictionary #
@@ -367,85 +467,6 @@ class HistoryView(QTableView, ViewBase):
 #                 #        key = self.order_columns.index(child.keys()[key])                   
 #                     childItem.setText(key, str(child[child.keys()[key]]))
 #                     childItem.setExpanded(True)
-
-
-
-###############################################################
-#     Machine Table View                                      #
-###############################################################
-
-class MachineView(QTableView, ViewBase):
-    def __init__(self, context):
-        super(self.__class__, self).__init__()
-        self.context = context
-        self.context.views['machine_view'] = self
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.openContextMenu)
-        self.configure()
-        self.setAlternatingRowColors(0)
-
-        # Models:
-        self.model = models.MachineModel()
-        self.model.update(SLURM_CLUSTER_LIST, 'qhost')
-        self.proxy_model = QSortFilterProxyModel()
-        self.proxy_model.setSourceModel(self.model)
-        self.proxy_model.setDynamicSortFilter(True)
-        self.context.models['machine_model'] = self.model
-        self.context.models['machine_proxy_model'] = self.proxy_model
-        self.setModel(self.proxy_model)
-
-        # Clean:
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
-         # Delegate:
-        # self.delagate = delegates.MachinesDelegate(self.context)
-        # self.setItemDelegate(self.delagate)
-
-    def openContextMenu(self, position): pass
-        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
-
-
-
-###############################################################
-#     Job Detail Table View                                      #
-###############################################################
-
-class JobDetailView(QTableView, ViewBase):
-    def __init__(self, context):
-        super(self.__class__, self).__init__()
-        self.context = context
-        self.context.views['job_detail_view'] = self
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.openContextMenu)
-        self.configure()
-        self.setAlternatingRowColors(0)
-
-        # Models:
-        self.model = models.JobDetailModel()
-        self.proxy_model = QSortFilterProxyModel()
-        self.proxy_model.setSourceModel(self.model)
-        self.proxy_model.setDynamicSortFilter(True)
-        self.proxy_model.setFilterCaseSensitivity(0)
-        self.context.models['job_detail_model'] = self.model
-        self.context.models['job_detail_proxy_model'] = self.proxy_model
-        self.setModel(self.proxy_model)
-
-        # Clean:
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        self.horizontalHeader().setResizeMode(3)
-
-    def openContextMenu(self, position): pass
-        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
-
-
-    def update_model(self, jobid, taskid):
-        self.model.reset()
-        self.model.update(jobid, taskid, 'djob_info')
-        self.resizeRowsToContents()
-        self.resizeColumnsToContents()
-
 
 
 ##################################################################
