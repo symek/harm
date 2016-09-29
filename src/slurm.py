@@ -276,7 +276,8 @@ def get_nodes_info(node=None, reverse_order=False):
                 else:
                     value = node[head]
                     line.append(value)
-            data.append(line)
+            if line[0] != "N/A":
+                data.append(line)
 
         return data, header
 
