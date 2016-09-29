@@ -47,12 +47,13 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.splashMessage("Setup Jobs Tabs...")
         self.setupJobsTab()
         self.splashMessage("Setup Running Tab...")
-        self.setupRunningTab()
+        self.setupRunningTab() 
+        self.splashMessage("Setup History Tab...")
+        self.setupHistoryTab()
+
         self.splashMessage("Setup Machines Tab...")
         self.setupMachinesTab()
-        
-        self.splashMessage("Setup History Tab...")
-        self.setupHistoryTab() 
+
         self.splashMessage("Setup Task Detail Tab...")
         self.setupJobDetailTab()
         self.splashMessage("Setup Stdout and stderr Tabs...")
@@ -174,7 +175,7 @@ class HarmMainWindowGUI(HarmMainWindowCallbacks):
         self.running_view = views.RunningView(context)
         #self.history_view = views.JobsTreeHistoryView(context)
         self.running_tab   = QtGui.QWidget()
-        self.left_tab_widget.addTab(self.running_tab, "Running tasks")
+        self.left_tab_widget.addTab(self.running_tab, "Running Tasks")
         running_tab_vbox = QtGui.QVBoxLayout(self.running_tab)
         running_tab_vbox.addWidget(self.running_view)
 
