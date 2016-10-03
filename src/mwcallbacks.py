@@ -18,19 +18,30 @@ class HarmMainWindowCallbacks():
         # Update Job View SIGNAL:
         self.connect(self.refreshAction, SIGNAL('triggered()'), 
                      self.refreshAll)
+        # Updates tasks view to focus on selected job
         self.connect(self.jobs_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.jobs_view_clicked)
+        # Udates job detail view and stderr, stdout tabs
         self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.tasks_view_clicked)
+        # 
         self.connect(self.tasks_onlySelected_toggle, SIGNAL('stateChanged(int)'),\
-                    self.set_tasks_view_filter)   
+                    self.set_tasks_view_filter) 
+        #   
         self.connect(self.set_user_action, SIGNAL('triggered()'), 
                      self.set_user)
+        # Updates job view based on filter provided by user
         self.connect(self.jobs_filter_line, SIGNAL('returnPressed(const QString&)'),\
-                     self.set_jobs_view_filter) 
+                     self.set_jobs_view_filter)
+        # Updates history query based on user provided username. 
         self.connect(self.history_user, SIGNAL('editingFinished()'),\
                      self.set_history_user)
-
+        # ?
+        self.connect(self.history_view, SIGNAL("clicked(const QModelIndex&)"),  
+                    self.history_view_clicked)
+        # Updates detail, stdout/err view for sepected task.
+        self.connect(self.running_view, SIGNAL("clicked(const QModelIndex&)"),  
+                     self.running_task_view_clicked)
 
         # self.connect(self.job_detail_filter_line, SIGNAL('textChanged(const QString&)'),\
         #              self.set_job_detail_view_filter)   
@@ -56,8 +67,7 @@ class HarmMainWindowCallbacks():
         self.jobs_view.update_model(50)
         self.tasks_view.update_model(SLURM_JOBS_LIST, 'queue_info')
         self.running_view.update_model(SLURM_RUNNING_JOBS_LIST, 'queue_info')
-        
-        # self.machine_view.update_model(SGE_CLUSTER_LIST, 'qhost')
+        self.machine_view.update_model()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
         # self.machine_view.resizeRowsToContents()
@@ -72,7 +82,8 @@ class HarmMainWindowCallbacks():
         #self.set_jobs_view_filter()
 
     def jobs_view_clicked(self, index):
-        '''Calls for selecting job on Jobs View.'''
+        '''Calls for selecting job on Jobs View.
+        '''
         # First we map selected proxy index to the real one.
         s_index      = self.jobs_view.proxy_model.mapToSource(index)
         # then we look for our indices of fields in model header.
@@ -106,7 +117,8 @@ class HarmMainWindowCallbacks():
             # self.set_tasks_view_filter(None)
     
     def tasks_view_clicked(self, index):
-        '''Calls for selecting job on Task View.'''
+        '''Calls for selecting job on Task View.
+        '''
         s_index       = self.tasks_view.proxy_model.mapToSource(index)
         job_id_index  = self.tasks_view.model.get_key_index("JOBID")
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
@@ -116,28 +128,43 @@ class HarmMainWindowCallbacks():
         # That needs to be done for others widgets relaying on job_detail_view
         # Update job detail only if it's not already up to date already:
         update_details_flag = True
-        # if 'JOBID' in self.job_detail_view.model._dict:
-        #     if self.job_detail_view.model._dict['JOBID'] == job_id:
-        #         update_details_flag = False
-        #     else:
-        #         update_details_flag = True
+
         if update_details_flag:
                 self.job_detail_view.update_model(job_id, task_id)
-                # self.job_detail_basic_view_update(job_id, task_id)
         
         # Update both std out/err widgets:
         tab_index = self.right_tab_widget.currentIndex() 
         if tab_index in (1,2):
             self.update_std_views(job_id, task_id, tab_index)
 
-        #self.update_job_model_from_tasks(indices)
-        #job_id = self.tasks_model.root[indices.row()][0].text
-        #self.update_stat_view(job_id)
-        #self.update_image_view(job_id)
+
+    def running_task_view_clicked(self, index):
+        '''Calls for selecting job on Task View.
+        '''
+        s_index       = self.running_view.proxy_model.mapToSource(index)
+        job_id_index  = self.running_view.model.get_key_index("JOBID")
+        job_id        = self.running_view.model._data[s_index.row()][job_id_index]
+        task_id_index = self.running_view.model.get_key_index('ARRAY_TASK_ID')
+        task_id       = self.running_view.model._data[s_index.row()][task_id_index]
+
+        # That needs to be done for others widgets relaying on job_detail_view
+        # Update job detail only if it's not already up to date already:
+        update_details_flag = True
+
+        if update_details_flag:
+                self.job_detail_view.update_model(job_id, task_id)
+        
+        # Update both std out/err widgets:
+        tab_index = self.right_tab_widget.currentIndex() 
+        if tab_index in (1,2):
+            self.update_std_views(job_id, task_id, tab_index)
+
+      
 
     def tasks_view_doubleClicked(self, index):
         '''Double clicking on task calls image viewer (mplay for now)
-        TODO: place for Config() class.'''
+        TODO: place for Config() class.
+        '''
         s_index       = self.tasks_view.proxy_model.mapToSource(index)
         job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
         task_id_index = self.tasks_view.model.get_key_index("tasks")
@@ -260,6 +287,23 @@ class HarmMainWindowCallbacks():
     def set_history_user(self):
         user = self.history_user.text()
         self.history_view.update_model(user)
+
+
+    def history_view_clicked(self, index):
+        job_id_index  = self.history_view.model.get_key_index("JobID")
+        job_id        = self.history_view.model._data[index.row()][job_id_index]
+
+        import slurm
+        data, header = slurm.get_accounted_job_details(job_id)
+        self.job_detail_view.model.reset()
+        self.job_detail_view.model.emit(SIGNAL("layoutAboutToBeChanged()"))
+        self.job_detail_view.model._data = data
+        self.job_detail_view.model._head = header
+        self.job_detail_view.model.emit(SIGNAL("layoutChanged()"))
+        
+        self.resizeRowsToContents()
+        self.resizeColumnsToContents()
+
 
     def job_detail_basic_view_update(self, job_id):
         '''Updates texted in detail basic view.
