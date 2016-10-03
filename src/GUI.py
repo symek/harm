@@ -9,7 +9,7 @@ from PyQt4         import QtGui
 # Harm models:
 from SGEModels import *
 from contextMenus import *
-from mwcallbacks import HarmMainWindowCallbacks
+from callbacks import HarmMainWindowCallbacks
 
 # Harm utilities & settings:
 import tokens, delegates, txt2xml
