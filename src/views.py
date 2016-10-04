@@ -3,7 +3,6 @@ from PyQt4.QtCore  import *
 from PyQt4.QtGui   import *
 
 #Harm:
-from SGEModels import *
 from constants import *
 from contextMenus import *
 import delegates
