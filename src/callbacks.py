@@ -43,30 +43,13 @@ class HarmMainWindowCallbacks():
         self.connect(self.running_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.running_task_view_clicked)
 
-        # self.connect(self.job_detail_filter_line, SIGNAL('textChanged(const QString&)'),\
-        #              self.set_job_detail_view_filter)   
-        # self.connect(self.tasks_view, SIGNAL("doubleClicked(const QModelIndex&)"),  
-        #              self.tasks_view_doubleClicked)
-        # self.connect(self.tasks_colorize_style, SIGNAL('currentIndexChanged(int)'),\
-                     # self.set_tasks_colorize_style)
-        # self.connect(self.job_stdout_search_line, SIGNAL('textChanged(const QString&)'),\
-        #              self.set_jobs_stdout_view_search) 
-        # self.connect(self.job_view_combo, SIGNAL('currentIndexChanged(int)'), 
-        #              self.change_job_view)
-        #self.connect(self.finished_view, SIGNAL("clicked(const QModelIndex&)"),  
-        #self.connect(self.right_tab_widget, SIGNAL("currentChanged(const int&)"),  
-        #             self.update_std_views)
-        #self.connect(self.machine_view_combo, SIGNAL('currentIndexChanged(int)'), 
-        #             self.change_machine_view)
-        #             self.finished_view_clicked)
-        #self.connect(self.job_details_filter_line, SIGNAL('textChanged(const QString&)'),\
-        #             self.set_job_detail_proxy_model_wildcard)  
+      
 
     def refreshAll(self):
         '''Refreshes jobs/tasks/machine views. Automatically called by self.timer too. '''
         self.jobs_view.update_model(50)
-        self.tasks_view.update_model(SLURM_JOBS_LIST, 'queue_info')
-        self.running_view.update_model(SLURM_RUNNING_JOBS_LIST, 'queue_info')
+        self.tasks_view.update_model(constants.SLURM_JOBS_LIST, 'queue_info')
+        self.running_view.update_model(constants.SLURM_RUNNING_JOBS_LIST, 'queue_info')
         self.machine_view.update_model()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
@@ -87,7 +70,7 @@ class HarmMainWindowCallbacks():
         # First we map selected proxy index to the real one.
         s_index      = self.jobs_view.proxy_model.mapToSource(index)
         # then we look for our indices of fields in model header.
-        job_id_index = self.jobs_view.model.get_key_index("JOBID")
+        job_id_index = self.jobs_view.model.get_key_index("ARRAY_JOB_ID")
         state_index  = self.jobs_view.model.get_key_index("STATE")
         # with that, we retrieve informations:
         job_id       = self.jobs_view.model._data[s_index.row()][job_id_index]
@@ -98,23 +81,6 @@ class HarmMainWindowCallbacks():
 
         self.job_detail_basic_view_update(job_id)
 
-        # Update job detail view in case its tab is visible:
-        # if self.right_tab_widget.currentIndex() == 0:
-        #     self.job_detail_view.update_model(job_id)
-        #     self.job_detail_basic_view_update(job_id)
-        #     # Tree view active:
-        #     if self.job_view_combo.currentIndex() == 2:
-        #         self.job_detail_tree_view.update_model(job_id)
-
-        # We set task view filter to currently selected AND runnig jobs,
-        # or update tasks view with past jobs using database:
-        # if state != 'cdb': 
-        # else:
-            # updat_db() calls update_job_details_db() first to read database
-            # then parses query to look for per frame info and updats tasksModel._dict
-            # with that data.
-            # self.tasks_view.update_model_db(job_id)
-            # self.set_tasks_view_filter(None)
     
     def tasks_view_clicked(self, index):
         '''Calls for selecting job on Task View.
