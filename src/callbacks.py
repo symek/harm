@@ -294,15 +294,28 @@ class HarmMainWindowCallbacks():
         job_id        = self.history_view.model._data[index.row()][job_id_index]
 
         import slurm
+        from ordereddict import OrderedDict
+
         data, header = slurm.get_accounted_job_details(job_id)
-        self.job_detail_view.model.reset()
-        self.job_detail_view.model.emit(SIGNAL("layoutAboutToBeChanged()"))
-        self.job_detail_view.model._data = data
-        self.job_detail_view.model._head = header
-        self.job_detail_view.model.emit(SIGNAL("layoutChanged()"))
-        
-        self.resizeRowsToContents()
-        self.resizeColumnsToContents()
+
+        if data:
+            _data = []
+            _head = OrderedDict()
+
+            for number in header:
+                value = data[0][number]
+                key   = header[number]
+                _data.append((key, value))
+
+
+            self.job_detail_view.model.reset()
+            self.job_detail_view.model.emit(SIGNAL("layoutAboutToBeChanged()"))
+            self.job_detail_view.model._data = _data
+            self.job_detail_view.model._head = header
+            self.job_detail_view.model.emit(SIGNAL("layoutChanged()"))
+            
+            self.job_detail_view.resizeRowsToContents()
+            self.job_detail_view.resizeColumnsToContents()
 
 
     def job_detail_basic_view_update(self, job_id):
