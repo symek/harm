@@ -329,8 +329,8 @@ class MachineView(QTableView, ViewBase):
         self.resizeRowsToContents()
 
          # Delegate:
-        # self.delagate = delegates.MachinesDelegate(self.context)
-        # self.setItemDelegate(self.delagate)
+        self.delagate = delegates.MachinesDelegate(self.context)
+        self.setItemDelegate(self.delagate)
 
     def openContextMenu(self, position): pass
         #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))

@@ -2,7 +2,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import utilities
 import math, os, hashlib, random
-from constants import *
+import constants
 import utilities
 
 
@@ -173,57 +173,56 @@ class MachinesDelegate(QItemDelegate):
 
     def paint(self, painter, option, index):
         painter.save()
-        # set background color
+        # # set background color
         painter.setPen(QPen(Qt.NoPen))
 
-        # Get RAM information:
+        # # Get RAM information:
         s_index      = self.proxy.mapToSource(index)
-        mem_used_idx = self.model.get_key_index("mem_used")
-        mem_size_idx = self.model.get_key_index("mem_size")
-        mem_used = self.model._data[s_index.row()][mem_used_idx][:-1]
-        mem_size = self.model._data[s_index.row()][mem_used_idx][-1]
-        try: 
-            mem_used = float(mem_used)
-            if mem_size == "M": mem_used /= 1024.0
-        except: 
-            mem_used = 0.0
+        mem_used_idx = self.model.get_key_index("AllocMem")
+        mem_free_idx = self.model.get_key_index("FreeMem")
+        mem_real_idx = self.model.get_key_index("RealMemory")
 
-        mem_total_idx= self.model.get_key_index("mem_total")
-        mem_total    = self.model._data[s_index.row()][mem_total_idx][:-1]
-        try: mem_total = float(mem_total)
-        except: mem_total = 0.0
+        mem_used = self.model._data[s_index.row()][mem_used_idx]
+        mem_free = self.model._data[s_index.row()][mem_free_idx]
+        mem_real = self.model._data[s_index.row()][mem_real_idx]
 
-        # Load information:
-        load_avg_idx = self.model.get_key_index("load_avg")
-        num_proc_idx = self.model.get_key_index("num_proc")
-        load_avg = self.model._data[s_index.row()][load_avg_idx]
-        num_proc = self.model._data[s_index.row()][num_proc_idx]
-        try: load_avg = float(load_avg)
-        except: load_avg = 0.0
-        try: num_proc = float(num_proc)
-        except: num_proc = 1.0
+        if mem_used.isdigit(): mem_used = int(mem_used)
+        else: mem_used = 0
+        if mem_real.isdigit(): mem_real = int(mem_real)
+        else:     mem_real = 0
+
+
+        # # Load information:
+        # load_avg_idx = self.model.get_key_index("load_avg")
+        # num_proc_idx = self.model.get_key_index("num_proc")
+        # load_avg = self.model._data[s_index.row()][load_avg_idx]
+        # num_proc = self.model._data[s_index.row()][num_proc_idx]
+        # try: load_avg = float(load_avg)
+        # except: load_avg = 0.0
+        # try: num_proc = float(num_proc)
+        # except: num_proc = 1.0
         
         
-        # Set color based on ram and load:
-        # TODO: Color setting should come from confing file or user condiguration!
-        if mem_used and mem_total:
+        # # Set color based on ram and load:
+        # # TODO: Color setting should come from confing file or user condiguration!
+        if mem_used and mem_real:
             color = QColor()
-            sat = utilities.clamp(mem_used/mem_total, 0.0, 1.0)
+            sat = utilities.clamp(mem_used/mem_real, 0.0, 1.0)
             sat = utilities.fit(sat, 0.0, 1.0, 0.1, 0.85)
-            hue = utilities.clamp(load_avg/num_proc, 0.0, 1.0)
+            hue = 1.0 #utilities.clamp(load_avg/num_proc, 0.0, 1.0)
             hue = utilities.fit(hue, 0.0, 1.0, .25, .9)
             color.setHsvF(hue, sat , 1)
             # Mark in red hosts with used ram above 0.9 (or other SGE_HOST_RAM_WARNING constant)
-            if mem_used > mem_total * SGE_HOST_RAM_WARNING:
-                color.setHsvF(1, 1 , 1)
+            # if mem_used > mem_real * constants.SGE_HOST_RAM_WARNING:
+            #     color.setHsvF(1, 1 , 1)
             painter.setBrush(QBrush(color))
 
-        # Set selection color:
+        # # Set selection color:
         if option.state & QStyle.State_Selected:
             painter.setBrush(QBrush(Qt.gray))
         painter.drawRect(option.rect)
 
-        painter.setPen(QPen(Qt.black))
+        painter.setPen(QPen(Qt.white))
         value = index.data(Qt.DisplayRole)
         if value.isValid():
             text = value.toString()
