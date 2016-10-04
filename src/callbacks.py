@@ -1,6 +1,6 @@
 import os, time
 import utilities
-from constants import *
+import constants
 import tokens
 import slurm
 #PyQt4:

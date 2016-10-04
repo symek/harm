@@ -3,7 +3,7 @@ from PyQt4.QtCore  import *
 from PyQt4.QtGui   import *
 
 #Harm:
-from constants import *
+import constants
 import menus
 import delegates
 import models
@@ -222,7 +222,7 @@ class RunningView(QTableView, ViewBase):
 
         # Models:
         self.model = models.RunningJobsModel(self)
-        self.model.update(SLURM_RUNNING_JOBS_LIST)
+        self.model.update(constants.SLURM_RUNNING_JOBS_LIST)
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)

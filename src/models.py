@@ -4,7 +4,7 @@ import utilities
 import views
 import slurm
 import os
-from constants import *
+import constants
 from time import time
 
 # Python 2.6 compatibility:
@@ -251,9 +251,9 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
         self.emit(SIGNAL("layoutAboutToBeChanged()"))
        
         if jobid: 
-            command = SLURM_JOBS_LIST.replace("<JOBID/>", jobid)
+            command = constants.SLURM_JOBS_LIST.replace("<JOBID/>", jobid)
         else:
-            command = SLURM_RUNNING_JOBS_LIST
+            command = constants.SLURM_RUNNING_JOBS_LIST
 
         try:
             out, err =subprocess.Popen(command, shell=True, \
@@ -451,7 +451,7 @@ class JobDetailModel(QAbstractTableModel, HarmTableModel):
 
         from operator import itemgetter
         import subprocess
-        command = SLURM_JOB_DETAILS.replace("<JOBID/>", jobid)
+        command = constants.SLURM_JOB_DETAILS.replace("<JOBID/>", jobid)
         command = command.replace("<TASKID/>", taskid)
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
