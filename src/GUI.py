@@ -7,9 +7,8 @@ from PyQt4.QtGui   import *
 from PyQt4         import QtGui
 
 # Harm models:
-from SGEModels import *
-from contextMenus import *
-from callbacks import HarmMainWindowCallbacks
+import menus
+import callbacks
 
 # Harm utilities & settings:
 import tokens, delegates, txt2xml
@@ -33,7 +32,7 @@ context = Context()
 
         
 
-class HarmMainWindowGUI(HarmMainWindowCallbacks):
+class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
     def setupGUI(self,  init):
         context.app    = self.app
         context.config = self.config

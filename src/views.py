@@ -4,7 +4,7 @@ from PyQt4.QtGui   import *
 
 #Harm:
 from constants import *
-from contextMenus import *
+import menus
 import delegates
 import models
 import config
@@ -134,7 +134,7 @@ class JobsView(QTableView, ViewBase):
 
     def openContextMenu(self, position):
         '''Context menu entry.'''
-        self.context_menu = JobsContextMenu(self.context, self.mapToGlobal(position))
+        self.context_menu = menus.JobsContextMenu(self.context, self.mapToGlobal(position))
 
     # TODO: This is temporary to allow append_history to jobs view after refresh:
     def update_model(self, *arg):
@@ -189,7 +189,7 @@ class TasksView(QTableView, ViewBase):
         self.resizeRowsToContents()
 
     def openContextMenu(self, position):
-        self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+        self.context_menu = menus.TasksContextMenu(self.context, self.mapToGlobal(position))
 
     #FIXME: this probably shouldn't exists. 
     def update_model_db(self, job_id):
@@ -246,7 +246,7 @@ class RunningView(QTableView, ViewBase):
 
         
     def openContextMenu(self, position):
-        self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+        self.context_menu = menus.TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
 
@@ -289,7 +289,7 @@ class HistoryView(QTableView, ViewBase):
 
         
     def openContextMenu(self, position):
-        self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+        self.context_menu = menus.TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
 ###############################################################
