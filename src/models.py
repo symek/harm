@@ -58,16 +58,14 @@ class HarmTableModel():
         # Process data types: 
         if value == None: 
             return None
-        # elif value.__class__ in (int, float):
-        #     return value 
-        # elif not isinstance(value, str):
-        #     return None
-        # if value.isdigit(): 
-        #     value = int(value)
-        # try: 
-        #     value = float(value)
-        # except: 
-        #     pass
+        elif isinstance(value, str):
+            value = value.strip()
+        if value.isdigit():
+            return int(value)
+        elif not value.isalpha():
+            return float(value)
+        elif not isinstance(value, str):
+            return None 
         return value
 
     def get_key_index(self, key):
