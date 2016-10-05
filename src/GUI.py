@@ -258,6 +258,7 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.job_detail_view = views.JobDetailView(context)
         # Basic view:
         self.job_detail_basic_view = QtGui.QTextBrowser(self.job_detail_tab)
+        self.context.views['job_detail_basic_view'] = self.job_detail_basic_view
         job_detail_tab_vbox.addWidget(self.job_detail_basic_view)
         job_detail_tab_vbox.addWidget(self.job_detail_view)
         details_tab_splitter.addWidget(self.job_detail_basic_view)
