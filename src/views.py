@@ -109,8 +109,7 @@ class JobsView(QTableView, ViewBase):
         self.model = models.JobsModel(self)
         length = self.context.GUI.history_length.text()
         self.model.update(int(length))
-        # FIXME: history should be appended in update()..
-        # self.model.append_jobs_history(int(length))
+
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)

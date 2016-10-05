@@ -1,11 +1,14 @@
+import os
+from time import time
 from PyQt4.QtCore import *
+
 import tokens
 import utilities
 import views
-import slurm
-import os
 import constants
-from time import time
+
+# Placeholder for future plugable backend
+import slurm as backend
 
 # Python 2.6 compatibility:
 try:
@@ -175,7 +178,7 @@ class JobsModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
         self._head = OrderedDict()
 
-        pending, header = slurm.get_current_jobs(length, reverse_order=True)
+        pending, header = backend.get_current_jobs(length, reverse_order=True)
      
         if pending and header:
             self._data = pending
@@ -350,7 +353,7 @@ class HistoryModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
         self._head = OrderedDict()
 
-        data, header = slurm.get_accounted_jobs(user, reverse_order=True)
+        data, header = backend.get_accounted_jobs(user, reverse_order=True)
        
         if data:
             self._data = data
@@ -384,7 +387,7 @@ class MachineModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
         self._head = OrderedDict()
 
-        history, header = slurm.get_nodes_info(None)
+        history, header = backend.get_nodes_info(None)
        
         if history:
             self._data = history
