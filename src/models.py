@@ -92,7 +92,7 @@ class HarmTableModel():
             return QVariant()    
 
         # Finally return something meaningfull:
-        return QVariant(str(value))
+        return QVariant(value)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.
