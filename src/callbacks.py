@@ -47,7 +47,8 @@ class HarmMainWindowCallbacks():
 
     def refreshAll(self):
         '''Refreshes jobs/tasks/machine views. Automatically called by self.timer too. '''
-        self.jobs_view.update_model(50)
+        length = self.context.GUI.history_length.text()
+        self.jobs_view.update_model(int(length))
         self.tasks_view.update_model(constants.SLURM_JOBS_LIST, 'queue_info')
         self.running_view.update_model(constants.SLURM_RUNNING_JOBS_LIST, 'queue_info')
         self.machine_view.update_model()

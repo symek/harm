@@ -37,6 +37,7 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         context.app    = self.app
         context.config = self.config
         context.GUI    = self
+        self.context   = context
         # Main Tabs:
         self.statusBar()
         self.left_tab_widget  = QtGui.QTabWidget()
