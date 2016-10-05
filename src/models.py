@@ -29,7 +29,7 @@ class HarmTableModel():
 
     def flags(self, index):
         flag = super(self.__class__, self).flags(index)
-        return flag | Qt.ItemIsEditable
+        return flag | Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
 
     def rowCount(self, parent):
         return len(self._data)
@@ -86,7 +86,8 @@ class HarmTableModel():
         '''
         if not index.isValid():
             return QVariant()
-        elif role != Qt.DisplayRole:
+
+        elif role != Qt.DisplayRole and role != Qt.EditRole:
             return QVariant()
 
         value = self._data[index.row()][index.column()]
