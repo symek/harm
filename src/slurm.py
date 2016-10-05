@@ -169,7 +169,7 @@ def get_notpending_jobs(max_jobs=None, reverse_order=True):
 def get_current_jobs(max_jobs=300, reverse_order=True):
     """ Only pending and rendering
     """
-    command   = SLURM_JOBS_GROUPED_CMD.replace("<STATES/>", "PD,R,CA,CD,F,ST,S,TO")
+    command   = SLURM_JOBS_GROUPED_CMD.replace("<STATES/>", "all") #PD,R,CA,CD,F,ST,S,TO
     data, err = get_std_output(command)
     if data:
         data, head = parse_slurm_output_to_list(data, max_jobs, reverse_order)
