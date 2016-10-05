@@ -13,6 +13,10 @@ SLURM_JOBS_HISTORY_ALL = 'sacct -u <USER/> -o "JobId,Partition,User,State,JobNam
 SLURM_JOB_HISTORY_DETAIL = 'sacct -j <JOBID/> -o "All" -P'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
 
+
+# Slurm specific identities 
+JOB_ID_KEY               = 'ARRAY_JOB_ID'
+
 # TODO: Remove and import hafarm utils upon merge.
 def collapse_digits_to_sequence(frames):
     ''' Given frames is a list/tuple of digits [1,2,4],  
@@ -136,6 +140,54 @@ def get_std_output(command):
         print err
     return out, err
 
+
+def hold_job(ids):
+    """ Hold jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol hold %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result
+
+def unhold_job(ids):
+    """ Unhold jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol release %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result
+
+def cancel_job(ids):
+    """ Cancel jobs with specified ids.
+    """
+    assert(isinstance(ids, list))
+    command = 'scancel %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result
+
+def reschedule_job(ids):
+    """ Reschedule jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol requeue %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result   
+
+def suspend_job(ids):
+    """ Suspend jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol suspend %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result    
+
+def resume_job(ids):
+    """ Rersume jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol resume %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result    
 
 
 def get_pending_jobs(max_jobs=300, reverse_order=True):

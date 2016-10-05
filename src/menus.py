@@ -2,7 +2,10 @@ from PyQt4.QtGui import QMenu, QIcon, QAction
 import os
 import utilities
 import constants
-#from models import JobDetailModel
+
+# Placeholder for future plugable backend
+import slurm as backend
+
 
 ##########################################################
 # Base Class for Context Menues:                         #
@@ -44,7 +47,8 @@ class ContextMenuBase():
 
     def bind_actions(self, actions):
         ''' 'Actions' are tuples of (name, caption) from which we build items for
-           QMenu with 'name's and assign actions with 'caption' to it.'''
+           QMenu with 'name's and assign actions with 'caption' to it.
+        '''
         icons = self.find_icons()
         for action in actions:
             qtaction = self.addAction(action['capition'])
@@ -62,10 +66,22 @@ class ContextMenuBase():
             action = 'callback_' + "_".join([str(x).lower() for x in str(action.text()).split()])
             self.__getattribute__(action)()
 
+    def get_selected_items(self, view=None, model=None, key='ARRAY_JOB_ID'):
+        """ Returns a list of values curretly selected usign 'key' as column filter.
+        """
+        indices    = self.view.selectedIndexes()
+        item_index = self.model.get_key_index(key)
+        indices    = [self.view.proxy_model.mapToSource(index)  for index in indices]
+        items      = [self.model._data[index.row()][item_index] for index in indices]
+        return list(set(items))         
 
 ###########################################################
 # Jobs view context menu:#
 ###########################################################
+
+# 'callback_copy_to_nuke', 
+#                           'callback_update_from_database',
+#                           'callback_clear_error',
 
 class JobsContextMenu(QMenu, ContextMenuBase):
     def __init__(self, context, position):
@@ -75,15 +91,11 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         self.app     = context.app
         self.context = context
         items = [x for x in dir(self) if x.startswith('callback_')]
-        self.item_list = ['callback_copy_to_nuke', 
-                          'callback_update_from_database',
-                          'callback_clear_error',
-                          "",
-                          'callback_hold',
-                          'callback_suspend',
-                          'callback_reschedule',
+        self.item_list = ['callback_hold',
                           'callback_unhold',
-                          'callback_unsuspend',
+                          'callback_suspend',
+                          'callback_resume',
+                          'callback_reschedule',
                           "",
                           'callback_resubmit',
                           "",
@@ -92,44 +104,54 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         self.bind_actions(self.build_action_strings(self.item_list))
         self.execute(position)
 
-    def get_item_id(self, view=None, model=None):
-        indexes = self.view.selectedIndexes()
-        indexes = [self.view.proxy_model.mapToSource(index) for index in indexes]
-        ids = []
-        job_id_index   = self.model.get_key_index('JB_job_number')
-        task_ids_index = self.model.get_key_index('tasks')
-        for index in indexes:
-            job_id         = self.model._data[index.row()][job_id_index]            
-            task_ids       = self.model._data[index.row()][task_ids_index]
-            task_ids       = utilities.expand_pattern(task_ids)
-            for task in task_ids:
-                ids.append("%s.%s" % (job_id, task))
-        return(" ".join(ids))
-        
-    def callback_delete(self):
-        result = os.popen('qdel -f %s' % self.get_item_id()).read()
-        print result
-        #print self.get_item_id()
 
     def callback_hold(self):
-        result = os.popen('qhold -h u %s' % self.get_item_id()).read()
-        print result
+        """ Calls hold command of bakend for a selected job's id.
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.hold_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
         
     def callback_unhold(self):
-        result = os.popen('qalter -h U %s' % self.get_item_id()).read()
-        print result
+        """ Calls unhold command of bakend for a selected job's id.
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.unhold_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
 
-    def callback_suspend(self):
-        result = os.popen('qmod -sj %s' %  self.get_item_id()).read()
-        print result
-
-    def callback_unsuspend(self):
-        result = os.popen('qmod -usj %s' %  self.get_item_id()).read()
-        print result
+    def callback_delete(self):
+        """ Cancel jobs.
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.cancel_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
 
     def callback_reschedule(self):
-        result = os.popen('qmod -rj %s' %  self.get_item_id()).read()
-        print result
+        """ Reschedule jobs.
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.reschedule_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
+
+    def callback_suspend(self):
+        """ Suspend jobs.
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.suspend_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
+
+    def callback_resume(self):
+        """ Resume jobs (unsuspend).
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.resume_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
 
     def callback_clear_error(self):
         result = os.popen('qmod -cj %s' %  self.get_item_id()).read()
