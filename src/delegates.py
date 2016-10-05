@@ -222,7 +222,7 @@ class MachinesDelegate(QItemDelegate):
             painter.setBrush(QBrush(Qt.gray))
         painter.drawRect(option.rect)
 
-        painter.setPen(QPen(Qt.white))
+        painter.setPen(QPen(Qt.gray))
         value = index.data(Qt.DisplayRole)
         if value.isValid():
             text = value.toString()
