@@ -51,6 +51,13 @@ class HarmTableModel():
         '''Loops through all hook_* function of self, and executes it
            to preprocess data of a model. Hooks to be provided by derived classes
         '''
+        def isfloat(value):
+            try:
+                float(value)
+                return True
+            except ValueError:
+                return False 
+
         for func in dir(self):
             if func.startswith("hook"):
                 value = self.__getattribute__(func)(index, value)
@@ -62,7 +69,7 @@ class HarmTableModel():
             value = value.strip()
         if value.isdigit():
             return int(value)
-        elif not value.isalpha():
+        elif isfloat(value):
             return float(value)
         elif not isinstance(value, str):
             return None 
@@ -82,12 +89,9 @@ class HarmTableModel():
         elif role != Qt.DisplayRole:
             return QVariant()
 
-        value  = None
-        try:
-            value = self._data[index.row()][index.column()]
-            value = self.data_hooks(index, value)
-        except:
-            pass
+        value = self._data[index.row()][index.column()]
+        value = self.data_hooks(index, value)
+
         if not value: 
             return QVariant()    
 
@@ -126,17 +130,13 @@ class HarmTableModel():
         if len(time) == 2 and not strip_date:
             date, time = time
             return " ".join((time, date))
-        return time[1]
+        return time[-1]
 
 
     def hook_timestring(self, index, value):
         # Change time string formating:
         if self._head[index.column()] in tokens.time_strings: 
-            # Parse time string diffrently for tasks view:
-            if self._head[index.column()] == "JAT_start_time":
-                value = utilities.string_to_elapsed_time(value)
-            else: 
-                value = self.parse_time_string(value)
+            value = self.parse_time_string(value)
         return value
 
     def hook_machinename(self, index, value):
@@ -164,55 +164,23 @@ class JobsModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
 
     def update(self, length, reverse_order=True):
-        '''Main function of derived model. Builds _data list from input.
+        ''' Main function of derived model. Builds _data list from input.
         '''
 
-        # All dirty data. We need to duplicate it here,
-        # to keep things clean down the stream.
         self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        err = None
-
-        # NOTE: Do we need this? 
-        # Do't update too often:
-        # if time() - self.last_update < 10:
-            # return
 
         self.last_update = time()
         self._data = []
         self._dict = OrderedDict()
         self._head = OrderedDict()
 
-        others, tmp     = slurm.get_notpending_jobs(None, True)
-        # pending, header = slurm.get_pending_jobs(length, reverse_order=True)
         pending, header = slurm.get_current_jobs(length, reverse_order=True)
-        # print pending
-        # Two ways df dealing with it, because Slurm collapses only pending jobs, 
-        # all others leaving expanded to tasks. 
-
-        if pending:
+     
+        if pending and header:
             self._data = pending
             self._head = header
-        # if others:
-        #     # print others
-        #     self._data += others
-        #     self._head = header
         
         self.emit(SIGNAL("layoutChanged()"))
-
-
-    # def hook_inprogres(self, index, value):
-    #     """Changes panding to inprogress state for jobs which are already rendering.
-    #     """
-    #     column   = self._head[index.column()]
-    #     time_idx = self.get_key_index('END_TIME')
-    #     time     = self._data[index.column()][time_idx]
-    #     if str(column.strip()) == 'STATE':
-    #         if time != 'N/A':
-    #             value = "rendering"
-    #     return value
-
-
-
 
 
 class TaskModel(QAbstractTableModel, HarmTableModel):
