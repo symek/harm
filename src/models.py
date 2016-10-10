@@ -220,32 +220,9 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
         if jobid:
             _data, _header = backend.get_job_tasks(jobid)
             self._data = _data
-            self._head = _header
-
-
-
-       
-        # if jobid: 
-        #     command = constants.SLURM_JOBS_LIST.replace("<JOBID/>", jobid)
-        # else:
-        #     command = constants.SLURM_RUNNING_JOBS_LIST
-
-        # try:
-        #     out, err =subprocess.Popen(command, shell=True, \
-        #     stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
-        #     if out:
-        #         data, header = parse_slurm_output(out)
-        #         self._data = data
-        #         for item in header:
-        #             self._head[header.index(item)] = item
-        # except: 
-        #     print "Counld't get scheduler info."
-        #     print err
-
-
+            self._head = _head
 
         self.emit(SIGNAL("layoutChanged()"))
-
 
 
     def hook_cputime(self, index, value):
