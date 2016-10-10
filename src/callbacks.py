@@ -42,6 +42,9 @@ class HarmMainWindowCallbacks():
         # Updates detail, stdout/err view for sepected task.
         self.connect(self.running_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.running_task_view_clicked)
+        # Upate detail basic view in case detail view contains file path:
+        self.connect(self.job_detail_view, SIGNAL("clicked(const QModelIndex&)"),  
+                     self.job_detail_view_clicked)
 
       
 
@@ -325,6 +328,29 @@ class HarmMainWindowCallbacks():
         else:
             self.job_detail_view.hide()
             self.job_detail_tree_view.show()
+
+
+
+    def job_detail_view_clicked(self, index):
+        """ Display ASCII file content as found in job detail fields
+            in basic job view (text based).
+        """
+        s_index = self.job_detail_view.proxy_model.mapToSource(index)
+        value   = self.job_detail_view.model._data[s_index.row()][-1]
+
+        if os.path.isfile(value):
+            with open(value) as file:
+                text = file.readline()
+                # Quick test for ascii file:
+                try:
+                    text.decode('ascii')
+                    file.seek(0)
+                    text = file.read()
+                except UnicodeDecodeError:
+                    text = "it was not a ascii-encoded unicode string"
+
+            self.job_detail_basic_view.setPlainText(str(text))
+
         
 
 
