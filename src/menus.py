@@ -97,8 +97,6 @@ class JobsContextMenu(QMenu, ContextMenuBase):
                           'callback_resume',
                           'callback_reschedule',
                           "",
-                          'callback_resubmit',
-                          "",
                           'callback_delete']
 
         self.bind_actions(self.build_action_strings(self.item_list))
@@ -121,21 +119,6 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         view  = self.context.views['job_detail_basic_view']
         view.setPlainText("\n".join(result))
 
-    def callback_delete(self):
-        """ Cancel jobs.
-        """
-        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
-        result = backend.cancel_job(jobs)
-        view  = self.context.views['job_detail_basic_view']
-        view.setPlainText("\n".join(result))
-
-    def callback_reschedule(self):
-        """ Reschedule jobs.
-        """
-        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
-        result = backend.reschedule_job(jobs)
-        view  = self.context.views['job_detail_basic_view']
-        view.setPlainText("\n".join(result))
 
     def callback_suspend(self):
         """ Suspend jobs.
@@ -150,6 +133,22 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         """
         jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
         result = backend.resume_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
+
+    def callback_reschedule(self):
+        """ Reschedule jobs.
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.reschedule_job(jobs)
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText("\n".join(result))
+
+    def callback_delete(self):
+        """ Cancel jobs.
+        """
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        result = backend.cancel_job(jobs)
         view  = self.context.views['job_detail_basic_view']
         view.setPlainText("\n".join(result))
 
