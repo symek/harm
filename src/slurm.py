@@ -17,6 +17,7 @@ SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %
 
 # Slurm specific identities 
 JOB_ID_KEY               = 'ARRAY_JOB_ID'
+MACHINE                  = "EXEC_HOST"
 
 # TODO: Remove and import hafarm utils upon merge.
 def collapse_digits_to_sequence(frames):
@@ -374,7 +375,7 @@ def get_job_tasks(jobid):
         return  data, header
     return None, None
 
-    
+
 
 def convert_seconds_to_HMS(seconds):
     ''' Converts seconds to a time string HH:MM:SS

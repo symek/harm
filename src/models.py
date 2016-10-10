@@ -203,14 +203,6 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
     def update(self, jobid=None, reverse_order=True):
         '''Main function of derived model. Builds _data list from input.
         '''
-        def parse_slurm_output(output):
-            lines = output.split("\n")
-            if len(lines) == 1: lines  += [""]
-            head, lines = lines[0], lines[1:]
-            head = [word.strip() for word in head.split()]
-            lines = [line.split() for line in lines if line]
-            return lines, head
-
     
         self.emit(SIGNAL("layoutAboutToBeChanged()"))
         self._data = []
@@ -218,9 +210,16 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
         self._head = OrderedDict()
 
         if jobid:
-            _data, _header = backend.get_job_tasks(jobid)
+            _data, _head = backend.get_job_tasks(jobid)
             self._data = _data
             self._head = _head
+
+            machine_key_index = self.get_key_index(backend.MACHINE)
+            machines = []
+            for line in self._data:
+                m = line[machine_key_index]
+                if m != "n/a":
+                    machines += [m]
 
         self.emit(SIGNAL("layoutChanged()"))
 
