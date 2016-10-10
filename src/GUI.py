@@ -11,7 +11,7 @@ import menus
 import callbacks
 
 # Harm utilities & settings:
-import tokens, delegates, txt2xml
+import tokens, delegates
 import structured, utilities, views
 from constants import *
 
