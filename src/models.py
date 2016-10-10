@@ -211,33 +211,39 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
             lines = [line.split() for line in lines if line]
             return lines, head
 
-        from operator import itemgetter
-        import subprocess
-        # All dirty data. We need to duplicate it here,
-        # to keep things clean down the stream.
-        err = None
-        t = time()
+    
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         self._data = []
         self._dict = OrderedDict()
         self._head = OrderedDict()
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-       
-        if jobid: 
-            command = constants.SLURM_JOBS_LIST.replace("<JOBID/>", jobid)
-        else:
-            command = constants.SLURM_RUNNING_JOBS_LIST
 
-        try:
-            out, err =subprocess.Popen(command, shell=True, \
-            stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
-            if out:
-                data, header = parse_slurm_output(out)
-                self._data = data
-                for item in header:
-                    self._head[header.index(item)] = item
-        except: 
-            print "Counld't get scheduler info."
-            print err
+        if jobid:
+            _data, _header = backend.get_job_tasks(jobid)
+            self._data = _data
+            self._head = _header
+
+
+
+       
+        # if jobid: 
+        #     command = constants.SLURM_JOBS_LIST.replace("<JOBID/>", jobid)
+        # else:
+        #     command = constants.SLURM_RUNNING_JOBS_LIST
+
+        # try:
+        #     out, err =subprocess.Popen(command, shell=True, \
+        #     stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+        #     if out:
+        #         data, header = parse_slurm_output(out)
+        #         self._data = data
+        #         for item in header:
+        #             self._head[header.index(item)] = item
+        # except: 
+        #     print "Counld't get scheduler info."
+        #     print err
+
+
+
         self.emit(SIGNAL("layoutChanged()"))
 
 

@@ -12,6 +12,7 @@ SLURM_JOB_DETAILS      = 'scontrol show job <JOBID/>_<TASKID/>'
 SLURM_JOBS_HISTORY_ALL = 'sacct -u <USER/> -o "JobId,Partition,User,State,JobName,Submit,Start,End,ExitCode" -P'
 SLURM_JOB_HISTORY_DETAIL = 'sacct -j <JOBID/> -o "All" -P'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
+SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
 
 
 # Slurm specific identities 
@@ -125,7 +126,6 @@ def collapse_list_by_field(data, header, identity_field="ARRAY_JOB_ID",
 
     return _dict.values(), _dict
 
-    
 
 def get_std_output(command):
     """ Performs basic parsing of squeu output.
@@ -354,11 +354,27 @@ def get_job_stats(jobid, taskid=""):
     if not taskid:
         command = command[:-1]
     data, err = get_std_output(command)
-
     if data:
         data, header = parse_slurm_output_to_dict(data)
         return data, header
     return None, None
+
+
+
+def get_job_tasks(jobid):
+    """ Returns job's tasks details.
+    """
+    command = SLURM_JOB_TASKS.replace("<JOBID/>",jobid)
+    data, err = get_std_output(command)
+    if data:
+        data, head = parse_slurm_output_to_list(data)
+        header     = OrderedDict()
+        for item in head:
+            header[head.index(item)] = item
+        return  data, header
+    return None, None
+
+    
 
 def convert_seconds_to_HMS(seconds):
     ''' Converts seconds to a time string HH:MM:SS
