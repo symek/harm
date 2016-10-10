@@ -1,6 +1,8 @@
 import os
 from time import time
 from PyQt4.QtCore import *
+from PyQt4 import QtCore, QtGui
+
 
 import tokens
 import utilities
@@ -372,6 +374,16 @@ class MachineModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
         self._head = OrderedDict()
         self._data = []
+        self.BG_BRUSH = self.create_gradient_brush()
+
+    def create_gradient_brush(self):
+        horGradient = QtGui.QLinearGradient(0, 0, 100, 0)
+        verGradient = QtGui.QLinearGradient(0, 0, 0, 20)
+        gradient = verGradient 
+        gradient.setColorAt(0.0, QtGui.QColor("black"))
+        gradient.setColorAt(1.0, QtGui.QColor("grey"))
+        brush = QtGui.QBrush(gradient)
+        return brush
       
     def update(self, reverse_order=False):
         '''Main function of derived model. Builds _data list from input.
@@ -394,6 +406,32 @@ class MachineModel(QAbstractTableModel, HarmTableModel):
             self._head = header
         
         self.emit(SIGNAL("layoutChanged()"))
+
+    # def data(self, index, role):
+    #     ''''Data access.
+    #     '''
+    #     value = None
+    #     if not index.isValid():
+    #         return QVariant()
+
+    #     if role in [Qt.DisplayRole, Qt.EditRole]:
+
+    #         value = self._data[index.row()][index.column()]
+    #         value = self.data_hooks(index, value)
+
+    #         if not value: 
+    #             return QVariant()    
+
+    #     if role == Qt.ForegroundRole:
+    #         return QtGui.QColor("white")
+
+    #     # BackgroundColorRole is obsolete, use BackgroundRole, 
+    #     # which returns a QBrush.
+    #     if role == Qt.BackgroundRole:
+    #         return self.BG_BRUSH
+
+    #     # Finally return something meaningfull:
+    #     return QVariant(value)
 
 
 
@@ -441,20 +479,7 @@ class JobDetailModel(QAbstractTableModel, HarmTableModel):
             self._dict = dict_
             for item in header:
                 self._head[header.index(item)] = item
-        # except: 
-            # print "Counld't get scheduler info."
-            # print err
-        #     self._tree = ElementTree.parse(os.popen(sge_command)).getroot()
-        #     self._dict  = XmlDictConfig(self._tree)['djob_info']['element']
-        # except:
-        #     job_id = sge_command.split()[-1]
-        #     self._dict = self.get_job_details_db(job_id)
-        #     #print "JB_submission_time: " + str("JB_submission_time" in self._dict)
-
-        # self._data  = []
-        # self._tasks = []
-        # self._data  = zip(self._dict.keys(), self._dict.values())
-        # self._head = self.build_header_dict(self._dict)
+       
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         '''Headers builder. Note crude tokens replacement.'''
