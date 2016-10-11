@@ -141,7 +141,7 @@ class HarmMainWindowCallbacks():
         if not os.path.isfile(picture_info[0]):
             return
     
-        pixels, w, h = self.get_rawpixels_from_file(picture_info[0])
+        pixels, w, h = utilities.get_rawpixels_from_file(picture_info[0])
 
         if not pixels:
             return
@@ -178,33 +178,6 @@ class HarmMainWindowCallbacks():
             except:
                 return
         return
-
-    def get_rawpixels_from_file(self, filename, scale_image=1):
-        """
-        """
-        import math
-        # TODO: Migrate it outside callbacks.py
-        try:
-            import OpenImageIO as oiio 
-        except:
-            print "Cant' find OpenImageIO."
-            return None, None, None
-
-        source = oiio.ImageBuf(str(filename))
-
-        if not source:
-            return None, None, None
-
-        # OIIO to get raw uint pixels rgb
-        w = int(math.ceil(source.oriented_width*scale_image))
-        h = int(math.ceil(source.oriented_height*scale_image))
-        dest = oiio.ImageBuf(oiio.ImageSpec(w, h, 3, oiio.UINT8))
-        # oiio.ImageBufAlgo.resample(dest, source)
-        dest.copy(source, oiio.UINT8)
-        roi    = oiio.ROI(0, w, 0, h, 0, 1, 0, 3)
-        pixels = dest.get_pixels(oiio.UINT8, roi)
-
-        return pixels, w, h
 
 
     def tasks_view_doubleClicked(self, index):
