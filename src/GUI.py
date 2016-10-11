@@ -153,10 +153,10 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         jobs_tab_splitter.addWidget(self.jobs_view)
 
         # Tasks view Controls:
-        self.tasks_onlySelected_toggle = QtGui.QCheckBox()
-        self.tasks_onlySelected_toggle.setText("Show Only Selected Jobs")
+        self.expand_tasks_with_machine_stats = QtGui.QCheckBox()
+        self.expand_tasks_with_machine_stats.setText("Display Machines Stats")
         tasks_controls = QtGui.QHBoxLayout()
-        tasks_controls.addWidget(self.tasks_onlySelected_toggle)
+        tasks_controls.addWidget(self.expand_tasks_with_machine_stats)
 
         # Task Color Controls:
         self.tasks_colorize_style =  QtGui.QComboBox()

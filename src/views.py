@@ -162,7 +162,7 @@ class TasksView(QTableView, ViewBase):
 
         # Models:
         self.model = models.TaskModel(self)
-        self.model.update(None, reverse_order=False)
+        # self.model.update(None, reverse_order=False)
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
         self.proxy_model.setDynamicSortFilter(True)
@@ -190,20 +190,6 @@ class TasksView(QTableView, ViewBase):
     def openContextMenu(self, position):
         self.context_menu = menus.TasksContextMenu(self.context, self.mapToGlobal(position))
 
-    #FIXME: this probably shouldn't exists. 
-    def update_model_db(self, job_id):
-        from time import time
-        t = time()
-        self.model.reset()
-        self.proxy_model.reset()
-        self.model.update_db(job_id)
-        self.set_column_order(self.order_columns)
-        self.set_column_hidden(self.hidden_columns)
-        # Clean:
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        if DEBUG:
-            print "TasksView.update_model_db: " + str(time() - t)
 
 
 ####################################################################

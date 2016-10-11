@@ -200,31 +200,34 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
         self._head = OrderedDict()
 
 
-    def update(self, jobid=None, reverse_order=True):
+    def update(self, jobid=None, machine_stats=False):
         '''Main function of derived model. Builds _data list from input.
         '''
     
-        if jobid:
-            self.emit(SIGNAL("layoutAboutToBeChanged()"))
-            self._data = []
-            self._dict = OrderedDict()
-            self._head = OrderedDict()
-            _data, _head = backend.get_job_tasks(jobid)
+        if not jobid:
+            return
+            
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        self._data = []
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+        _data, _head = backend.get_job_tasks(jobid)
 
-            if not _data:
-                return
+        if not _data:
+            return
 
-            self._data = _data
-            self._head = _head
+        self._data = _data
+        self._head = _head
 
         self.emit(SIGNAL("layoutChanged()"))
+
+        if machine_stats:
+            self.update_with_machine_data()
 
 
     def update_with_machine_data(self):
         """ Append machine infor per task line.
         """
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-
         # Get machine list:
         machine_key_index = self.get_key_index(backend.MACHINE)
         machines = []
@@ -233,6 +236,8 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
             if machines != "n/a":
                 machines += [machine]
 
+        if not machines:
+            return
         # Get data from backend:
         data, head, details = backend.get_nodes_details(machines)
 
@@ -258,6 +263,7 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
                 assert(key in stats.keys())
                 line.append(stats[key])
            
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
         self._data = _data
         self._head = _head
         self.emit(SIGNAL("layoutChanged()"))

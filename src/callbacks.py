@@ -25,9 +25,9 @@ class HarmMainWindowCallbacks():
         self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.tasks_view_clicked)
         # 
-        self.connect(self.tasks_onlySelected_toggle, SIGNAL('stateChanged(int)'),\
-                    self.set_tasks_view_filter) 
-        #   
+        # self.connect(self.expand_tasks_with_machine_stats, SIGNAL('stateChanged(int)'),\
+        #             self.set_tasks_view_filter) 
+        # #   
         self.connect(self.set_user_action, SIGNAL('triggered()'), 
                      self.set_user)
         # Updates job view based on filter provided by user
@@ -79,10 +79,10 @@ class HarmMainWindowCallbacks():
         # with that, we retrieve informations:
         job_id       = self.jobs_view.model._data[s_index.row()][job_id_index]
         state        = self.jobs_view.model._data[s_index.row()][state_index]
-        #
-        self.tasks_view.update_model(job_id)
-        self.set_tasks_view_filter(job_id)
 
+        # 
+        machine_stats = self.expand_tasks_with_machine_stats.isChecked()
+        self.tasks_view.update_model(job_id, machine_stats)
         self.job_detail_basic_view_update(job_id)
 
     
@@ -231,28 +231,28 @@ class HarmMainWindowCallbacks():
         self.jobs_view.proxy_model.setFilterWildcard(wildcard)
         self.jobs_view.resizeRowsToContents()
 
-    def set_tasks_view_filter(self, job_id):
-        '''Sets a filter according to job selection in jobs view.'''
-        # Early exit on non-ids:
-        if job_id == None: 
-            self.tasks_view.proxy_model.setFilterWildcard("")
-            self.tasks_view.resizeRowsToContents()
-            self.tasks_view.resizeColumnsToContents()
-            return
+    # def set_tasks_view_filter(self, job_id):
+    #     '''Sets a filter according to job selection in jobs view.'''
+    #     # Early exit on non-ids:
+    #     if job_id == None: 
+    #         self.tasks_view.proxy_model.setFilterWildcard("")
+    #         self.tasks_view.resizeRowsToContents()
+    #         self.tasks_view.resizeColumnsToContents()
+    #         return
 
-        # Proceed with setting filter on job number column:
-        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
-        # Our column might not exist:
-        if job_id_index:
-            self.tasks_view.proxy_model.setFilterKeyColumn(job_id_index)
-            if self.tasks_onlySelected_toggle.isChecked():
-                self.tasks_view.proxy_model.setFilterWildcard(str(job_id))
-            else:
-                self.tasks_view.proxy_model.setFilterWildcard("")
+    #     # Proceed with setting filter on job number column:
+    #     job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
+    #     # Our column might not exist:
+    #     if job_id_index:
+    #         self.tasks_view.proxy_model.setFilterKeyColumn(job_id_index)
+    #         if self.tasks_onlySelected_toggle.isChecked():
+    #             self.tasks_view.proxy_model.setFilterWildcard(str(job_id))
+    #         else:
+    #             self.tasks_view.proxy_model.setFilterWildcard("")
 
-        # Usual clean up:
-        self.tasks_view.resizeRowsToContents()
-        self.tasks_view.resizeColumnsToContents()
+    #     # Usual clean up:
+    #     self.tasks_view.resizeRowsToContents()
+    #     self.tasks_view.resizeColumnsToContents()
 
     def set_history_user(self):
         user = self.history_user.text()
