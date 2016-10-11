@@ -204,23 +204,62 @@ class TaskModel(QAbstractTableModel, HarmTableModel):
         '''Main function of derived model. Builds _data list from input.
         '''
     
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        self._data = []
-        self._dict = OrderedDict()
-        self._head = OrderedDict()
-
         if jobid:
+            self.emit(SIGNAL("layoutAboutToBeChanged()"))
+            self._data = []
+            self._dict = OrderedDict()
+            self._head = OrderedDict()
             _data, _head = backend.get_job_tasks(jobid)
+
+            if not _data:
+                return
+
             self._data = _data
             self._head = _head
 
-            machine_key_index = self.get_key_index(backend.MACHINE)
-            machines = []
-            for line in self._data:
-                m = line[machine_key_index]
-                if m != "n/a":
-                    machines += [m]
+        self.emit(SIGNAL("layoutChanged()"))
 
+
+    def update_with_machine_data(self):
+        """ Append machine infor per task line.
+        """
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+
+        # Get machine list:
+        machine_key_index = self.get_key_index(backend.MACHINE)
+        machines = []
+        for line in self._data:
+            machine = line[machine_key_index]
+            if machines != "n/a":
+                machines += [machine]
+
+        # Get data from backend:
+        data, head, details = backend.get_nodes_details(machines)
+
+        if not data:
+            return
+        # Fields to be appended:
+        machine_info_keys = ["CPULoad", "AllocMem", "FreeMem"]
+        header_keys = self._head.values()
+        header_keys += machine_info_keys
+
+        # New header from scratch:
+        _head = OrderedDict()
+        for key in header_keys:
+            _head[header_keys.index(key)] = key
+
+        # append data;
+        _data = self._data
+        for line in _data:
+            machine  = line[machine_key_index]
+            assert(machine in details.keys())
+            stats = details[machine]
+            for key in machine_info_keys:
+                assert(key in stats.keys())
+                line.append(stats[key])
+           
+        self._data = _data
+        self._head = _head
         self.emit(SIGNAL("layoutChanged()"))
 
 

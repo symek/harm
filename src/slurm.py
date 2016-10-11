@@ -13,6 +13,7 @@ SLURM_JOBS_HISTORY_ALL = 'sacct -u <USER/> -o "JobId,Partition,User,State,JobNam
 SLURM_JOB_HISTORY_DETAIL = 'sacct -j <JOBID/> -o "All" -P'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
 SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
+SLURM_NODES_DETAILS      = 'scontrol -o show nodes <NODES/>'
 
 
 # Slurm specific identities 
@@ -343,7 +344,48 @@ def get_nodes_info(node=None, reverse_order=False):
         for item in head:
             header[head.index(item)] = item
         return data, header
-    return  
+    return  None, None
+
+
+def get_nodes_details(nodes):
+    def parse(data):
+        lines = data.split("\n")
+        # print lines
+        data = []
+        head = []
+        _dict = dict()
+
+        for line in lines:
+            if not line:
+                continue
+            details = []
+            _d = OrderedDict()
+            items = line.split()
+            for item in items:
+                values = item.split("=")
+                if len(values) == 1:
+                    values.append("n/a")
+                key, value = values
+                if key not in head:
+                    head.append(key)
+                if key == "NodeName":
+                    nodename = value
+                details += [value]
+                _d[key] = value
+            data.append(details)
+            _dict[nodename] = _d
+        return data, head, _dict
+
+    assert(isinstance(nodes, list))
+    command = SLURM_NODES_DETAILS.replace("<NODES/>", ",".join(nodes))
+    data, err = get_std_output(command)
+    if data:
+        data, head, _dict = parse(data)
+        header = OrderedDict()
+        for item in head:
+            header[head.index(item)] = item
+        return data, header, _dict
+    return None, None, None
 
 
 def get_job_stats(jobid, taskid=""):
