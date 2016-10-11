@@ -105,6 +105,8 @@ class HarmMainWindowCallbacks():
         tab_index = self.right_tab_widget.currentIndex() 
         if tab_index in (1,2):
             self.update_std_views(job_id, task_id, tab_index)
+        elif tab_index == 3:
+            self.image_view_update(job_id, task_id)
 
 
     def running_task_view_clicked(self, index):
@@ -129,6 +131,81 @@ class HarmMainWindowCallbacks():
             self.update_std_views(job_id, task_id, tab_index)
 
       
+    def image_view_update(self, job_id, task_id):
+        """
+        """
+        hafarm_parms = self.get_job_parms_from_detail_view()
+        picture_parm = hafarm_parms[u'parms'][u'output_picture']
+        picture_info = utilities.padding(picture_parm, _frame=task_id)
+
+        if not os.path.isfile(picture_info[0]):
+            return
+    
+        pixels, w, h = self.get_rawpixels_from_file(picture_info[0])
+
+        if not pixels:
+            return
+
+        # PyQt:
+        import sip, ctypes
+        buff  = ctypes.create_string_buffer(pixels.tostring())
+        image = QImage(sip.voidptr(buff), w, h, QImage.Format_RGB888)
+
+        pixmap = QtGui.QPixmap.fromImage(image)
+
+        size   = self.image_tab.size()
+        scaled = pixmap.scaledToWidth(size.width())
+        self.image_view.setPixmap(scaled)
+        self.image_view.adjustSize()
+        
+    def get_job_parms_from_detail_view(self):
+        """ Detail View holds tasks specific informatation.
+            In case of Hafarm sent job, every execution command file *.job
+            has *.json eqivalent with hafarm parameters specification.
+            This files allows to get most of job specification, 
+            including output picture.
+        """
+        import json
+        key_index  = self.job_detail_view.model.get_key_index("Command")
+        key, value = self.job_detail_view.model._data[key_index]
+        command_file, ext = os.path.splitext(value)
+        job_descr_file   = command_file + ".json"
+        if not os.path.isfile(job_descr_file):
+            return
+        with open(job_descr_file) as file:
+            try:
+               return json.load(file)
+            except:
+                return
+        return
+
+    def get_rawpixels_from_file(self, filename, scale_image=1):
+        """
+        """
+        import math
+        # TODO: Migrate it outside callbacks.py
+        try:
+            import OpenImageIO as oiio 
+        except:
+            print "Cant' find OpenImageIO."
+            return None, None, None
+
+        source = oiio.ImageBuf(str(filename))
+
+        if not source:
+            return None, None, None
+
+        # OIIO to get raw uint pixels rgb
+        w = int(math.ceil(source.oriented_width*scale_image))
+        h = int(math.ceil(source.oriented_height*scale_image))
+        dest = oiio.ImageBuf(oiio.ImageSpec(w, h, 3, oiio.UINT8))
+        # oiio.ImageBufAlgo.resample(dest, source)
+        dest.copy(source, oiio.UINT8)
+        roi    = oiio.ROI(0, w, 0, h, 0, 1, 0, 3)
+        pixels = dest.get_pixels(oiio.UINT8, roi)
+
+        return pixels, w, h
+
 
     def tasks_view_doubleClicked(self, index):
         '''Double clicking on task calls image viewer (mplay for now)

@@ -58,6 +58,8 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.setupJobDetailTab()
         self.splashMessage("Setup Stdout and stderr Tabs...")
         self.setupTaskStdTab()
+        self.splashMessage("Setup Image Tab...")
+        self.setupImageTab()
         #self.splashMessage("Setup Statistics Tab...")
         #self.setupStatisticsTab()
 
@@ -308,6 +310,21 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
 
         stderr_tab_vbox.addWidget(self.stderr_view)
         self.stderr_view.setPlainText(str("No stderr yet."))
+
+
+    def setupImageTab(self):
+
+        # Image View:
+        self.image_view   = QtGui.QLabel()
+        #self.history_view = views.JobsTreeHistoryView(context)
+        self.image_tab   = QtGui.QWidget()
+        self.right_tab_widget.addTab(self.image_tab, "Image")
+        image_tab_vbox = QtGui.QVBoxLayout(self.image_tab)
+        image_tab_vbox.addWidget(self.image_view)
+        
+        self.image_view.setBackgroundRole(QtGui.QPalette.Base)
+        self.image_view.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
+        # self.image_view.setScaledContents(True)
 
 
     def setupStatisticsTab(self):
