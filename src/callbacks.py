@@ -31,7 +31,7 @@ class HarmMainWindowCallbacks():
         self.connect(self.set_user_action, SIGNAL('triggered()'), 
                      self.set_user)
         # Updates job view based on filter provided by user
-        self.connect(self.jobs_filter_line, SIGNAL('returnPressed(const QString&)'),\
+        self.connect(self.jobs_filter_line, SIGNAL('editingFinished()'),\
                      self.set_jobs_view_filter)
         # Updates history query based on user provided username. 
         self.connect(self.history_user, SIGNAL('editingFinished()'),\
@@ -245,17 +245,20 @@ class HarmMainWindowCallbacks():
                 self.stderr_view.setPlainText("Couldn't open %s" % stderr_file)
 
 
-    def set_jobs_view_filter(self, wildcard):
-        '''Sets a filter for jobs view according to user input in jobs_filter_line.
-        Basic syntax is header_name:value, where header_name might either alias used
-        in GUI, or real name used in model. We should provide the latter one with popup
-        or something.'''
+    def set_jobs_view_filter(self):
+        """ Sets a filter for jobs view according to user input in jobs_filter_line.
+            Basic syntax is header_name:value, where header_name might either alias used
+            in GUI, or real name used in model. We should provide the latter one with popup
+            or something...
+        """
+        wildcard = str(self.jobs_filter_line.text())
+        if not wildcard:
+            self.jobs_view.proxy_model.setFilterKeyColumn(-1)   
+            self.jobs_view.proxy_model.setFilterWildcard("")
+
         from fnmatch import fnmatch
         # By default we filter users: 
-        column_name   =  None
-        wildcard      = str(wildcard)
-        # basic syntax for specifying headers:
-
+        column_name =  None
         wildcard    = wildcard.split(":")
         if len(wildcard) > 1:
             column_name = wildcard[0]
@@ -275,10 +278,12 @@ class HarmMainWindowCallbacks():
         else:
             column_index = self.jobs_view.model.get_key_index(column_name)
             
-        # Finally our job:
+        # # Finally our job:
         self.jobs_view.proxy_model.setFilterKeyColumn(column_index)
         self.jobs_view.proxy_model.setFilterWildcard(wildcard)
         self.jobs_view.resizeRowsToContents()
+        self.jobs_view.resizeColumnsToContents()
+
 
     # def set_tasks_view_filter(self, job_id):
     #     '''Sets a filter according to job selection in jobs view.'''
