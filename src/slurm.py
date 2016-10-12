@@ -18,6 +18,7 @@ SLURM_NODES_DETAILS      = 'scontrol -o show nodes <NODES/>'
 
 # Slurm specific identities 
 JOB_ID_KEY               = 'ARRAY_JOB_ID'
+TASK_ID_KEY              = "JOBID"
 MACHINE                  = "EXEC_HOST"
 
 # TODO: Remove and import hafarm utils upon merge.
@@ -141,56 +142,6 @@ def get_std_output(command):
         print "Counld't get output from: %s" % command # TODO: LOGGER
         print err
     return out, err
-
-
-def hold_job(ids):
-    """ Hold jobs with ids. 'ids' is a list of jobs' id.
-    """
-    assert(isinstance(ids, list))
-    command = 'scontrol hold %s' % ",".join(ids)
-    result  = get_std_output(command)
-    return result
-
-def unhold_job(ids):
-    """ Unhold jobs with ids. 'ids' is a list of jobs' id.
-    """
-    assert(isinstance(ids, list))
-    command = 'scontrol release %s' % ",".join(ids)
-    result  = get_std_output(command)
-    return result
-
-def cancel_job(ids):
-    """ Cancel jobs with specified ids.
-    """
-    assert(isinstance(ids, list))
-    command = 'scancel %s' % ",".join(ids)
-    result  = get_std_output(command)
-    return result
-
-def reschedule_job(ids):
-    """ Reschedule jobs with ids. 'ids' is a list of jobs' id.
-    """
-    assert(isinstance(ids, list))
-    command = 'scontrol requeue %s' % ",".join(ids)
-    result  = get_std_output(command)
-    return result   
-
-def suspend_job(ids):
-    """ Suspend jobs with ids. 'ids' is a list of jobs' id.
-    """
-    assert(isinstance(ids, list))
-    command = 'scontrol suspend %s' % ",".join(ids)
-    result  = get_std_output(command)
-    return result    
-
-def resume_job(ids):
-    """ Rersume jobs with ids. 'ids' is a list of jobs' id.
-    """
-    assert(isinstance(ids, list))
-    command = 'scontrol resume %s' % ",".join(ids)
-    result  = get_std_output(command)
-    return result    
-
 
 def get_pending_jobs(max_jobs=300, reverse_order=True):
     """ Get a list of pending jobs from slurm.
@@ -406,8 +357,6 @@ def get_job_stats(jobid, taskid=""):
         return data, header
     return None, None
 
-
-
 def get_job_tasks(jobid):
     """ Returns job's tasks details.
     """
@@ -420,6 +369,67 @@ def get_job_tasks(jobid):
             header[head.index(item)] = item
         return  data, header
     return None, None
+
+
+###########################################################################
+###########################################################################
+#                      ACTIONS
+###########################################################################
+###########################################################################
+
+def hold_job(ids):
+    """ Hold jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol hold %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result
+
+def unhold_job(ids):
+    """ Unhold jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol release %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result
+
+def cancel_job(ids):
+    """ Cancel jobs with specified ids.
+    """
+    assert(isinstance(ids, list))
+    command = 'scancel %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result
+
+def reschedule_job(ids):
+    """ Reschedule jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol requeue %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result   
+
+def suspend_job(ids):
+    """ Suspend jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol suspend %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result    
+
+def resume_job(ids):
+    """ Rersume jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol resume %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result 
+
+
+###########################################################################
+#                          END OF ACTIONS
+###########################################################################
+
 
 
 
