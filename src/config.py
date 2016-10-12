@@ -7,6 +7,14 @@ except:
     except:
         raise ImportError("No json nor simplejson found.")
 
+
+# Python 2.6 compatibility:
+try:
+    from collections import OrderedDict, defaultdict
+except ImportError:
+    from ordereddict import OrderedDict
+
+
 class Config(dict):
     def __init__(self, _dict={}):
         super(self.__class__, self).__init__(_dict)
@@ -45,16 +53,11 @@ class Config(dict):
         self['HarmMainWindow'] = {'timer':{}}
         self['HarmMainWindow']['timer']['setInterval'] = 1000*120
 
-        # Platform image viewer and file manager:
-        if sys.platform in ('linux2', 'linux'):
-            self['image_viewer'] = '/opt/package/houdini_12.1.185/bin/mplay'
-            self['file_manager'] = 'nautilus'
-        elif sys.platform in ('win32', 'win64'):
-            self['image_viewer'] = "C:\\Program Files (x86)\\djv 0.8.3\\bin\\dvj_view.exe"
-            self['file_manager'] = 'explorer'
-        else:
-            self['image_viewer'] = None
-            self['file_manager'] = None
+        self['image_viewer'] = [('mplay', ""), ('rv', ""),  ("iv", ""), ("djv_view", ""), ('fcheck', "")]
+        self['file_manager'] = [('nautilus', "")]
+
+
+
 
         # self.selectedC.setHsvF(0.108, 0.95, 1)
         # self.waitingC.setHsvF(0.30, 0.3, 1)
