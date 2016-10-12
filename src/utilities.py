@@ -328,7 +328,11 @@ def get_rawpixels_from_file(filename, scale_image=1):
     w = int(math.ceil(source.oriented_width*scale_image))
     h = int(math.ceil(source.oriented_height*scale_image))
     dest = oiio.ImageBuf(oiio.ImageSpec(w, h, 3, oiio.UINT8))
-    # oiio.ImageBufAlgo.resample(dest, source)
+
+    # DeLinearize optionally 
+    if source.spec().format in (oiio.TypeDesc(oiio.HALF), oiio.TypeDesc(oiio.FLOAT)):
+        oiio.ImageBufAlgo.colorconvert(source, source, "linear", "sRGB")
+
     dest.copy(source, oiio.UINT8)
     roi    = oiio.ROI(0, w, 0, h, 0, 1, 0, 3)
     pixels = dest.get_pixels(oiio.UINT8, roi)
