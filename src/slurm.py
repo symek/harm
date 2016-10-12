@@ -220,17 +220,21 @@ def get_notpending_jobs(max_jobs=None, reverse_order=True):
         return data, header
     return  
 
-def get_current_jobs(max_jobs=300, reverse_order=True):
-    """ Only pending and rendering
+def get_current_jobs(max_jobs=150, reverse_order=True):
+    """ Get all jobs currently present in scheduler in any state.
     """
-    command   = SLURM_JOBS_GROUPED_CMD.replace("<STATES/>", "all") #PD,R,CA,CD,F,ST,S,TO
+    command   = SLURM_JOBS_GROUPED_CMD.replace("<STATES/>", "all")
     data, err = get_std_output(command)
     if data:
-        data, head = parse_slurm_output_to_list(data, max_jobs, reverse_order)
+        data, head = parse_slurm_output_to_list(data, None, reverse_order)
         header     = OrderedDict()
         for item in head:
             header[head.index(item)] = item
         data, _dict  = collapse_list_by_field(data, header)
+        # NOTE: This is unfortunatelly wrong place for max_jobs optimisation
+        # as we did all hard work already...
+        max_jobs = min(len(data), max_jobs)
+        data     = data[:max(max_jobs, 1)]
         return data, header
     return 
 
