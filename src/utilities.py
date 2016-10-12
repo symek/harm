@@ -340,6 +340,43 @@ def get_rawpixels_from_file(filename, scale_image=1):
     return pixels, w, h
 
 
+def get_stats_from_image(filename):
+    import math
+    # TODO: Migrate it outside callbacks.py
+    try:
+        import OpenImageIO as oiio 
+    except:
+        print "Cant' find OpenImageIO."
+        return None
+
+    source = oiio.ImageInput.open(str(filename))
+
+    if not source:
+        print oiio.geterror()
+        return
+
+    spec = source.spec()
+    info = []
+
+    info.append(["resolution", (spec.width, spec.height, spec.x, spec.y)])
+    info.append(["channels: ", spec.channelnames])
+    info.append(["format", str(spec.format)])
+    if spec.channelformats :
+        info.append(["channelformats", str(spec.channelformats)])
+    info.append(["alpha channel", str(spec.alpha_channel)])
+    info.append(["z channel",  str(spec.z_channel)])
+    info.append(["deep", str(spec.deep)])
+    for i in range(len(spec.extra_attribs)):
+        if type(spec.extra_attribs[i].value) == str:
+            info.append([spec.extra_attribs[i].name,  spec.extra_attribs[i].value])
+        else:
+            info.append([spec.extra_attribs[i].name, spec.extra_attribs[i].value])
+
+    source.close ()
+
+    return info
+
+
 # http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python/377028
 def which(program):
     def is_exe(fpath):
