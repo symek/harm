@@ -2,7 +2,7 @@ import os, time
 import utilities
 import constants
 import tokens
-import slurm
+import slurm as backend
 #PyQt4:
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import * 
@@ -24,6 +24,9 @@ class HarmMainWindowCallbacks():
         # Udates job detail view and stderr, stdout tabs
         self.connect(self.tasks_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.tasks_view_clicked)
+        # Display an image 
+        self.connect(self.tasks_view, SIGNAL("doubleClicked(const QModelIndex&)"),  
+                     self.tasks_view_doubleClicked)
         # 
         # self.connect(self.expand_tasks_with_machine_stats, SIGNAL('stateChanged(int)'),\
         #             self.set_tasks_view_filter) 
@@ -181,32 +184,31 @@ class HarmMainWindowCallbacks():
 
 
     def tasks_view_doubleClicked(self, index):
-        '''Double clicking on task calls image viewer (mplay for now)
-        TODO: place for Config() class.
-        '''
+        """ Double clicking on an item in task view starts viewer for now.
+        """
+
         s_index       = self.tasks_view.proxy_model.mapToSource(index)
-        job_id_index  = self.tasks_view.model.get_key_index("JB_job_number")
-        task_id_index = self.tasks_view.model.get_key_index("tasks")
+        job_id_index  = self.tasks_view.model.get_key_index(backend.TASK_ID_KEY)
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
+        task_id_index = self.tasks_view.model.get_key_index(backend.TASK_NUMBER)
         task_id       = self.tasks_view.model._data[s_index.row()][task_id_index]
 
-        # Update job detail only if it's not already updated:
-        if self.job_detail_view.model._dict['JB_job_number'] != job_id:
-           self.job_detail_view.update_model(job_id)
+        hafarm_parms = self.get_job_parms_from_detail_view()
+        picture_parm = hafarm_parms[u'parms'][u'output_picture']
+        picture_info = utilities.padding(picture_parm, _frame=task_id)
+        print picture_info
 
-        # Get image info, it might not be there though:            
-        picture = self.job_detail_view.model.get_value("OUTPUT_PICTURE")
-        if picture:
-            # We want a single specific frame, not a whole sequence,
-            # this is what padding(filename, None, frame) is doing:
-            picture = utilities.padding(picture[0], None, task_id)
-            # Note: convert_* is inside config as it allows us to customize
-            # platform specific prefixes in coherent way, otherwise it should
-            # be probably placed in utilities module: 
-            viewer  = self.config.convert_platform_path(self.config['image_viewer'])
-            os.system(viewer + " " + picture[0])
-        else:
-            print "No output-image information found."
+        if not os.path.isfile(picture_info[0]):
+            return
+
+        viewer = self.config.select_optional_executable("image_viewer")
+
+        if not viewer:
+            return
+
+        import subprocess
+        command = [viewer, picture_info[0]]
+        subprocess.Popen(command, shell=False)
 
 
     def update_std_views(self, job_id, task_id, tab_index):
@@ -317,10 +319,9 @@ class HarmMainWindowCallbacks():
         job_id_index  = self.history_view.model.get_key_index("JobID")
         job_id        = self.history_view.model._data[index.row()][job_id_index]
 
-        import slurm
         from ordereddict import OrderedDict
 
-        data, header = slurm.get_accounted_job_details(job_id)
+        data, header = backend.get_accounted_job_details(job_id)
 
         if data:
             _data = []
@@ -351,7 +352,7 @@ class HarmMainWindowCallbacks():
         # text += utilities.render_basic_task_info(self.job_detail_view.model._tasks)
         # FIXME: read_rtime() is very slow:
         #text += utilities.read_rtime(job_id)
-        text   = slurm.render_job_stats_to_text(job_id)
+        text   = backend.render_job_stats_to_text(job_id)
         self.job_detail_basic_view.setPlainText(str(text))
 
     def set_job_detail_view_filter(self, text):
