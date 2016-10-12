@@ -130,7 +130,7 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.history_length.setMaximumWidth(50)
         self.history_length.setValidator(validator)
         # TODO: Config class:
-        self.history_length.setText("150")
+        self.history_length.setText("1500")
         
         # Job filter line edit (for filtering by columns' entry):
         self.jobs_filter_line = QLineEdit()
