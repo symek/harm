@@ -9,6 +9,12 @@ from constants     import *
 import config
 
 
+class Severity(object):
+    low  = 0
+    mid  = 1
+    high = 2
+
+
 class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
     def __init__(self, _config, app, splash,  *args):
         QWidget.__init__(self, *args)
@@ -38,6 +44,11 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
     def splashMessage(self, text):             
         self.splash.showMessage(text, Qt.AlignBottom)
         self.app.processEvents()
+
+    def message(self, text, severity=Severity.low):
+        view  = self.context.views['job_detail_basic_view']
+        view.setPlainText(text)
+
 
 def main():
 
