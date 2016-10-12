@@ -19,6 +19,7 @@ SLURM_NODES_DETAILS      = 'scontrol -o show nodes <NODES/>'
 # Slurm specific identities 
 JOB_ID_KEY               = 'ARRAY_JOB_ID'
 TASK_ID_KEY              = "JOBID"
+TASK_NUMBER              = "ARRAY_TASK_ID"
 MACHINE                  = "EXEC_HOST"
 
 # TODO: Remove and import hafarm utils upon merge.

@@ -188,9 +188,7 @@ class TasksContextMenu(QMenu, ContextMenuBase):
                           'callback_cancel'
                           "",
                           'callback_show_sequence',
-                          'callback_show_in_folder',
-                          'callback_clear_error',
-                          "",]
+                          'callback_show_in_folder']
         self.context = context
         self.bind_actions(self.build_action_strings(self.item_list))
         self.execute(position)
@@ -239,27 +237,70 @@ class TasksContextMenu(QMenu, ContextMenuBase):
 
 
     def callback_show_sequence(self):
-        # Get tasks:
-        ids = self.get_item_id()
-        ids = ids.split()[0]
-        config  = self.context.config
-        model   = self.context.views['job_detail_view'].model
-        picture = model.get_value('OUTPUT_PICTURE')
-        if picture:
-            picture = utilities.padding(picture[0], 'shell')[0]
-            viewer  = config.convert_platform_path(config['image_viewer'])
-            os.system(viewer + " " + picture)
+        import subprocess
+        hafarm_parms = self.context.GUI.get_job_parms_from_detail_view()
+        picture_parm = hafarm_parms[u'parms'][u'output_picture']
+        picture_info = utilities.padding(picture_parm, format="shell")
+        picture_path = picture_info[0]
+
+        # self.config['image_viewer'] is a list of a number of viewers
+        # [('rv', ""), ...], second tuple element is optional path.
+        # If None, it is to be found in PATH, 
+
+        viewer = None
+        config = self.context.config
+        for candidate in config['image_viewer']:
+            exec_, path = candidate
+            if not path:
+                exec_ = utilities.which(exec_)
+                if exec_:
+                    viewer = exec_
+                    print viewer
+                    break 
+            else:
+                viewer = config.convert_platform_path(path)
+                if not os.path.isfile(viewer):
+                    viewer = None
+
+        if not viewer:
+            self.context.GUI.message("Can't find viewer app. Rez-env rv, djv, houdini, maya or Nuke.")
+            return
+
+        command = [viewer, picture_path]
+        subprocess.Popen(command, shell=False)
+
 
     def callback_show_in_folder(self):
-        # Get tasks:
-        ids = self.get_item_id()
-        ids = ids.split()[0]
-        config  = self.context.config
-        model   = self.context.views['job_detail_view'].model
-        picture = model.get_value('OUTPUT_PICTURE')
-        if picture:
-            folder, file  = os.path.split(picture[0])
-            folder        = self.context.config.convert_platform_path(folder)
-            file_manger   = config['file_manager']
-            # FIXME: This is system specific
-            os.system("%s %s" % (file_manger, folder))
+        import subprocess
+        task_id = self.get_selected_items(key=backend.TASK_NUMBER)[-1]
+        hafarm_parms = self.context.GUI.get_job_parms_from_detail_view()
+        picture_parm = hafarm_parms[u'parms'][u'output_picture']
+        picture_info = utilities.padding(picture_parm, _frame=task_id)
+        picture_path = picture_info[0]
+
+        # self.config['file_manager'] is a list of a number of viewers
+        # [('nautilius', ""), ...], second tuple element is optional path.
+        # If None, it is to be found in PATH, 
+
+        manager = None
+        config = self.context.config
+        for candidate in config['file_manager']:
+            exec_, path = candidate
+            if not path:
+                exec_ = utilities.which(exec_)
+                if exec_:
+                    manager = exec_
+                    break 
+            else:
+                manager = config.convert_platform_path(path)
+                if not os.path.isfile(viewer):
+                    manager = None
+
+        if not manager:
+            self.context.GUI.message("Can't find  file manager.")
+            return
+
+        command = [manager, picture_path]
+        subprocess.Popen(command, shell=False)
+
+
