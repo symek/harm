@@ -250,6 +250,10 @@ class TasksContextMenu(QMenu, ContextMenuBase):
             self.context.GUI.message("Can't find viewer app. Rez-env rv, djv, houdini, maya or Nuke.")
             return
 
+        # Hard coded fix for rv :(
+        if viewer.endswith("rv"):
+            picture_path = picture_path.replace("*", "#")
+
         command = [viewer, picture_path]
         subprocess.Popen(command, shell=False)
 
