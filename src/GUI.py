@@ -314,14 +314,23 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
 
     def setupImageTab(self):
 
-        # Image View:
-        self.image_view   = QtGui.QLabel()
-        #self.history_view = views.JobsTreeHistoryView(context)
-        self.image_tab   = QtGui.QWidget()
+        # Create tab and add it to right side.
+        self.image_tab      = QtGui.QWidget()
         self.right_tab_widget.addTab(self.image_tab, "Image")
+        # Create splitter and add it to a tab
+        image_tab_splitter  = QtGui.QSplitter(self.image_tab)
+        image_tab_splitter.setOrientation(Qt.Vertical)
+        # Layout
         image_tab_vbox = QtGui.QVBoxLayout(self.image_tab)
-        image_tab_vbox.addWidget(self.image_view)
-        
+        image_tab_vbox.addWidget(image_tab_splitter)
+        # Image View create and add to splitter.
+        self.image_view   = QtGui.QLabel()
+        image_tab_splitter.addWidget(self.image_view)
+
+        # Image detail View adn add to splitter.
+        self.image_detail_view = views.ImageDetailView(context)
+        image_tab_splitter.addWidget(self.image_detail_view)
+
         self.image_view.setBackgroundRole(QtGui.QPalette.Base)
         self.image_view.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
         # self.image_view.setScaledContents(True)

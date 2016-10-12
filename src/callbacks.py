@@ -143,8 +143,15 @@ class HarmMainWindowCallbacks():
 
         if not os.path.isfile(picture_info[0]):
             return
+
+        self.load_render_preview(picture_info[0])
+        self.image_detail_view.update_model(picture_info[0])
     
-        pixels, w, h = utilities.get_rawpixels_from_file(picture_info[0])
+
+    def load_render_preview(self, filename):
+        """ Using OIIO load preview of a rendered frame.
+        """
+        pixels, w, h = utilities.get_rawpixels_from_file(filename)
 
         if not pixels:
             return
@@ -160,7 +167,8 @@ class HarmMainWindowCallbacks():
         scaled = pixmap.scaledToWidth(size.width())
         self.image_view.setPixmap(scaled)
         self.image_view.adjustSize()
-        
+
+
     def get_job_parms_from_detail_view(self):
         """ Detail View holds tasks specific informatation.
             In case of Hafarm sent job, every execution command file *.job

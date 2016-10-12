@@ -77,7 +77,7 @@ class HarmTableModel():
         elif isfloat(value):
             return float(value)
         elif not isinstance(value, str):
-            return None 
+            return str(value) 
         return value
 
     def get_key_index(self, key):
@@ -506,6 +506,72 @@ class JobDetailModel(QAbstractTableModel, HarmTableModel):
             self._dict = dict_
             for item in header:
                 self._head[header.index(item)] = item
+       
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        '''Headers builder. Note crude tokens replacement.'''
+        # Replaces columns/rows names view custom tokens;
+        def header_replace(name):
+            if name in tokens.header.keys():
+                name = tokens.header[name]
+            return name
+        # Nothing to do here:
+        if role != Qt.DisplayRole:
+            return QVariant()
+        # Horizontal headers:
+        if orientation == Qt.Horizontal and len(self._data):
+            headers = ("Variable", "Value")
+            return QVariant(headers[section])
+            #return QVariant(header_replace(self._head[section]))
+        # Vertical headers:
+        if orientation == Qt.Vertical and len(self._data):
+            if section in self._head:
+                return QVariant(section)
+                #return QVariant(header_replace(self._head[section]))
+        return QVariant()
+
+    def columnCount(self, parent):
+        if len(self._data):
+            return len(self._data[0])
+        return 0
+
+
+class ImageDetailModel(QAbstractTableModel, HarmTableModel):
+    def __init__(self, parent=None, *args):
+        super(self.__class__, self).__init__(parent)
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+        self._data = []
+        self._tree = None
+       
+    def update(self, filename):
+
+        self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        self._data = []
+        self._dict = OrderedDict()
+        self._head = OrderedDict()
+
+        data = utilities.get_stats_from_image(filename)
+        header = []
+
+        for item in data:
+            assert(isinstance(item, list))
+            assert(len(item) == 2)
+            key, value = item
+            header.append(key)
+
+        for item in header:
+            self._head[header.index(item)] = item
+            
+        self._data = data
+        self.emit(SIGNAL("layoutChanged()"))
+
+
+    def data_hooks(self, index, value):
+        if isinstance(value, list) or isinstance(value, tuple):
+            return ", ".join([str(v) for v in value])
+        else:
+            return value
        
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):

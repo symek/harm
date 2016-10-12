@@ -53,6 +53,7 @@ class ViewBase():
         self.setAlternatingRowColors(1)
         self.setDragDropMode(4)
         self.horizontalHeader().setMovable(True)
+        self.verticalHeader().setVisible(False)
         
     def update_model(self, *arg):
         '''This method is called by callback whenever model should be updated with
@@ -358,6 +359,42 @@ class JobDetailView(QTableView, ViewBase):
     def update_model(self, jobid, taskid):
         self.model.reset()
         self.model.update(jobid, taskid, 'djob_info')
+        self.resizeRowsToContents()
+        self.resizeColumnsToContents()
+
+
+class ImageDetailView(QTableView, ViewBase):
+    def __init__(self, context):
+        super(self.__class__, self).__init__()
+        self.context = context
+        self.context.views['image_detail_view'] = self
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openContextMenu)
+        self.configure()
+        self.setAlternatingRowColors(0)
+
+        # Models:
+        self.model = models.ImageDetailModel()
+        self.proxy_model = QSortFilterProxyModel()
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setDynamicSortFilter(True)
+        self.proxy_model.setFilterCaseSensitivity(0)
+        self.context.models['image_detail_model'] = self.model
+        self.context.models['image_detail_proxy_model'] = self.proxy_model
+        self.setModel(self.proxy_model)
+
+        # Clean:
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+        self.horizontalHeader().setResizeMode(3)
+
+    def openContextMenu(self, position): pass
+        #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
+
+
+    def update_model(self, filename):
+        self.model.reset()
+        self.model.update(filename)
         self.resizeRowsToContents()
         self.resizeColumnsToContents()
 
