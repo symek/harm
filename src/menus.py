@@ -241,26 +241,10 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         hafarm_parms = self.context.GUI.get_job_parms_from_detail_view()
         picture_parm = hafarm_parms[u'parms'][u'output_picture']
         picture_info = utilities.padding(picture_parm, format="shell")
-        picture_path = picture_info[0]
+        picture_path = picture_info[0] 
 
-        # self.config['image_viewer'] is a list of a number of viewers
-        # [('rv', ""), ...], second tuple element is optional path.
-        # If None, it is to be found in PATH, 
-
-        viewer = None
         config = self.context.config
-        for candidate in config['image_viewer']:
-            exec_, path = candidate
-            if not path:
-                exec_ = utilities.which(exec_)
-                if exec_:
-                    viewer = exec_
-                    print viewer
-                    break 
-            else:
-                viewer = config.convert_platform_path(path)
-                if not os.path.isfile(viewer):
-                    viewer = None
+        viewer = config.select_optional_executable('image_viewer')
 
         if not viewer:
             self.context.GUI.message("Can't find viewer app. Rez-env rv, djv, houdini, maya or Nuke.")
@@ -278,23 +262,8 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         picture_info = utilities.padding(picture_parm, _frame=task_id)
         picture_path = picture_info[0]
 
-        # self.config['file_manager'] is a list of a number of viewers
-        # [('nautilius', ""), ...], second tuple element is optional path.
-        # If None, it is to be found in PATH, 
-
-        manager = None
-        config = self.context.config
-        for candidate in config['file_manager']:
-            exec_, path = candidate
-            if not path:
-                exec_ = utilities.which(exec_)
-                if exec_:
-                    manager = exec_
-                    break 
-            else:
-                manager = config.convert_platform_path(path)
-                if not os.path.isfile(viewer):
-                    manager = None
+        config  = self.context.config
+        manager = config.select_optional_executable('file_manager') 
 
         if not manager:
             self.context.GUI.message("Can't find  file manager.")

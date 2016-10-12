@@ -14,6 +14,8 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
+import utilities
+
 
 class Config(dict):
     def __init__(self, _dict={}):
@@ -158,6 +160,28 @@ class Config(dict):
     def get_icon_path(self, file):
         '''Shorcut to return icons path for a provided name.'''
         return self.get_harm_path(file, 'HARM_ICON')
+
+    def select_optional_executable(self, field):
+        """ We try to choose amount avaible tools specified
+            optianally in a class like image_viewer or file_manager.
+        """
+        # self.config['image_viewer'] is a list of a number of viewers
+        # [('rv', ""), ...], second tuple element is optional path.
+        # If None, it is to be found in PATH,
+        
+        for candidate in self[field]:
+            assert(len(candidate) == 2)
+            exec_, path = candidate
+            if not path:
+                exec_ = utilities.which(exec_)
+                if exec_:
+                    return exec_
+            else:
+                path = self.convert_platform_path(path)
+                if os.path.isfile(path):
+                    return path
+        return None
+
         
        
            
