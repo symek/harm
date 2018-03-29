@@ -25,6 +25,8 @@ class HarmTableModel():
         DATA HOOKS which probably should be removed.
 
     """
+    editable = False
+    changedItems = []
     def __init__(self, parent=None):
         self.sge_view = parent
         self._tree = None
@@ -34,7 +36,17 @@ class HarmTableModel():
 
     def flags(self, index):
         flag = super(self.__class__, self).flags(index)
-        return flag | Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+        if self.editable:
+            return flag | Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+        else:
+            return flag | Qt.ItemIsEnabled | Qt.ItemIsSelectable 
+
+
+    def setData(self, index, value, role):
+        column = list(self._data[index.row()])
+        column[index.column()] = str(value.toString())
+        self._data[index.row()] = column
+        return True
 
     def rowCount(self, parent):
         return len(self._data)
@@ -539,6 +551,7 @@ class JobDetailModel(QAbstractTableModel, HarmTableModel):
         if len(self._data):
             return len(self._data[0])
         return 0
+
 
 
 class ImageDetailModel(QAbstractTableModel, HarmTableModel):

@@ -95,7 +95,10 @@ class JobsContextMenu(QMenu, ContextMenuBase):
                           'callback_unhold',
                           'callback_reschedule',
                           "",
-                          'callback_cancel']
+                          "",
+                          'callback_edit',
+                          "",
+                          'callback_cancel',]
 
         self.bind_actions(self.build_action_strings(self.item_list))
         self.execute(position)
@@ -142,6 +145,15 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
         result = backend.cancel_job(jobs)
         self.context.GUI.message("\n".join(result))
+
+    def callback_edit(self):
+        """ Edit jobs.
+        """
+        from popups import JobEditWindow
+        jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
+        if jobs:
+            self.window = JobEditWindow(jobs[0])
+            self.window.show()
 
 
     def callback_copy_to_nuke(self):

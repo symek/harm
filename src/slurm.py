@@ -14,6 +14,7 @@ SLURM_JOB_HISTORY_DETAIL = 'sacct -j <JOBID/> -o "All" -P'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
 SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
 SLURM_NODES_DETAILS      = 'scontrol -o show nodes <NODES/>'
+SLURM_UPDATE_JOB         = "scontrol update job=<JOBID/> "
 
 
 # Slurm specific identities 
@@ -408,7 +409,15 @@ def reschedule_job(ids):
     assert(isinstance(ids, list))
     command = 'scontrol requeue %s' % ",".join(ids)
     result  = get_std_output(command)
-    return result   
+    return result
+
+def reschedulehold_job(ids):
+    """ Reschedule jobs with ids. 'ids' is a list of jobs' id.
+    """
+    assert(isinstance(ids, list))
+    command = 'scontrol requeuehold %s' % ",".join(ids)
+    result  = get_std_output(command)
+    return result     
 
 def suspend_job(ids):
     """ Suspend jobs with ids. 'ids' is a list of jobs' id.
