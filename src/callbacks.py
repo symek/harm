@@ -86,6 +86,7 @@ class HarmMainWindowCallbacks():
         machine_stats = self.expand_tasks_with_machine_stats.isChecked()
         self.tasks_view.update_model(job_id, machine_stats)
         self.job_detail_basic_view_update(job_id)
+        self.job_detail_view.update_model(job_id, None)
 
     
     def tasks_view_clicked(self, index):
