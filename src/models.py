@@ -487,8 +487,12 @@ class JobDetailModel(QAbstractTableModel, HarmTableModel):
 
         from operator import itemgetter
         import subprocess
-        command = constants.SLURM_JOB_DETAILS.replace("<JOBID/>", jobid)
-        command = command.replace("<TASKID/>", taskid)
+        if taskid:
+            command = constants.SLURM_TASK_DETAILS.replace("<JOBID/>", jobid)
+            command = command.replace("<TASKID/>", taskid)
+        else:
+            command = constants.SLURM_JOB_DETAILS.replace("<JOBID/>", jobid)
+
         # All dirty data. We need to duplicate it here,
         # to keep things clean down the stream.
         err = None
