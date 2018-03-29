@@ -136,6 +136,7 @@ class HarmTableModel():
         if len(time) == 2 and not strip_date:
             date, time = time
             return " ".join((time, date))
+        # return time
         return time[-1]
 
 
@@ -553,6 +554,9 @@ class ImageDetailModel(QAbstractTableModel, HarmTableModel):
 
         data = utilities.get_stats_from_image(filename)
         header = []
+
+        if not data:
+            return
 
         for item in data:
             assert(isinstance(item, list))
