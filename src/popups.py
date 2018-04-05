@@ -23,28 +23,24 @@ except ImportError:
 
 class EditableProperties(dict):
     def __init__(self): 
-        self['ArrayTaskThrottle'] = ('0',)
         self['Comment']     = ('',)
-        self['Deadline']    = ('',)
+        self['ArrayTaskThrottle'] = ('0',)
         self['Dependency']  = ('',)
-        self['ExcNodeList'] = ('',)
         self['ReqNodeList'] = ('',)
-        self['Features']    = ('',)
+        self['ExcNodeList'] = ('',)
+        self['Features']    = ('grafika', 'renders')
         self['MinMemoryNode']  = ('14G',)
         self['MinTmpDiskNode'] = ('32G',)
-        self['NumNodes']       = ('',)
-        self['NumTasks']       = ('50',)
         self['Partition']      = ('3d', "cuda", "nuke")
         self['Priority']       = ('0',)
         self['ReservationName']= ('',)
         self['StartTime']      = ('',)
         self['TimeLimit']      = ('UNLIMITED',)
-        self['OverSubscribe']  = ('yes', 'no', 'exclusive', 'force')
 
     def update_from_task(self, taskdict):
         for key in self.keys():
             if key in taskdict:
-                self[key] = (taskdict[key],)
+                self[key] = self[key] + (taskdict[key],)
 
     def to_list(self):
         data = []
@@ -70,7 +66,7 @@ class JobEditModel(QAbstractTableModel, models.HarmTableModel):
         self._data[index.row()] = column
         header = self._head[index.row()]
         self.changedItems[header] = str(value.toString())
-        print self.changedItems
+        print "Property changed: %s" % str(self.changedItems)
         return True
 
        
@@ -117,13 +113,12 @@ class JobEditModel(QAbstractTableModel, models.HarmTableModel):
         if not out or err:
             return
         data, header, dict_ = parse_slurm_output(out)
-        properties = EditableProperties()
-        properties.update_from_task(dict_)
-        self._data = properties.to_list()
-        self._dict = properties
-        for item in properties.keys():
-            # if item in properties.keys():
-            self._head[properties.keys().index(item)] = item
+        self.properties = EditableProperties()
+        self.properties.update_from_task(dict_)
+        self._data = self.properties.to_list()
+        self._dict = self.properties
+        for item in self.properties.keys():
+            self._head[self.properties.keys().index(item)] = item
        
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
@@ -152,6 +147,8 @@ class JobEditModel(QAbstractTableModel, models.HarmTableModel):
         if len(self._data):
             return len(self._data[0])
         return 0
+    def rowCount(self, parent):
+        return len(self._data)
 
 
 class JobEditView(QTableView):
@@ -169,44 +166,60 @@ class JobEditView(QTableView):
 
 
 class JobEditWindow(QWidget):
-    def __init__(self, jobid):
+    def update_model(self, text):
+        print "Hello world. %s" % str(text)
+
+    def __init__(self, job_ids):
         QWidget.__init__(self)
         from models import JobDetailModel
-        self.setGeometry(0,0, 600,750)
-        self.setWindowTitle("Edit Job details")
-        self.jobid = jobid
+        self.setGeometry(0,0, 340,550)
+        # We may edit also selected tasks...
+        assert(isinstance(job_ids, tuple) or isinstance(job_ids, list))
+        self.job_ids_list = job_ids
+        names = ",".join(self.job_ids_list)
+        self.setWindowTitle("Warning: you are editing job: %s" % names)
         self.model = JobEditModel()
-        self.model.update(jobid, None)
+        self.model.update(self.job_ids_list[0], None)
         self.model.editable = True
 
         self.layout = QVBoxLayout(self)
         self.job_edit_view = JobEditView(self.model)
-        self.layout.addWidget(self.job_edit_view)
 
+        # TODO update model from combo widget
+        # for row in range(self.model.rowCount(None)):
+        #     combo = QComboBox()
+        #     combo.currentIndexChanged[str].connect(self.update_model)
+        #     prop_name = self.model._data[row][0]
+        #     combo.addItems(list(self.model.properties[prop_name]))
+        #     index = self.model.index(row, 1)
+        #     self.job_edit_view.setIndexWidget(index, combo)
+
+        self.layout.addWidget(self.job_edit_view)
         self.button = QPushButton('Reschedule', self)
         self.button.clicked.connect(self.reschedule)
         self.layout.addWidget(self.button)
 
     def reschedule(self):
         import subprocess
-        command = backend.SLURM_UPDATE_JOB.replace("<JOBID/>", str(self.jobid))
-        for key, value in self.model.changedItems.iteritems():
-            command += " %s=%s" % (key, value) 
-        print "Rescheduling job: %s" % self.jobid
-        result = backend.reschedulehold_job([self.jobid])
-        if result:
-            print result
-        out, err =subprocess.Popen(command, shell=True, \
-        stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
-        if out: 
-            print out
-        if err: 
-            print err
-        else:
-            result = backend.unhold_job([self.jobid])
+        for jobid in self.job_ids_list:
+            command = backend.SLURM_UPDATE_JOB.replace("<JOBID/>", str(jobid))
+            for key, value in self.model.changedItems.iteritems():
+                command += " %s=%s" % (key, value) 
+            print "Rescheduling job: %s" % jobid
+            result = backend.reschedulehold_job([jobid])
+            if result:
+                print result
+            out, err =subprocess.Popen(command, shell=True, \
+            stderr=subprocess.PIPE, stdout=subprocess.PIPE).communicate()
+            if out: 
+                print out
+            if err: 
+                print err
+            else:
+                result = backend.unhold_job([jobid])
 
-        if result:
-            print result
+            if result:
+                print result
 
         self.close()
 
