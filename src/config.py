@@ -55,7 +55,7 @@ class Config(dict):
         self['HarmMainWindow'] = {'timer':{}}
         self['HarmMainWindow']['timer']['setInterval'] = 1000*120
 
-        self['image_viewer'] = [('mplay', ""), ('rv', ""),  ("iv", ""), ("djv_view", ""), ('fcheck', "")]
+        self['image_viewer'] = [('mplay', ""), ('rv', ""), ("djv_view", ""), ('fcheck', "")]
         self['file_manager'] = [('nautilus', "")]
 
 

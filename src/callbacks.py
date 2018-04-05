@@ -195,7 +195,7 @@ class HarmMainWindowCallbacks():
     def tasks_view_doubleClicked(self, index):
         """ Double clicking on an item in task view starts viewer for now.
         """
-
+        import subprocess
         s_index       = self.tasks_view.proxy_model.mapToSource(index)
         job_id_index  = self.tasks_view.model.get_key_index(backend.TASK_ID_KEY)
         job_id        = self.tasks_view.model._data[s_index.row()][job_id_index]
@@ -208,6 +208,7 @@ class HarmMainWindowCallbacks():
         picture_path = picture_info[0]
 
         if not os.path.isfile(picture_path):
+            self.context.GUI.message("Can't find %s" % picture_path)
             return
 
         viewer = self.config.select_optional_executable("image_viewer")
