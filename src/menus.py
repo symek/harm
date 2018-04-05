@@ -93,10 +93,12 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         items = [x for x in dir(self) if x.startswith('callback_')]
         self.item_list = ['callback_hold',
                           'callback_unhold',
+                          "",
                           'callback_reschedule',
                           "",
-                          "",
                           'callback_edit',
+                          "",
+                          'callback_show_sequence',
                           "",
                           'callback_cancel',]
 
@@ -152,7 +154,7 @@ class JobsContextMenu(QMenu, ContextMenuBase):
         from popups import JobEditWindow
         jobs = self.get_selected_items(key=backend.JOB_ID_KEY)
         if jobs:
-            self.window = JobEditWindow(jobs[0])
+            self.window = JobEditWindow(jobs)
             self.window.show()
 
 
@@ -181,6 +183,32 @@ class JobsContextMenu(QMenu, ContextMenuBase):
                    nuke_paste_in += "\n"
         clipboard.setText(nuke_paste_in)
 
+    def callback_show_sequence(self):
+        import subprocess
+        hafarm_parms = self.context.GUI.get_job_parms_from_detail_view()
+        picture_parm = hafarm_parms[u'parms'][u'output_picture']
+        picture_info = utilities.padding(picture_parm, format="shell")
+        picture_path = picture_info[0] 
+
+        config = self.context.config
+        viewer = config.select_optional_executable('image_viewer')
+
+        if viewer:
+            # Hard coded fix for rv :(
+            if viewer.endswith("rv"):
+                picture_path = picture_path.replace("*", "#")    
+            command = [viewer, picture_path]
+            subprocess.Popen(command, shell=False)
+            return
+        else: 
+            self.context.GUI.message("Can't find viewer app in PATH. Trying RV in rez subshell...")
+
+        package = ['rv']
+        command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path.replace("*", "#"))
+        pid = utilities.run_rez_shell(command, package)
+        if pid:
+            return
+
 
 
 
@@ -196,11 +224,12 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         self.item_list = ['callback_hold',
                           'callback_unhold',
                           'callback_reschedule',
-                          "",
-                          'callback_cancel'
+                          'callback_edit',
                           "",
                           'callback_show_sequence',
-                          'callback_show_in_folder']
+                          'callback_show_in_folder',
+                          "",
+                          'callback_cancel']
         self.context = context
         self.bind_actions(self.build_action_strings(self.item_list))
         self.execute(position)
@@ -240,6 +269,15 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         result = backend.reschedule_job(jobs)
         self.context.GUI.message("\n".join(result))
 
+    def callback_edit(self):
+        """ Edit jobs.
+        """
+        from popups import JobEditWindow
+        jobs = self.get_selected_items(key=backend.TASK_ID_KEY)
+        if jobs:
+            self.window = JobEditWindow(jobs)
+            self.window.show()
+
     def callback_cancel(self):
         """ Cancel jobs.
         """
@@ -258,16 +296,22 @@ class TasksContextMenu(QMenu, ContextMenuBase):
         config = self.context.config
         viewer = config.select_optional_executable('image_viewer')
 
-        if not viewer:
-            self.context.GUI.message("Can't find viewer app. Rez-env rv, djv, houdini, maya or Nuke.")
+        if viewer:
+            # Hard coded fix for rv :(
+            if viewer.endswith("rv"):
+                picture_path = picture_path.replace("*", "#")    
+            command = [viewer, picture_path]
+            subprocess.Popen(command, shell=False)
+            return
+        else: 
+            self.context.GUI.message("Can't find viewer app in PATH. Trying RV in rez subshell...")
+
+        package = ['rv']
+        command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path.replace("*", "#"))
+        pid = utilities.run_rez_shell(command, package)
+        if pid:
             return
 
-        # Hard coded fix for rv :(
-        if viewer.endswith("rv"):
-            picture_path = picture_path.replace("*", "#")
-
-        command = [viewer, picture_path]
-        subprocess.Popen(command, shell=False)
 
 
     def callback_show_in_folder(self):
@@ -287,5 +331,6 @@ class TasksContextMenu(QMenu, ContextMenuBase):
 
         command = [manager, picture_path]
         subprocess.Popen(command, shell=False)
+
 
 

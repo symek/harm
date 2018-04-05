@@ -1,5 +1,50 @@
-import os
+import os, sys
 from ordereddict import OrderedDict
+
+REZ_FOUND = False
+
+if not os.getenv("REZ_CONFIG_FILE", None):
+    try:
+        import rez 
+        REZ_FOUND = True
+    except ImportError, e:
+       pass
+else:
+    from glob import glob
+    rez_path = os.environ['REZ_CONFIG_FILE']
+    rez_path = os.path.dirname(rez_path)
+    rez_candidate = os.path.join(rez_path, "lib64/python2.7/site-packages/rez-*.egg")
+    rez_candidate = glob(rez_candidate)
+    if rez_candidate:
+        sys.path.append(rez_candidate[0])
+        import rez 
+        REZ_FOUND = True
+
+def run_rez_shell(command, rez_pkg, weight=False):
+        """Runs provided command inside rez-resolved shell.
+
+            Args: 
+                command (str): custom command
+            Returns:
+                pid: Process object of subshell.
+
+            Note: pid runs in separate process and needs to be waited with wait()
+                command outside this function, if commad takes time.
+        """
+        if not REZ_FOUND:
+            print "Can't execute command in rez configured subshell." 
+            print "No rez package found! (does $REZ_CONFIG_FILE exist?) "
+            return False
+
+        from rez.resolved_context import ResolvedContext
+
+        if not command:
+            return self.EmtyProcess()
+
+        context = ResolvedContext(rez_pkg)
+        rez_pid = context.execute_command(command)  
+
+        return rez_pid 
 
 # FIXME: TO BE REMOVED!
 def findIcons(path=None):

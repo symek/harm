@@ -205,20 +205,24 @@ class HarmMainWindowCallbacks():
         hafarm_parms = self.get_job_parms_from_detail_view()
         picture_parm = hafarm_parms[u'parms'][u'output_picture']
         picture_info = utilities.padding(picture_parm, _frame=task_id)
-        print picture_info
+        picture_path = picture_info[0]
 
-        if not os.path.isfile(picture_info[0]):
+        if not os.path.isfile(picture_path):
             return
 
         viewer = self.config.select_optional_executable("image_viewer")
-
-        if not viewer:
+        if viewer:
+            command = [viewer, picture_path]
+            subprocess.Popen(command, shell=False)
             return
+        else: 
+            self.context.GUI.message("Can't find viewer app in PATH. Trying RV in rez subshell...")
 
-        import subprocess
-        command = [viewer, picture_info[0]]
-        subprocess.Popen(command, shell=False)
-
+        package = ['rv']
+        command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path)
+        pid = utilities.run_rez_shell(command, package)
+        if pid:
+            return
 
     def update_std_views(self, job_id, task_id, tab_index):
         '''Read from disk files logs specified by selected tasks..
