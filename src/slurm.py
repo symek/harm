@@ -230,6 +230,8 @@ def get_nodes_info(node=None, reverse_order=False):
     """ Get details about nodes states from scontrol show node command.
         Terribly unpleasent due to varying keys and syntax.
     """
+    __filters = ['NodeName', 'CPUAlloc', 'RealMemory', 'AllocMem', 'CPUTot',
+                'State', 'TmpDisk', 'Reason', 'FreeMem', 'CPULoad', 'Features']
     def parse_scontrolShowNode_output(output):
             nodes = output.split("\n\n")
             data   = []
@@ -251,6 +253,8 @@ def get_nodes_info(node=None, reverse_order=False):
                 d_   = OrderedDict()
                 for item in items:
                     var = item.split("=")
+                    if var[0] not in __filters:
+                        continue
                     name, var = var[0], item[len(var[0])+1:]
                     if name == 'NodeName':
                         hostname = var
