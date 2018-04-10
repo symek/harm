@@ -7,6 +7,7 @@ from PyQt4         import QtGui
 from GUI           import *
 from constants     import *
 import config
+import server
 
 
 class Severity(object):
@@ -66,13 +67,18 @@ def main():
 
     window = HarmMainWindow(_config, app, splash)
     style_path = _config.get_harm_path('darkorange.stylesheet', "HARM_ICON")
+    # Apply stype sheets:
     with open(style_path) as file:
         window.setStyleSheet(file.read())
     splash.finish(window)
 
+
+    window.server = server.BackendServer()
+    window.server.start()
+
     # Show main window:
     window.show()
     sys.exit(app.exec_())
+    window.server.terminate()
 
 if __name__ == "__main__": main()
-    # Apply stype sheets:

@@ -58,8 +58,9 @@ class MachineView(QTableView, ViewBase):
 
 
 class MachineModel(QAbstractTableModel, models.HarmTableModel):
-    def __init__(self,  parent):
+    def __init__(self,  parent, server=None):
         super(self.__class__, self).__init__(parent)
+        self.server = server
         self._dict = OrderedDict()
         self._head = OrderedDict()
         self._data = []
@@ -77,23 +78,9 @@ class MachineModel(QAbstractTableModel, models.HarmTableModel):
     def update(self, reverse_order=False):
         '''Main function of derived model. Builds _data list from input.
         '''
-
-        # All dirty data. We need to duplicate it here,
-        # to keep things clean down the stream.
         self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        err = None
-
-        self.last_update = time()
-        self._data = []
-        self._dict = OrderedDict()
-        self._head = OrderedDict()
-
-        history, header = backend.get_nodes_info(None)
-       
-        if history:
-            self._data = history
-            self._head = header
-        
+        self._data  = self.window().server.output_dict['nodes']
+        self._head  = self.window().server.output_dict['nodes_header']
         self.emit(SIGNAL("layoutChanged()"))
 
 

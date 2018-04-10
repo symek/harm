@@ -232,6 +232,31 @@ def get_nodes_info(node=None, reverse_order=False):
     """
     __filters = ['NodeName', 'CPUAlloc', 'RealMemory', 'AllocMem', 'CPUTot',
                 'State', 'TmpDisk', 'Reason', 'FreeMem', 'CPULoad', 'Features']
+
+    def parse_scontrolShowNode_output_n(output):
+        items = output.split()
+        machine = []
+        cluster = []
+        header  = {}
+        _headers = []
+        for item in items:
+            if item.startswith("NodeName"):
+                cluster.append(machine)
+                machine = []
+            splitter = item.split("=")
+            if len(splitter) >= 2:
+                key, value = splitter
+                if key not in __filters: 
+                    continue
+                if key not in _headers:
+                    _headers += [key]
+                    header[len(header)] = key
+            else:
+                value = splitter
+            machine.append(value)
+        return cluster, header
+        
+
     def parse_scontrolShowNode_output(output):
             nodes = output.split("\n\n")
             data   = []
@@ -299,11 +324,14 @@ def get_nodes_info(node=None, reverse_order=False):
 
     data, err = get_std_output(SLURM_CLUSTER_LIST)
     if data:
+        _data, header = parse_scontrolShowNode_output_n(data)
+        # print _data
         data, head, _dict = parse_scontrolShowNode_output(data)
         data, head = dict_to_list(_dict)
         header     = OrderedDict()
         for item in head:
             header[head.index(item)] = item
+        # print data
         return data, header
     return  None, None
 
