@@ -39,9 +39,10 @@ class Slurm(BackendCommander):
 
 
 class BackendServer(Process):
-    def __init__(self):
+    def __init__(self, interval=15):
         super(BackendServer, self).__init__()
-        self.manager      = Manager()
+        self.interval = interval
+        self.manager  = Manager()
         self.output_dict  = self.manager.dict()
         self.output_dict['nodes']        = []
         self.output_dict['nodes_header'] = {}
@@ -53,17 +54,20 @@ class BackendServer(Process):
         self.output_dict['running_tasks_header'] = {}
         self.commander = Slurm()
 
-
     def get_output_dict(self):
         return self.output_dict
 
-
-    def run(self):
-        while(True):
+    def update(self, nodes=True, running=True, jobs=True, tasks=True):
+        if nodes:
             data, header = self.commander.get_nodes_info()
             self.output_dict['nodes']= data
             self.output_dict['nodes_header'] = dict(header)
+        if running:
             data, header = self.commander.get_running_tasks_info()
             self.output_dict['running_tasks']        = data
             self.output_dict['running_tasks_header'] = dict(header)
-            time.sleep(15)
+        
+    def run(self):
+        while(True):
+            self.update()
+            time.sleep(self.interval)
