@@ -15,7 +15,7 @@ import tokens, delegates
 import structured, utilities, views
 from constants import *
 
-import machines
+from plugin import PluginType
 
 #Google charts:
 #from pygooglechart import *
@@ -54,7 +54,12 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.setupHistoryTab()
 
         self.splashMessage("Setup Machines Tab...")
-        self.setupMachinesTab()
+        for plugin in self.tab_manager.plugins:
+            self.splashMessage("Setting up %s" % plugin.name)
+            if plugin.type == PluginType.LeftTab:
+                plugin.start(self.left_tab_widget)
+            elif plugin.type == PluginType.RightTab:
+                plugin.start(self.right_tab_widget)
 
         self.splashMessage("Setup Task Detail Tab...")
         self.setupJobDetailTab()
@@ -211,28 +216,6 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         '''Current status of a renderfarm as presented by qhost.'''
 
         self.machine_tab = machines.MachinesTab(self.left_tab_widget)
-        # FIXME: remove 
-        self.machine_view = self.machine_tab.machine_view
-        #Machines (Left Tabs):
-        # self.machine_tab   = QtGui.QWidget()
-        # self.machine_view = views.MachineView(context)
-        # context.views['machine_view'] = self.machine_view
-       
-        # Combo box for job views:
-        # self.machine_view_combo   = QtGui.QComboBox()
-        # self.machine_view_combo.addItems(['List View','Tree View'])
-
-        # self.left_tab_widget.addTab(self.machine_tab, "Machines")
-        # machine_tab_vbox = QtGui.QVBoxLayout(self.machine_tab)
-        # machine_tab_vbox.addWidget(self.machine_view_combo)
-        # machine_tab_vbox.addWidget(self.machine_view)
-
-        # Tree machine view setup:
-        #self.machine_tree_view = SGETreeView2(os.popen(SGE_CLUSTER_LIST))
-        #self.machine_tree_view.setItemDelegate(self.machines_delagate)
-        #machine_tab_vbox.addWidget(self.machine_tree_view)
-        #self.machine_tree_view.setAlternatingRowColors(1)
-        #self.machine_tree_view.hide()
 
     def setupJobDetailTab(self):
         '''Presents details of particular job (selected in either Jobs or Tasks View).

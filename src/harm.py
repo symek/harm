@@ -6,9 +6,11 @@ from PyQt4.QtGui   import QIcon
 from PyQt4         import QtGui
 from GUI           import *
 from constants     import *
+
+from plugin import PluginManager
 import config
 import server
-
+import tabs
 
 class Severity(object):
     low  = 0
@@ -17,6 +19,7 @@ class Severity(object):
 
 
 class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
+    auto_update_views = []
     def __init__(self, _config, app, splash,  *args):
         QWidget.__init__(self, *args)
         # Basics:
@@ -24,11 +27,11 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.setWindowTitle("Human Ark Resource Manager")
         self.setWindowIcon(QIcon("icon.png"))
         self.resize(1200,750)
+        self.tab_manager = PluginManager()
         #self.setMinimumSize(500,650)
         self.app    = app
         self.splash = splash
         self.config = _config
-
         self.setupGUI(init=True)
         self.setupSLOTS()
 
@@ -40,7 +43,6 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.timer.setInterval(interval)
         self.timer.timeout.connect(self.autoRefresh)
         self.timer.start()
-
 
     def splashMessage(self, text):             
         self.splash.showMessage(text, Qt.AlignBottom)

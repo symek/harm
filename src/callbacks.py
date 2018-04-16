@@ -56,9 +56,12 @@ class HarmMainWindowCallbacks():
         length = self.context.GUI.history_length.text()
         self.jobs_view.update_model(int(length))
         self.running_view.update_model(constants.SLURM_RUNNING_JOBS_LIST, 'queue_info')
-        self.machine_view.update_model()
+        # self.machine_view.update_model()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
+        for tab in self.tab_manager.plugins:
+            if tab.autoupdate:
+                tab.update()
         # self.machine_view.resizeRowsToContents()
 
     def autoRefresh(self):

@@ -58,14 +58,19 @@ class BackendServer(Process):
         return self.output_dict
 
     def update(self, nodes=True, running=True, jobs=True, tasks=True):
+        from sys import exit
         if nodes:
-            data, header = self.commander.get_nodes_info()
-            self.output_dict['nodes']= data
-            self.output_dict['nodes_header'] = dict(header)
+            _nodes, nodes_header = self.commander.get_nodes_info()
         if running:
-            data, header = self.commander.get_running_tasks_info()
-            self.output_dict['running_tasks']        = data
-            self.output_dict['running_tasks_header'] = dict(header)
+            tasks, tasks_header = self.commander.get_running_tasks_info()
+        try:
+            self.output_dict['nodes']= _nodes
+            self.output_dict['nodes_header'] = dict(nodes_header)
+            self.output_dict['running_tasks']        = tasks
+            self.output_dict['running_tasks_header'] = dict(tasks_header)
+        except:
+            print "Exiting backend server bye, bye..."
+            exit()
         
     def run(self):
         while(True):

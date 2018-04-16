@@ -11,6 +11,7 @@ import utilities
 # FIXME
 import slurm as backend
 
+
 class MachinesTab(HUI_Tab):
     def __init__(self, parent):
         super(MachinesTab, self).__init__(parent)
