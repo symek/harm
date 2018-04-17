@@ -1,24 +1,23 @@
 #PyQt4:
 from PyQt4.QtGui import QTableView, QSortFilterProxyModel, QItemDelegate
-from PyQt4.QtGui import QWidget, QVBoxLayout
-from PyQt4.QtGui import QBrush, QPen, QColor, QStyle
-from PyQt4.QtCore import Qt, QAbstractTableModel
+from PyQt4.QtGui import QWidget, QVBoxLayout, QApplication
+from PyQt4.QtGui import QBrush, QPen, QColor, QStyle, QLinearGradient
+from PyQt4.QtCore import Qt, QAbstractTableModel, SIGNAL
 # Own
 from views import ViewBase
 from plugin import PluginManager, PluginType
 import models
 import delegates
 import utilities
-# FIXME
-import slurm as backend
 
+from collections import OrderedDict, defaultdict
 
 class MachinesPlugin(PluginManager):
     name = "Machines"
     type = PluginType.LeftTab
     autoupdate = True
     def start(self, parent):
-        self.tab = Machines(parent)
+        self.tab = Tab(parent)
         parent.machine_tab = self.tab
         parent.machine_view = self.tab.machine_view
 
@@ -28,25 +27,25 @@ class MachinesPlugin(PluginManager):
     def register_signals(self):
         return True
 
-class Machines(QWidget):
+class Tab(QWidget):
     def __init__(self, parent):
-        super(Machines, self).__init__(parent)
+        super(Tab, self).__init__(parent)
         parent.addTab(self, "Machines")
         self._vboxlayout = QVBoxLayout(self)
-        self.machine_view = MachineView(self)
+        self.machine_view = View(parent)
         self._vboxlayout.addWidget(self.machine_view)
      
-class MachineView(QTableView, ViewBase):
+class View(QTableView, ViewBase):
     def __init__(self, parent):
         super(self.__class__, self).__init__(parent)
-        
+        # Ugly
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
         self.configure()
         self.setAlternatingRowColors(0)
 
         # Models:
-        self.model = models.MachineModel()
+        self.model = Model()
         self.model.update()
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.model)
@@ -74,9 +73,9 @@ class MachineView(QTableView, ViewBase):
         #self.context_menu = TasksContextMenu(self.context, self.mapToGlobal(position))
 
 
-class MachineModel(QAbstractTableModel, models.HarmTableModel):
-    def __init__(self,  parent, server=None):
-        super(self.__class__, self).__init__(parent)
+class Model(QAbstractTableModel, models.HarmTableModel):
+    def __init__(self,  server=None):
+        super(self.__class__, self).__init__()
         self.server = server
         self._dict = OrderedDict()
         self._head = OrderedDict()
@@ -84,21 +83,24 @@ class MachineModel(QAbstractTableModel, models.HarmTableModel):
         self.BG_BRUSH = self.create_gradient_brush()
 
     def create_gradient_brush(self):
-        horGradient = QtGui.QLinearGradient(0, 0, 100, 0)
-        verGradient = QtGui.QLinearGradient(0, 0, 0, 20)
+        horGradient = QLinearGradient(0, 0, 100, 0)
+        verGradient = QLinearGradient(0, 0, 0, 20)
         gradient = verGradient 
-        gradient.setColorAt(0.0, QtGui.QColor("black"))
-        gradient.setColorAt(1.0, QtGui.QColor("grey"))
-        brush = QtGui.QBrush(gradient)
+        gradient.setColorAt(0.0, QColor("black"))
+        gradient.setColorAt(1.0, QColor("grey"))
+        brush = QBrush(gradient)
         return brush
       
     def update(self, reverse_order=False):
         '''Main function of derived model. Builds _data list from input.
         '''
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        self._data  = self.window().server.output_dict['nodes']
-        self._head  = self.window().server.output_dict['nodes_header']
-        self.emit(SIGNAL("layoutChanged()"))
+        #Ugly
+        window = utilities.get_main_window()
+        if hasattr(window, "server"):
+            self.emit(SIGNAL("layoutAboutToBeChanged()"))
+            self._data  = window.server.output_dict['nodes']
+            self._head  = window.server.output_dict['nodes_header']
+            self.emit(SIGNAL("layoutChanged()"))
 
 
 class MachinesDelegate(QItemDelegate):

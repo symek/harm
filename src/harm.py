@@ -68,15 +68,15 @@ def main():
     app.processEvents()
 
     window = HarmMainWindow(_config, app, splash)
+    window.server = server.BackendServer()
+    window.server.start()
+
     style_path = _config.get_harm_path('darkorange.stylesheet', "HARM_ICON")
     # Apply stype sheets:
     with open(style_path) as file:
         window.setStyleSheet(file.read())
     splash.finish(window)
 
-
-    window.server = server.BackendServer()
-    window.server.start()
 
     # Show main window:
     window.show()

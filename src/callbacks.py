@@ -59,6 +59,7 @@ class HarmMainWindowCallbacks():
         # self.machine_view.update_model()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
+        
         for tab in self.tab_manager.plugins:
             if tab.autoupdate:
                 tab.update()

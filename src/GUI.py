@@ -52,8 +52,8 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.setupRunningTab() 
         self.splashMessage("Setup History Tab...")
         self.setupHistoryTab()
-
         self.splashMessage("Setup Machines Tab...")
+        
         for plugin in self.tab_manager.plugins:
             self.splashMessage("Setting up %s" % plugin.name)
             if plugin.type == PluginType.LeftTab:
@@ -67,8 +67,8 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.setupTaskStdTab()
         self.splashMessage("Setup Image Tab...")
         self.setupImageTab()
-        #self.splashMessage("Setup Statistics Tab...")
-        #self.setupStatisticsTab()
+        # self.splashMessage("Setup Statistics Tab...")
+        # self.setupStatisticsTab()
 
         # Docks? (do we need them here):
         dock_left = QtGui.QDockWidget(self)
