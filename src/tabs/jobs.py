@@ -14,12 +14,14 @@ import utilities
 from collections import OrderedDict, defaultdict
 
 class JobsPlugin(PluginManager):
-    
+
     name = "Jobs"
     type = PluginType.LeftTab
     autoupdate = True
 
     def start(self, parent):
+        """ Entry point to a plugin functionality
+        """
         window = utilities.get_main_window()
         self.tab = Tab(parent)
         parent.jobs_tab = self.tab
@@ -36,17 +38,11 @@ class JobsPlugin(PluginManager):
     def jobs_view_clicked(self, index):
         '''Calls for selecting job on Jobs View.
         '''
-        # First we map selected proxy index to the real one.
         s_index      = self.tab.jobs_view.proxy_model.mapToSource(index)
-        # then we look for our indices of fields in model header.
         job_id_index = self.tab.jobs_view.model.get_key_index("ARRAY_JOB_ID")
         state_index  = self.tab.jobs_view.model.get_key_index("STATE")
-        # with that, we retrieve informations:
         job_id       = self.tab.jobs_view.model._data[s_index.row()][job_id_index]
         state        = self.tab.jobs_view.model._data[s_index.row()][state_index]
-
-        # 
-        # machine_stats = self.expand_tasks_with_machine_stats.isChecked()
         self.tab.tasks_view.update_model(job_id)
         # self.job_detail_basic_view_update(job_id)
         # self.job_detail_view.update_model(job_id, None)
@@ -94,7 +90,7 @@ class View(QTableView, ViewBase):
 
     def openContextMenu(self, position):
         '''Context menu entry.'''
-        self.context_menu = menus.JobsContextMenu(self.context, self.mapToGlobal(position))
+        self.context_menu = ContextMenu(self, self.mapToGlobal(position))
 
 
 class Model(QAbstractTableModel, models.HarmTableModel):
@@ -235,9 +231,9 @@ class MachinesDelegate(QItemDelegate):
 
 
 class ContextMenu(QMenu, ContextMenuBase):
-    def __init__(self, context, position):
+    def __init__(self, parent, position):
         super(self.__class__, self).__init__()
-        self.view    = context.views['jobs_view']
+        self.view    = parent.views['jobs_view']
         self.model   = context.models['jobs_model']
         self.app     = context.app
         self.context = context
