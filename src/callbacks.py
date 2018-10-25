@@ -18,6 +18,8 @@ class HarmMainWindowCallbacks():
         # Update Job View SIGNAL:
         self.connect(self.refreshAction, SIGNAL('triggered()'), 
                      self.refreshAll)
+        self.connect(self.exit_action, SIGNAL('triggered()'), 
+                     self.exitApp)
         # Updates tasks view to focus on selected job
         self.connect(self.jobs_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.jobs_view_clicked)
@@ -64,6 +66,12 @@ class HarmMainWindowCallbacks():
             if tab.autoupdate:
                 tab.update()
         # self.machine_view.resizeRowsToContents()
+
+    def exitApp(self):
+        ''''''
+        window = utilities.get_main_window()
+        window.server.terminate()
+        QtGui.qApp.quit()
 
     def autoRefresh(self):
         if self.auto_refresh_toggle.isChecked():

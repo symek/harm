@@ -1,5 +1,5 @@
 # System:
-import os, sys, time
+import os, sys, time, logging
 
 #PyQt4:
 from PyQt4.QtCore  import *
@@ -97,7 +97,7 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.exit_action = QtGui.QAction(QtGui.QIcon(icon), 'Exit.', self)
         self.exit_action.setShortcut('Ctrl+E')
         self.exit_action.setStatusTip('Exit application.')
-        self.exit_action.triggered.connect(QtGui.qApp.quit)
+        # self.exit_action.triggered.connect(QtGui.qApp.quit)
         self.toolbar.addAction(self.exit_action) 
 
   

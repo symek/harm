@@ -80,6 +80,8 @@ class BackendServer(Process):
             elif time.time() - self.output_dict['timestamp']  > self.interval:
                 self.logger.debug("Tasks outdated, refresing it...")
                 self._update_job_tasks(jobid)
+            else:
+                self.logger.debug("Reusing cached tasks for %s" % jobid)
 
             assert(jobid in self.output_dict['tasks'])
             return self.output_dict['tasks'][jobid]
@@ -135,7 +137,7 @@ class BackendServer(Process):
 
     def terminate(self):
         self.logger.info("Exiting backend server bye, bye...")
-        self.process.terminate()
+        super(BackendServer, self).terminate()
         
     def run(self):
         self.logger.debug("Going into while(True) loop")

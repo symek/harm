@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, sys, time
+import os, sys, time,logging
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import *
 from PyQt4.QtGui   import QIcon
@@ -56,6 +56,9 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
 def main():
 
     # App setup:
+    logging.basicConfig(format='%(asctime)s, %(name)s - %(levelname)s: %(message)s',  
+            datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
+    logger = logging.getLogger('Harm  ')
     app     = QApplication(sys.argv)
     # app.setStyle(QtGui.QStyleFactory.create("Oxygen"))
     _config = config.Config()
@@ -68,8 +71,10 @@ def main():
     app.processEvents()
 
     window = HarmMainWindow(_config, app, splash)
+    logger.info("Starting backend server process...")
     window.server = server.BackendServer()
     window.server.start()
+    logger.info("Done.")
 
     style_path = _config.get_harm_path('darkorange.stylesheet', "HARM_ICON")
     # Apply stype sheets:
@@ -79,8 +84,10 @@ def main():
 
 
     # Show main window:
+    logger.info("Gui starts...")
     window.show()
     sys.exit(app.exec_())
+    logger.info("Ends.")
     window.server.terminate()
 
 if __name__ == "__main__": main()
