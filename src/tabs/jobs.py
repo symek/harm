@@ -117,8 +117,8 @@ class Model(QAbstractTableModel, models.HarmTableModel):
         window = utilities.get_main_window()
         if hasattr(window, "server"):
             self.emit(SIGNAL("layoutAboutToBeChanged()"))
-            self._data  = window.server.get_key('jobs')
-            self._head  = window.server.get_key('jobs_header')
+            self._data  = window.server.get_by_key('jobs')
+            self._head  = window.server.get_by_key('jobs_header')
             self.emit(SIGNAL("layoutChanged()"))
 
 

@@ -58,7 +58,7 @@ class BackendServer(Process):
         self.output_dict['running_tasks_header'] = {}
         self.commander = Slurm()
 
-    def get_key(self, key):
+    def get_by_key(self, key):
         if key in self.output_dict:
             return self.output_dict[key]
         return {}
