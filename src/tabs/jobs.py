@@ -160,20 +160,28 @@ class TaskModel(QAbstractTableModel, models.HarmTableModel):
         import slurm as backend
         if not jobid:
             return
+
+        window = utilities.get_main_window()
+        if hasattr(window, "server"):
+            self.emit(SIGNAL("layoutAboutToBeChanged()"))
+            self._data  = window.server.get_by_key('tasks', jobid=jobid)
+            self._head  = window.server.get_by_key('tasks_header')
+            self.emit(SIGNAL("layoutChanged()"))
+
             
-        self.emit(SIGNAL("layoutAboutToBeChanged()"))
-        self._data = []
-        self._dict = OrderedDict()
-        self._head = OrderedDict()
-        _data, _head = backend.get_job_tasks(jobid)
+        # self.emit(SIGNAL("layoutAboutToBeChanged()"))
+        # self._data = []
+        # self._dict = OrderedDict()
+        # self._head = OrderedDict()
+        # _data, _head = backend.get_job_tasks(jobid)
 
-        if not _data:
-            return
+        # if not _data:
+        #     return
 
-        self._data = _data
-        self._head = _head
+        # self._data = _data
+        # self._head = _head
 
-        self.emit(SIGNAL("layoutChanged()"))
+        # self.emit(SIGNAL("layoutChanged()"))
 
 
 class MachinesDelegate(QItemDelegate):
