@@ -72,19 +72,22 @@ class BackendServer(Process):
         """ Amortized getter. Simple approach (no decorators etc.)
             Single timestamp for now. WIP.
         """
-        # For tasks:
-        if key == 'tasks' and jobid:
+        def get_tasks(jobid):
+            """"""
             if not jobid in self.output_dict['tasks'].keys():
                 self.logger.debug("Fresh tasks query")
                 self._update_job_tasks(jobid)
-            elif time.time() - self.output_dict['timestamp']  > self.interval:
+            elif time.time() - self.output_dict['tasks'][jobid][0]  > self.interval:
                 self.logger.debug("Tasks outdated, refresing it...")
                 self._update_job_tasks(jobid)
             else:
                 self.logger.debug("Reusing cached tasks for %s" % jobid)
 
             assert(jobid in self.output_dict['tasks'])
-            return self.output_dict['tasks'][jobid]
+            return self.output_dict['tasks'][jobid][1]
+
+        if key == 'tasks' and jobid:
+            return get_tasks(jobid)
 
         # Anything else:
         if key in self.output_dict:
@@ -103,7 +106,7 @@ class BackendServer(Process):
 
         self.logger.debug("Updating tasks done for job: %s" % str(jobid))
         _tmp = dict(self.output_dict['tasks'])
-        _tmp[jobid] = _data
+        _tmp[jobid] = (time.time(), _data)
         self.output_dict['tasks'] = dict(_tmp)
 
         # Don't do it twise:
