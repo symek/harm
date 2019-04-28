@@ -193,12 +193,14 @@ class JobsModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
         self._head = OrderedDict()
 
-        pending, header = backend.get_current_jobs(length, reverse_order=True)
-     
+        value = backend.get_current_jobs(length, reverse_order=True)
+        # if value != None:
+        pending, header = value
+
         if pending and header:
             self._data = pending
             self._head = header
-        
+
         self.emit(SIGNAL("layoutChanged()"))
 
 
@@ -395,11 +397,13 @@ class HistoryModel(QAbstractTableModel, HarmTableModel):
         self._dict = OrderedDict()
         self._head = OrderedDict()
 
-        data, header = backend.get_accounted_jobs(user, reverse_order=True)
-       
-        if data:
-            self._data = data
-            self._head = header
+        xdata = backend.get_accounted_jobs(user, reverse_order=True)
+        if xdata:
+            data, header = xdata
+           
+            if data:
+                self._data = data
+                self._head = header
         
         self.emit(SIGNAL("layoutChanged()"))
 
