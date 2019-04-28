@@ -12,7 +12,8 @@ SLURM_JOB_DETAILS      = 'scontrol show job <JOBID/>_<TASKID/>'
 SLURM_JOBS_HISTORY_ALL = 'sacct -u <USER/> -o "JobId,Partition,User,State,JobName,Submit,Start,End,ExitCode" -P'
 SLURM_JOB_HISTORY_DETAIL = 'sacct -j <JOBID/> -o "All" -P'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
-SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
+# SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
+SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PENDING,RUNNING,SUSPENDED,COMPLETED,CANCELLED,FAILED,TIMEOUT,NODE_FAIL,PREEMPTED,BOOT_FAIL,DEADLINE,OUT_OF_MEMORY,COMPLETING,CONFIGURING,RESIZING,REVOKED,SPECIAL_EXIT -r -o "%K %P %u %T %r %S %e %M %B %A"'
 SLURM_NODES_DETAILS      = 'scontrol -o show nodes <NODES/>'
 SLURM_UPDATE_JOB         = "scontrol update job=<JOBID/> "
 
