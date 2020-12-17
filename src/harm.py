@@ -1,16 +1,13 @@
 #!/usr/bin/python
-import os, sys, time,logging
+import os, sys, time
 from PyQt4.QtCore  import *
 from PyQt4.QtGui   import *
 from PyQt4.QtGui   import QIcon
 from PyQt4         import QtGui
 from GUI           import *
 from constants     import *
-
-from plugin import PluginManager
 import config
-import server
-import tabs
+
 
 class Severity(object):
     low  = 0
@@ -19,7 +16,6 @@ class Severity(object):
 
 
 class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
-    auto_update_views = []
     def __init__(self, _config, app, splash,  *args):
         QWidget.__init__(self, *args)
         # Basics:
@@ -27,11 +23,11 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.setWindowTitle("Human Ark Resource Manager")
         self.setWindowIcon(QIcon("icon.png"))
         self.resize(1200,750)
-        self.tab_manager = PluginManager()
         #self.setMinimumSize(500,650)
         self.app    = app
         self.splash = splash
         self.config = _config
+
         self.setupGUI(init=True)
         self.setupSLOTS()
 
@@ -43,6 +39,7 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
         self.timer.setInterval(interval)
         self.timer.timeout.connect(self.autoRefresh)
         self.timer.start()
+
 
     def splashMessage(self, text):             
         self.splash.showMessage(text, Qt.AlignBottom)
@@ -56,9 +53,6 @@ class HarmMainWindow(QMainWindow, HarmMainWindowGUI):
 def main():
 
     # App setup:
-    logging.basicConfig(format='%(asctime)s, %(name)s - %(levelname)s: %(message)s',  
-            datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
-    logger = logging.getLogger('Harm  ')
     app     = QApplication(sys.argv)
     # app.setStyle(QtGui.QStyleFactory.create("Oxygen"))
     _config = config.Config()
@@ -71,23 +65,14 @@ def main():
     app.processEvents()
 
     window = HarmMainWindow(_config, app, splash)
-    logger.info("Starting backend server process...")
-    window.server = server.BackendServer()
-    window.server.start()
-    logger.info("Done.")
-
     style_path = _config.get_harm_path('darkorange.stylesheet', "HARM_ICON")
-    # Apply stype sheets:
     with open(style_path) as file:
         window.setStyleSheet(file.read())
     splash.finish(window)
 
-
     # Show main window:
-    logger.info("Gui starts...")
     window.show()
     sys.exit(app.exec_())
-    logger.info("Ends.")
-    window.server.terminate()
 
 if __name__ == "__main__": main()
+    # Apply stype sheets:

@@ -13,7 +13,7 @@ SLURM_JOBS_LIST_GROUPED  = 'squeue -t PD -o "%F %P %u %T %j %V %e %M %K %A"'
 SLURM_JOBS_LIST          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
 SLURM_TASK_DETAILS        = 'scontrol show job <JOBID/>_<TASKID/>'
 SLURM_JOB_DETAILS        = 'scontrol show job <JOBID/>'
-SLURM_CLUSTER_LIST       = 'scontrol show nodes -o'
+SLURM_CLUSTER_LIST       = 'scontrol show nodes'
 SLURM_RUNNING_JOBS_LIST  = 'squeue -t R -r -o "%A %K %P %B %u %T %j %V %M %w %W %X %z %o"'
  
 EMPTY_SGE_JOB_DETAILS   = 'cat empty_job_details.xml'

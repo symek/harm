@@ -18,8 +18,6 @@ class HarmMainWindowCallbacks():
         # Update Job View SIGNAL:
         self.connect(self.refreshAction, SIGNAL('triggered()'), 
                      self.refreshAll)
-        self.connect(self.exit_action, SIGNAL('triggered()'), 
-                     self.exitApp)
         # Updates tasks view to focus on selected job
         self.connect(self.jobs_view, SIGNAL("clicked(const QModelIndex&)"),  
                      self.jobs_view_clicked)
@@ -58,20 +56,10 @@ class HarmMainWindowCallbacks():
         length = self.context.GUI.history_length.text()
         self.jobs_view.update_model(int(length))
         self.running_view.update_model(constants.SLURM_RUNNING_JOBS_LIST, 'queue_info')
-        # self.machine_view.update_model()
+        self.machine_view.update_model()
         self.jobs_view.resizeRowsToContents()
         self.tasks_view.resizeRowsToContents()
-        
-        for tab in self.tab_manager.plugins:
-            if tab.autoupdate:
-                tab.update()
         # self.machine_view.resizeRowsToContents()
-
-    def exitApp(self):
-        ''''''
-        window = utilities.get_main_window()
-        window.server.terminate()
-        QtGui.qApp.quit()
 
     def autoRefresh(self):
         if self.auto_refresh_toggle.isChecked():
@@ -232,8 +220,12 @@ class HarmMainWindowCallbacks():
             self.context.GUI.message("Can't find viewer app in PATH. Trying RV in rez subshell...")
 
         package = ['rv']
-        command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path)
-        pid = utilities.run_rez_shell(command, package)
+
+        # For an unknow reason rv can't reach to Xserver from subshell although for years it could
+        # command = "export HOME=%s; echo $DISPLAY; rv %s" % (os.environ["HOME"], picture_path)
+        # pid = utilities.run_rez_shell(command, package)
+        command = ["rez-env", "rv", "--", "rv", picture_path]
+        pid = subprocess.Popen(command, shell=False)
         if pid:
             return
 

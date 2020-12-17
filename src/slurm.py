@@ -12,7 +12,8 @@ SLURM_JOB_DETAILS      = 'scontrol show job <JOBID/>_<TASKID/>'
 SLURM_JOBS_HISTORY_ALL = 'sacct -u <USER/> -o "JobId,Partition,User,State,JobName,Submit,Start,End,ExitCode" -P'
 SLURM_JOB_HISTORY_DETAIL = 'sacct -j <JOBID/> -o "All" -P'
 SLURM_CLUSTER_LIST       = 'scontrol show nodes'
-SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
+# SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PD,R,C,PR -r -o "%K %P %u %T %r %S %e %M %B %A"'
+SLURM_JOB_TASKS          = 'squeue -j <JOBID/> -t PENDING,RUNNING,SUSPENDED,COMPLETED,CANCELLED,FAILED,TIMEOUT,NODE_FAIL,PREEMPTED,BOOT_FAIL,DEADLINE,OUT_OF_MEMORY,COMPLETING,CONFIGURING,RESIZING,REVOKED,SPECIAL_EXIT -r -o "%K %P %u %T %r %S %e %M %B %A"'
 SLURM_NODES_DETAILS      = 'scontrol -o show nodes <NODES/>'
 SLURM_UPDATE_JOB         = "scontrol update job=<JOBID/> "
 
@@ -230,33 +231,6 @@ def get_nodes_info(node=None, reverse_order=False):
     """ Get details about nodes states from scontrol show node command.
         Terribly unpleasent due to varying keys and syntax.
     """
-    __filters = ['NodeName', 'CPUAlloc', 'RealMemory', 'AllocMem', 'CPUTot',
-                'State', 'TmpDisk', 'Reason', 'FreeMem', 'CPULoad', 'Features']
-
-    def parse_scontrolShowNode_output_n(output):
-        items = output.split()
-        machine = []
-        cluster = []
-        header  = {}
-        _headers = []
-        for item in items:
-            if item.startswith("NodeName"):
-                cluster.append(machine)
-                machine = []
-            splitter = item.split("=")
-            if len(splitter) >= 2:
-                key, value = splitter
-                if key not in __filters: 
-                    continue
-                if key not in _headers:
-                    _headers += [key]
-                    header[len(header)] = key
-            else:
-                value = splitter
-            machine.append(value)
-        return cluster, header
-        
-
     def parse_scontrolShowNode_output(output):
             nodes = output.split("\n\n")
             data   = []
@@ -278,8 +252,6 @@ def get_nodes_info(node=None, reverse_order=False):
                 d_   = OrderedDict()
                 for item in items:
                     var = item.split("=")
-                    if var[0] not in __filters:
-                        continue
                     name, var = var[0], item[len(var[0])+1:]
                     if name == 'NodeName':
                         hostname = var
@@ -324,14 +296,11 @@ def get_nodes_info(node=None, reverse_order=False):
 
     data, err = get_std_output(SLURM_CLUSTER_LIST)
     if data:
-        _data, header = parse_scontrolShowNode_output_n(data)
-        # print _data
         data, head, _dict = parse_scontrolShowNode_output(data)
         data, head = dict_to_list(_dict)
         header     = OrderedDict()
         for item in head:
             header[head.index(item)] = item
-        # print data
         return data, header
     return  None, None
 

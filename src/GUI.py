@@ -1,5 +1,5 @@
 # System:
-import os, sys, time, logging
+import os, sys, time
 
 #PyQt4:
 from PyQt4.QtCore  import *
@@ -14,8 +14,6 @@ import callbacks
 import tokens, delegates
 import structured, utilities, views
 from constants import *
-
-from plugin import PluginType
 
 #Google charts:
 #from pygooglechart import *
@@ -52,14 +50,9 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.setupRunningTab() 
         self.splashMessage("Setup History Tab...")
         self.setupHistoryTab()
+
         self.splashMessage("Setup Machines Tab...")
-        
-        for plugin in self.tab_manager.plugins:
-            self.splashMessage("Setting up %s" % plugin.name)
-            if plugin.type == PluginType.LeftTab:
-                plugin.start(self.left_tab_widget)
-            elif plugin.type == PluginType.RightTab:
-                plugin.start(self.right_tab_widget)
+        self.setupMachinesTab()
 
         self.splashMessage("Setup Task Detail Tab...")
         self.setupJobDetailTab()
@@ -67,8 +60,8 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.setupTaskStdTab()
         self.splashMessage("Setup Image Tab...")
         self.setupImageTab()
-        # self.splashMessage("Setup Statistics Tab...")
-        # self.setupStatisticsTab()
+        #self.splashMessage("Setup Statistics Tab...")
+        #self.setupStatisticsTab()
 
         # Docks? (do we need them here):
         dock_left = QtGui.QDockWidget(self)
@@ -97,7 +90,7 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         self.exit_action = QtGui.QAction(QtGui.QIcon(icon), 'Exit.', self)
         self.exit_action.setShortcut('Ctrl+E')
         self.exit_action.setStatusTip('Exit application.')
-        # self.exit_action.triggered.connect(QtGui.qApp.quit)
+        self.exit_action.triggered.connect(QtGui.qApp.quit)
         self.toolbar.addAction(self.exit_action) 
 
   
@@ -214,8 +207,26 @@ class HarmMainWindowGUI(callbacks.HarmMainWindowCallbacks):
         
     def setupMachinesTab(self):
         '''Current status of a renderfarm as presented by qhost.'''
+        #Machines (Left Tabs):
+        self.machine_tab   = QtGui.QWidget()
+        self.machine_view = views.MachineView(context)
+        context.views['machine_view'] = self.machine_view
+       
+        # Combo box for job views:
+        self.machine_view_combo   = QtGui.QComboBox()
+        self.machine_view_combo.addItems(['List View','Tree View'])
 
-        self.machine_tab = machines.MachinesTab(self.left_tab_widget)
+        self.left_tab_widget.addTab(self.machine_tab, "Machines")
+        machine_tab_vbox = QtGui.QVBoxLayout(self.machine_tab)
+        machine_tab_vbox.addWidget(self.machine_view_combo)
+        machine_tab_vbox.addWidget(self.machine_view)
+
+        # Tree machine view setup:
+        #self.machine_tree_view = SGETreeView2(os.popen(SGE_CLUSTER_LIST))
+        #self.machine_tree_view.setItemDelegate(self.machines_delagate)
+        #machine_tab_vbox.addWidget(self.machine_tree_view)
+        #self.machine_tree_view.setAlternatingRowColors(1)
+        #self.machine_tree_view.hide()
 
     def setupJobDetailTab(self):
         '''Presents details of particular job (selected in either Jobs or Tasks View).

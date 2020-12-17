@@ -204,12 +204,14 @@ class JobsContextMenu(QMenu, ContextMenuBase):
             self.context.GUI.message("Can't find viewer app in PATH. Trying RV in rez subshell...")
 
         package = ['rv']
-        command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path.replace("*", "#"))
-        pid = utilities.run_rez_shell(command, package)
+
+        # For an unknow reason rv can't reach to Xserver from subshell although for years it could
+        # command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path.replace("*", "#"))
+        # pid = utilities.run_rez_shell(command, package)
+        command = ["rez-env", "rv", "--", "rv", picture_path.replace("*", "#")]
+        pid = subprocess.Popen(command, shell=False)
         if pid:
             return
-
-
 
 
 #####################################################################
@@ -307,11 +309,13 @@ class TasksContextMenu(QMenu, ContextMenuBase):
             self.context.GUI.message("Can't find viewer app in PATH. Trying RV in rez subshell...")
 
         package = ['rv']
-        command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path.replace("*", "#"))
-        pid = utilities.run_rez_shell(command, package)
+        # For an unknow reason rv can't reach to Xserver from subshell although for years it could
+        # command = "export HOME=%s; export DISPLAY=:0; rv %s" % (os.getenv("HOME"), picture_path.replace("*", "#"))
+        # pid = utilities.run_rez_shell(command, package)
+        command = ["rez-env", "rv", "--", "rv", picture_path.replace("*", "#")]
+        pid = subprocess.Popen(command, shell=False)
         if pid:
             return
-
 
 
     def callback_show_in_folder(self):

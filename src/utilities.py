@@ -1,6 +1,5 @@
 import os, sys
 from ordereddict import OrderedDict
-from PyQt4.QtGui import QApplication
 
 REZ_FOUND = False
 
@@ -445,11 +444,5 @@ def which(program):
                     return candidate
 
     return None
-
-
-def get_main_window():
-    window = [x for x in QApplication.topLevelWidgets() \
-            if x.__class__.__name__ == "HarmMainWindow"][0]
-    return window
 
 
